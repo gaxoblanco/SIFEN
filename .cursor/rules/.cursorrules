@@ -1,0 +1,301 @@
+# .cursorrules - Sistema de Facturación Electrónica Paraguay (SIFEN)
+
+## PROJECT CONTEXT
+Este proyecto desarrolla un software SaaS para emisión de facturas electrónicas en Paraguay.
+Arquitectura y pasos detallados están en: ./documents/hoja_de_ruta.pdf
+
+## STACK TECNOLÓGICO
+- Backend: Python (FastAPI)
+- Frontend: React con TypeScript + Vite
+- react-hook-form, axios, react-router-dom, zod, tailwindcss
+- Base de datos: PostgreSQL
+- Queue: Redis/RabbitMQ
+- Contenedores: Docker
+- Testing: pytest, jest
+- Estilos: TailwindCSS + sass
+- Accesibilidad: Enfoque en WCAG 2.1
+
+## REGLAS DE DESARROLLO
+
+### CÓDIGO GENERAL
+- Usar TypeScript estricto, evitar `any`
+- Nombres de variables/funciones en español para dominio de negocio
+- Comentarios técnicos en inglés, documentación de negocio en español
+- Seguir principios SOLID y Clean Architecture
+- Priorizar legibilidad sobre brevedad
+- Implementar manejo de errores exhaustivo
+
+### BACKEND ESPECÍFICO
+- Usar FastAPI con Pydantic para validaciones
+- Implementar logging estructurado (JSON) con niveles apropiados
+- Cada endpoint debe tener: validación, autorización, logging, manejo de errores
+- Separar lógica de negocio de controladores (services pattern)
+- DTOs explícitos para requests/responses
+- Documentación OpenAPI automática
+- Usar async/await para operaciones I/O
+
+### SIFEN ESPECÍFICO
+- XML: Validar contra esquemas XSD antes de envío
+- Certificados: Nunca hardcodear, usar variables de entorno
+- CSC: Manejo seguro, rotación automática
+- Errores SIFEN: Mapear códigos a mensajes user-friendly
+- Retry: Implementar backoff exponencial para requests a SIFEN
+- Logging: Registrar todos los requests/responses (sin datos sensibles)
+
+### FRONTEND ESPECÍFICO
+- Componentes pequeños y reutilizables
+- Estado global solo para datos compartidos
+- Validación de formularios en tiempo real
+- Feedback visual para operaciones asíncronas
+- Manejo de errores user-friendly
+- Accesibilidad: labels, ARIA, keyboard navigation
+- Responsive design mobile-first
+
+### ACCESIBILIDAD
+- Semantic HTML siempre
+- Contraste mínimo 4.5:1
+- Focus indicators visibles
+- Screen reader compatible
+- Keyboard navigation completa
+- ARIA labels para elementos dinámicos
+
+### SEGURIDAD
+- Nunca loggear datos sensibles (RUC, certificados, passwords)
+- Sanitizar inputs antes de procesamiento
+- Rate limiting en endpoints públicos
+- Validación server-side siempre
+- HTTPS obligatorio en producción
+- Headers de seguridad apropiados
+
+### DESARROLLO MODULAR Y TESTING
+### MODULARIDAD OBLIGATORIA
+- Cada módulo debe ser independiente y testeable
+- Una responsabilidad por módulo (Single Responsibility)
+- Interfaces claras entre módulos
+- Dependencias explícitas (no imports ocultos)
+- Cada módulo debe tener su propio README.md
+- Configuración por módulo en archivos separados
+
+### TESTING POR MÓDULO
+- **CADA módulo debe tener su carpeta de tests**
+- Unit tests: Mínimo 80% cobertura POR MÓDULO
+- Integration tests entre módulos relacionados
+- Mocks para dependencias externas
+- Test data factories para objetos complejos
+- Tests de contratos entre módulos
+- **Ejecutar tests después de cada cambio significativo**
+
+### ESTRUCTURA DE TESTING MODULAR
+```
+backend/app/services/xml_generator/
+├── __init__.py
+├── xml_generator.py
+├── validators.py
+├── templates/
+├── tests/                    # ← Tests específicos del módulo
+│   ├── test_xml_generator.py
+│   ├── test_validators.py
+│   ├── fixtures/
+│   └── mocks/
+└── README.md                 # ← Documentación del módulo
+```
+
+### DEBUGGING INCREMENTAL
+- Logging detallado por módulo con prefijos
+- Tests unitarios que se ejecuten rápido (<100ms cada uno)
+- Fixtures de datos para testing rápido
+- Mocks de servicios externos para testing aislado
+- Puntos de breakpoint estratégicos en código crítico
+- Validación de entrada/salida en cada función pública
+
+### BASE DE DATOS
+- Migraciones versionadas (Alembic)
+- Índices apropiados para queries frecuentes
+- Constraints de integridad referencial
+- Soft deletes para datos de negocio
+- Auditoría para cambios críticos
+- Backup automático configurado
+
+### PATRONES ESPECÍFICOS
+- Repository pattern para acceso a datos
+- Service layer para lógica de negocio
+- Factory pattern para generación de XML
+- Observer pattern para eventos de documentos
+- Strategy pattern para diferentes tipos de documentos
+
+## ESTRUCTURA DE ARCHIVOS
+Seguir la estructura definida en hoja_de_ruta.pdf:
+```
+backend/app/services/xml_generator/    # Generación XML SIFEN
+backend/app/services/digital_sign/     # Firma digital
+backend/app/services/sifen_client/     # Integración SIFEN
+backend/app/services/pdf_generator/    # Generación KuDE
+shared/types/                          # TypeScript definitions
+shared/constants/sifen_codes.py        # Códigos SIFEN
+```
+
+## NOMENCLATURA
+- Archivos: snake_case
+- Clases: PascalCase
+- Funciones/variables: camelCase (TS) / snake_case (Python)
+- Constantes: UPPER_SNAKE_CASE
+- Componentes React: PascalCase
+- Tipos TypeScript: PascalCase con sufijo Type/Interface
+
+## DOCUMENTOS RELEVANTES Y REFERENCIAS
+### CARPETA DE DOCUMENTACIÓN
+Mantener actualizada la carpeta `./documents/` con:
+- `architecture.md` - Organización de las carpetas
+- `hoja_de_ruta_optimizada.md` - Arquitectura y pasos del proyecto
+- `manual_tecnico_v150.pdf` - Manual oficial SIFEN
+- `sifen_error_codes.json` - Códigos de error oficiales // archivo pendiente
+- `xml_examples/` - Ejemplos válidos de XML por tipo de documento // archivo pendiente
+- `certificate_setup.md` - Guía de configuración de certificados // archivo pendiente
+- `api_endpoints.md` - Documentación de endpoints SIFEN // archivo pendiente
+- `business_rules.md` - Reglas de negocio específicas Paraguay // archivo pendiente
+- `testing_scenarios.md` - Casos de prueba críticos // archivo pendiente
+- `deployment_checklist.md` - Lista verificación para deploy // archivo pendiente
+- `troubleshooting.md` - Problemas comunes y soluciones // archivo pendiente
+
+### REFERENCIAS SIEMPRE DISPONIBLES
+Cursor debe consultar estos documentos cuando:
+- Genere código relacionado con XML SIFEN
+- Implemente validaciones de negocio
+- Maneje errores específicos de SIFEN
+- Cree tests de integración
+- Documente APIs o servicios
+
+### ACTUALIZACIÓN DE DOCUMENTOS
+- Agregar nuevos hallazgos a troubleshooting.md
+- Actualizar ejemplos cuando se encuentren casos válidos
+- Documentar decisiones arquitectónicas importantes
+- Mantener registro de cambios en APIs externas
+
+## MANEJO DE ERRORES
+```python
+# Python - Errores custom para dominio
+class SifenError(Exception):
+    def __init__(self, codigo: str, mensaje: str, detalle: str = None):
+        self.codigo = codigo
+        self.mensaje = mensaje
+        self.detalle = detalle
+
+# TypeScript - Union types para resultados
+type Result<T> = { success: true; data: T } | { success: false; error: string };
+```
+
+## PRIORIDADES DE IMPLEMENTACIÓN
+1. **CRÍTICO**: Generación XML válida según Manual Técnico v150
+2. **ALTO**: Firma digital segura y confiable
+3. **ALTO**: Integración robusta con SIFEN
+4. **MEDIO**: UI/UX intuitiva y accesible
+5. **BAJO**: Features avanzadas de reportes
+
+## VALIDACIONES ESPECÍFICAS
+- XML Schema validation antes de firma
+- Certificado digital válido y vigente
+- CSC format y longitud correcta
+- RUC format con dígito verificador
+- Fechas en formato ISO 8601
+- Montos con precisión decimal correcta
+
+## LOGGING ESTRUCTURADO
+```python
+import structlog
+logger = structlog.get_logger()
+
+# Ejemplo de log para SIFEN
+logger.info(
+    "sifen_request_sent",
+    documento_tipo="factura",
+    ruc_emisor="12345678-9",
+    cdc="01800695631001001000000612021112917595714694",
+    response_time_ms=1250
+)
+```
+
+## PERFORMANCE
+- Cache de consultas RUC frecuentes
+- Batch processing para múltiples documentos
+- Connection pooling para DB
+- Lazy loading en frontend
+- Compresión gzip para responses grandes
+- CDN para assets estáticos
+
+## PREGUNTA ANTES DE:
+- Cambiar estructura de base de datos
+- Modificar formato de XML generado
+- Alterar flujo de firma digital
+- Cambiar integración SIFEN
+- Modificar validaciones críticas
+
+## WORKFLOW DE DESARROLLO MODULAR
+### ANTES DE ESCRIBIR CÓDIGO
+1. **Definir interfaz del módulo** (inputs/outputs claros)
+2. **Escribir tests fallidos primero** (TDD approach)
+3. **Crear mocks para dependencias externas**
+4. **Verificar que el módulo sea testeable en aislamiento**
+
+### DESPUÉS DE ESCRIBIR CÓDIGO
+1. **Ejecutar tests del módulo específico**
+2. **Verificar cobertura de tests (>80%)**
+3. **Ejecutar tests de integración relacionados**
+4. **Actualizar documentación del módulo**
+5. **Verificar que no rompió otros módulos**
+
+### CRITERIOS DE MÓDULO COMPLETO
+- [ ] Tests unitarios pasando (>80% cobertura)
+- [ ] Tests de integración pasando
+- [ ] Documentación README.md actualizada
+- [ ] Ejemplos de uso funcionando
+- [ ] Error handling implementado
+- [ ] Logging apropiado configurado
+- [ ] Sin dependencias circulares
+
+## DOCUMENTACIÓN POR MÓDULO
+Cada módulo debe tener README.md con:
+- **Propósito**: Qué hace el módulo
+- **API**: Funciones/clases públicas
+- **Dependencias**: Qué necesita para funcionar
+- **Ejemplos**: Código de uso básico
+- **Tests**: Cómo ejecutar tests específicos
+- **Troubleshooting**: Problemas comunes
+
+### TEMPLATE README MÓDULO
+```markdown
+# Módulo: [Nombre]
+
+## Propósito
+Breve descripción de qué hace este módulo.
+
+## API Pública
+- `funcion_principal()` - Descripción
+- `clase_principal` - Descripción
+
+## Dependencias
+- Externa: requests, lxml
+- Interna: shared.types, shared.validators
+
+## Uso Básico
+```python
+from .modulo import funcion_principal
+resultado = funcion_principal(datos)
+```
+
+## Tests
+```bash
+pytest backend/app/services/modulo/tests/ -v
+```
+
+## Troubleshooting
+- Error común 1: Solución
+- Error común 2: Solución
+```
+
+## NUNCA:
+- Hardcodear certificados o claves
+- Hacer requests sin timeout
+- Ignorar errores de SIFEN
+- Modificar XML después de firma
+- Deployar sin tests pasando
+- Commitear credenciales o secrets
