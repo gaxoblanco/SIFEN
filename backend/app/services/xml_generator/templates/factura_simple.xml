@@ -13,6 +13,9 @@
                 <dPunExp>1</dPunExp>
                 <dNumID>{{ numero_documento }}</dNumID>
                 <dTipoID>1</dTipoID>
+                <dTipoEmi>1</dTipoEmi>
+                <dCodSeg>1</dCodSeg>
+                <dFecFirma>{{ fecha_emision }}</dFecFirma>
             </dDatG>
             <dEmi>
                 <iTipID>1</iTipID>
@@ -40,16 +43,25 @@
                 <dTelRec>{{ receptor.telefono }}</dTelRec>
                 <dEmailRec>{{ receptor.email }}</dEmailRec>
             </dRec>
-            {% for item in items %}
-            <gItem>
-                <dCodPro>{{ item.codigo }}</dCodPro>
-                <dDesPro>{{ item.descripcion }}</dDesPro>
-                <dCantPro>{{ item.cantidad }}</dCantPro>
-                <dPreUniPro>{{ item.precio_unitario }}</dPreUniPro>
-                <dTotPro>{{ item.monto_total }}</dTotPro>
-                <dPorIVA>{{ item.iva }}</dPorIVA>
-            </gItem>
-            {% endfor %}
+            <gOpeCom>
+                <gCamFE>
+                    <iMon>{{ moneda }}</iMon>
+                    {% if tipo_cambio %}
+                    <dMonTiCam>{{ tipo_cambio }}</dMonTiCam>
+                    {% endif %}
+                </gCamFE>
+                {% for item in items %}
+                <gItem>
+                    <dCodPro>{{ item.codigo }}</dCodPro>
+                    <dDesPro>{{ item.descripcion }}</dDesPro>
+                    <dCantPro>{{ item.cantidad }}</dCantPro>
+                    <dPreUniPro>{{ item.precio_unitario }}</dPreUniPro>
+                    <dTotPro>{{ item.monto_total }}</dTotPro>
+                    <dPorIVA>{{ item.iva }}</dPorIVA>
+                    <dBasGra>{{ item.monto_total }}</dBasGra>
+                </gItem>
+                {% endfor %}
+            </gOpeCom>
             <dTot>
                 <dTotGralOpe>{{ total_general }}</dTotGralOpe>
                 <dTotGralOpe>{{ total_gravada }}</dTotGralOpe>

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import List, Optional
 from decimal import Decimal
+import re
 
 
 class Contribuyente(BaseModel):
@@ -20,6 +21,27 @@ class Contribuyente(BaseModel):
     telefono: str = Field(..., min_length=1, max_length=20)
     email: str = Field(..., min_length=1, max_length=100)
 
+    @field_validator('ruc')
+    def validate_ruc(cls, v):
+        """Valida formato RUC"""
+        if not re.match(r'^\d{8,9}$', v):
+            raise ValueError('RUC debe contener solo números (8-9 dígitos)')
+        return v
+
+    @field_validator('dv')
+    def validate_dv(cls, v):
+        """Valida dígito verificador"""
+        if not re.match(r'^\d$', v):
+            raise ValueError('DV debe ser un dígito')
+        return v
+
+    @field_validator('email')
+    def validate_email(cls, v):
+        """Valida formato email"""
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
+            raise ValueError('Email inválido')
+        return v
+
 
 class ItemFactura(BaseModel):
     """Item de la factura"""
@@ -29,6 +51,16 @@ class ItemFactura(BaseModel):
     precio_unitario: Decimal = Field(..., gt=0)
     iva: Decimal = Field(..., ge=0, le=100)
     monto_total: Decimal = Field(..., gt=0)
+
+    @field_validator('monto_total')
+    def validate_monto_total(cls, v, info):
+        """Valida que el monto total sea correcto"""
+        if 'cantidad' in info.data and 'precio_unitario' in info.data:
+            expected = info.data['cantidad'] * info.data['precio_unitario']
+            if abs(v - expected) > Decimal('0.01'):  # Tolerancia para redondeo
+                raise ValueError(
+                    'Monto total no coincide con cantidad * precio unitario')
+        return v
 
 
 class FacturaSimple(BaseModel):
@@ -48,13 +80,34 @@ class FacturaSimple(BaseModel):
     tipo_cambio: Optional[Decimal] = Field(None, gt=0)  # Solo si moneda es USD
 
     @field_validator('total_iva', 'total_gravada', 'total_general')
-    def validate_negative_amounts(cls, v, values):
+    def validate_negative_amounts(cls, v, info):
         """Permite montos negativos solo para notas de crédito (tipo 3)"""
-        tipo_doc = values.data.get('tipo_documento') if hasattr(
-            values, 'data') else values.get('tipo_documento')
+        tipo_doc = info.data.get('tipo_documento')
         if tipo_doc == '3':
             return v  # Permite cualquier valor para notas de crédito
         if v < 0:
             raise ValueError(
                 'Los montos no pueden ser negativos para este tipo de documento')
+        return v
+
+    @field_validator('tipo_cambio')
+    def validate_tipo_cambio(cls, v, info):
+        """Valida que tipo_cambio esté presente solo si moneda es USD"""
+        moneda = info.data.get('moneda')
+        if moneda == 'USD' and v is None:
+            raise ValueError('tipo_cambio es requerido cuando moneda es USD')
+        if moneda == 'PYG' and v is not None:
+            raise ValueError(
+                'tipo_cambio no debe especificarse cuando moneda es PYG')
+        return v
+
+    @field_validator('total_general')
+    def validate_total_general(cls, v, info):
+        """Valida que el total general sea la suma correcta"""
+        if 'total_gravada' in info.data and 'total_exenta' in info.data and 'total_iva' in info.data:
+            expected = info.data['total_gravada'] + \
+                info.data['total_exenta'] + info.data['total_iva']
+            if abs(v - expected) > Decimal('0.01'):  # Tolerancia para redondeo
+                raise ValueError(
+                    'Total general no coincide con la suma de los subtotales')
         return v
