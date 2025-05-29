@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DE version="1.0">
+    <gDE>
+        <dVer>1.5.0</dVer>
+        <dFecF>{{ fecha_emision }}</dFecF>
+        <gOpeDE>
+            <iTipEmi>1</iTipEmi>
+            <cOpe>1</cOpe>
+            <iTDE>{{ tipo_documento }}</iTDE>
+            <dNumID>{{ numero_documento }}</dNumID>
+        </gOpeDE>
+        <gDatGralOpe>
+            <iNatRec>1</iNatRec>
+            <cMoneO>{{ moneda }}</cMoneO>
+            {% if tipo_cambio %}
+            <dDesTiCam>{{ tipo_cambio }}</dDesTiCam>
+            {% endif %}
+        </gDatGralOpe>
+        <gDatRec>
+            <iTipIDRec>1</iTipIDRec>
+            <dNumIDRec>{{ receptor.ruc }}</dNumIDRec>
+            <dDVRec>{{ receptor.dv }}</dDVRec>
+            <dNomRec>{{ receptor.razon_social }}</dNomRec>
+            <dDirRec>{{ receptor.direccion }}</dDirRec>
+            {% if receptor.telefono %}
+            <dTelRec>{{ receptor.telefono }}</dTelRec>
+            {% endif %}
+            {% if receptor.email %}
+            <dEmailRec>{{ receptor.email }}</dEmailRec>
+            {% endif %}
+        </gDatRec>
+        <gDatGral>
+            <iTipEmi>1</iTipEmi>
+            <dNumID>{{ emisor.ruc }}</dNumID>
+            <dDV>{{ emisor.dv }}</dDV>
+            <dNomEmi>{{ emisor.razon_social }}</dNomEmi>
+            <dDirEmi>{{ emisor.direccion }}</dDirEmi>
+            {% if emisor.telefono %}
+            <dTelEmi>{{ emisor.telefono }}</dTelEmi>
+            {% endif %}
+            {% if emisor.email %}
+            <dEmailEmi>{{ emisor.email }}</dEmailEmi>
+            {% endif %}
+        </gDatGral>
+        <gTotSub>
+            <dSubExe>{{ total_exenta }}</dSubExe>
+            <dSubGra>{{ total_gravada }}</dSubGra>
+            <dSubIVa>{{ total_iva }}</dSubIVa>
+            <dTotOpe>{{ total_general }}</dTotOpe>
+        </gTotSub>
+        <gCamFE>
+            {% for item in items %}
+            <gCamItem>
+                <cUniMed>1</cUniMed>
+                <dDesProSer>{{ item.descripcion }}</dDesProSer>
+                <dCantProSer>{{ item.cantidad }}</dCantProSer>
+                <dPUniProSer>{{ item.precio_unitario }}</dPUniProSer>
+                <dTotBruOpeItem>{{ item.monto_total }}</dTotBruOpeItem>
+                <gValorItem>
+                    <dPUniProSer>{{ item.precio_unitario }}</dPUniProSer>
+                    <dTotBruOpeItem>{{ item.monto_total }}</dTotBruOpeItem>
+                </gValorItem>
+                <gValorRestaItem>
+                    <dDescItem>0</dDescItem>
+                    <dPorcDescItem>0</dPorcDescItem>
+                </gValorRestaItem>
+                <gValorAgreItem>
+                    <dAntPreUniItm>0</dAntPreUniItm>
+                    <dAntGloPreUniItm>0</dAntGloPreUniItm>
+                </gValorAgreItem>
+            </gCamItem>
+            {% endfor %}
+        </gCamFE>
+    </gDE>
+</DE> 
