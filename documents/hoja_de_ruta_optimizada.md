@@ -61,58 +61,110 @@ bash
     Crear .env.example con variables necesarias
     VALIDAR: Estructura creada correctamente
 
-🎯 Paso 1.3: Backend Base
+🎯 Paso 1.4: Base de Datos PostgreSQL
+
+bash
+
+# CURSOR: Configurar PostgreSQL ANTES de crear modelos
+# Opción 1: PostgreSQL local
+# 1. Instalar PostgreSQL localmente
+# 2. Crear base de datos de desarrollo
+# 3. Configurar variables de entorno
+# 
+# Opción 2: PostgreSQL con Docker (RECOMENDADO)
+# 1. docker-compose.yml solo con PostgreSQL
+# 2. Iniciar BD y verificar conexión
+# 3. Configurar variables de entorno
+
+    OPCIÓN A - Local: Instalar PostgreSQL y crear DB sifen_dev
+    OPCIÓN B - Docker: PostgreSQL container funcionando
+    Configurar variables entorno en .env:
+
+    bash
+
+    DATABASE_URL=postgresql://user:password@localhost:5432/sifen_dev
+    POSTGRES_USER=sifen_user
+    POSTGRES_PASSWORD=sifen_password
+    POSTGRES_DB=sifen_dev
+
+    TEST: Conexión a PostgreSQL exitosa
+    TEST: Crear/drop tabla de prueba funciona
+    Instalar dependencias BD: pip install psycopg2-binary sqlalchemy
+
+🎯 Paso 1.5: Backend Base con DB
 
 python
 
-# CURSOR: IMPORTANTE - Activar venv antes de instalar paquetes
-# 1. source venv/bin/activate (o equivalent en Windows)
-# 2. pip install fastapi uvicorn sqlalchemy psycopg2-binary
-# 3. backend/app/main.py - FastAPI básico
-# 4. backend/app/core/config.py - Configuración
-# 5. backend/app/core/database.py - Conexión BD
-# 6. backend/requirements.txt - Generar con pip freeze
+# CURSOR: IMPORTANTE - Venv activo y PostgreSQL funcionando
+# 1. backend/app/core/database.py - Conexión SQLAlchemy
+# 2. backend/app/main.py - FastAPI con conexión DB
+# 3. backend/app/core/config.py - Config con DB_URL
+# 4. Verificar conexión en endpoint /health
 
     ACTIVAR VENV PRIMERO: Verificar prompt muestra (venv)
-    Instalar dependencias básicas: FastAPI, SQLAlchemy, etc.
-    FastAPI app básica con endpoint /health
-    Configuración de variables de entorno
-    Conexión PostgreSQL básica (sin Docker primero)
+    Instalar dependencias: pip install fastapi uvicorn sqlalchemy psycopg2-binary
+    database.py con SQLAlchemy engine y SessionLocal
+    config.py carga DATABASE_URL desde .env
+    FastAPI app básica con endpoint /health que prueba DB
+    TEST: python backend/app/main.py inicia sin errores de DB
+    TEST: curl localhost:8000/health responde OK con status DB
     Generar requirements.txt con pip freeze > requirements.txt
-    TEST: python backend/app/main.py inicia sin errores
-    TEST: curl localhost:8000/health responde OK
 
-🎯 Paso 1.4: Docker Setup
+🎯 Paso 1.6: Docker Setup Completo
 
 dockerfile
 
-# CURSOR: Crear Dockerfiles y docker-compose
+# CURSOR: Docker-compose con PostgreSQL + Backend
 # IMPORTANTE: El Dockerfile debe copiar requirements.txt y hacer pip install
-# 1. docker/backend/Dockerfile - Usar venv o instalar global
-# 2. docker-compose.yml (backend + postgres + redis)  
+# 1. docker/backend/Dockerfile - Usar requirements.txt
+# 2. docker-compose.yml (backend + postgres + redis)
 # 3. .dockerignore - Excluir venv/ local
+# 4. docker-compose.override.yml - Config desarrollo
 
-    Docker backend funcionando (puede usar requirements.txt)
-    Docker-compose con servicios básicos
+    docker-compose.yml con servicios: postgres, backend, redis
+    PostgreSQL con volumen persistente para desarrollo
+    Backend container usa requirements.txt (no venv local)
+    Variables de entorno configuradas para containers
     .dockerignore configurado (excluir venv/, __pycache__/)
-    TEST: docker-compose up funciona sin errores
+    TEST: docker-compose up -d postgres funciona
+    TEST: docker-compose up backend conecta a PostgreSQL
     TEST: Backend en container responde en puerto configurado
 
+🚨 CHECKPOINT BASE: PostgreSQL + FastAPI + Docker funcionando antes de continuar
 📍 Semana 2: Modelos Base y Autenticación
-🎯 Paso 2.1: Modelos Base de Datos
+🎯 Paso 2.1: Configuración Alembic
+
+python
+
+# CURSOR: Setup migraciones ANTES de crear modelos
+# 1. pip install alembic
+# 2. alembic init alembic (desde directorio backend/)
+# 3. Configurar alembic.ini con DATABASE_URL
+# 4. Configurar alembic/env.py con Base metadata
+
+    Instalar Alembic: pip install alembic
+    Inicializar Alembic: alembic init alembic
+    Configurar alembic.ini con URL de BD
+    Configurar alembic/env.py para auto-imports
+    TEST: alembic current funciona sin errores
+    VALIDAR: Estructura Alembic creada correctamente
+
+🎯 Paso 2.2: Modelos Base de Datos
 
 python
 
 # CURSOR: Crear modelos en este orden:
-# 1. backend/app/models/base.py - Modelo base
+# 1. backend/app/models/base.py - Modelo base con timestamps
 # 2. backend/app/models/user.py - Usuario básico
 # 3. backend/app/models/empresa.py - Empresa/contribuyente
-# 4. Alembic migration inicial
+# 4. Primera migración Alembic
 
+    Modelo base con: id, created_at, updated_at
     Modelo Usuario con autenticación JWT
-    Modelo Empresa (contribuyente)
-    Migración Alembic funcionando
-    TEST: Crear usuario y empresa via DB
+    Modelo Empresa (contribuyente) con datos fiscales
+    MIGRACIÓN: alembic revision --autogenerate -m "Initial models"
+    TEST: alembic upgrade head ejecuta migración
+    TEST: Tablas creadas en PostgreSQL correctamente
 
 🎯 Paso 2.2: API Autenticación
 

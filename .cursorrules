@@ -8,7 +8,7 @@ Arquitectura y pasos detallados están en: ./documents/hoja_de_ruta.pdf
 - Backend: Python (FastAPI)
 - Frontend: React con TypeScript + Vite
 - react-hook-form, axios, react-router-dom, zod, tailwindcss
-- Base de datos: PostgreSQL
+- Base de datos: chocolatey + PostgreSQL
 - Queue: Redis/RabbitMQ
 - Contenedores: Docker
 - Testing: pytest, jest
