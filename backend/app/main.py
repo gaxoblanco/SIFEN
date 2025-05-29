@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+
+from .core.database import get_db
 
 app = FastAPI(
     title="SIFEN Facturación Electrónica",
@@ -16,6 +20,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
-async def health_check():
-    return {"status": "ok", "version": "0.1.0"} 
+def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        return {"status": "error", "database": str(e)}

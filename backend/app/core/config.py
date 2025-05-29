@@ -1,5 +1,12 @@
 from pydantic_settings import BaseSettings
 from typing import List
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://sifen_user:sifen_password@localhost:5432/sifen_dev")
 
 
 class Settings(BaseSettings):
@@ -8,7 +15,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
 
     # Database
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/sifen_db"
+    DATABASE_URL: str = DATABASE_URL
 
     # JWT
     JWT_SECRET_KEY: str = "your-secret-key"
