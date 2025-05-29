@@ -13,7 +13,8 @@ class XMLGenerator:
         self.env = Environment(
             loader=FileSystemLoader(TEMPLATES_DIR),
             trim_blocks=True,
-            lstrip_blocks=True
+            lstrip_blocks=True,
+            autoescape=True
         )
         self.template = self.env.get_template('factura_simple.xml')
 

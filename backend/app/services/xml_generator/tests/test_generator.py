@@ -14,6 +14,10 @@ def test_generate_simple_invoice_xml():
         dv="9",
         razon_social="Empresa de Prueba S.A.",
         direccion="Av. Test 123",
+        numero_casa="100",
+        codigo_departamento="01",
+        codigo_ciudad="001",
+        descripcion_ciudad="Asunción",
         telefono="021-123456",
         email="test@empresa.com"
     )
@@ -23,6 +27,10 @@ def test_generate_simple_invoice_xml():
         dv="0",
         razon_social="Cliente de Prueba S.A.",
         direccion="Av. Cliente 456",
+        numero_casa="200",
+        codigo_departamento="02",
+        codigo_ciudad="002",
+        descripcion_ciudad="San Lorenzo",
         telefono="021-654321",
         email="test@cliente.com"
     )
@@ -55,11 +63,40 @@ def test_generate_simple_invoice_xml():
     generator = XMLGenerator()
     xml = generator.generate_simple_invoice_xml(factura)
 
-    # Validaciones básicas
+    # Validar contra esquema SIFEN
+    from ..validators import XMLValidator
+    validator = XMLValidator()
+    is_valid, errors = validator.validate_xml(xml)
+    assert is_valid, f"XML inválido: {errors}"
+
+    # Validar estructura básica
     assert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" in xml
-    assert "<DE version=\"1.0\">" in xml
-    assert emisor.ruc in xml
-    assert receptor.ruc in xml
-    assert item.descripcion in xml
-    assert str(item.cantidad) in xml
-    assert str(item.precio_unitario) in xml
+    assert "<rDE xmlns=\"http://ekuatia.set.gov.py/sifen/xsd\" version=\"1.0\">" in xml
+    assert "<DE>" in xml
+    assert "<gDE>" in xml
+
+    # Validar datos del emisor
+    assert f"<dNumID>{emisor.ruc}</dNumID>" in xml
+    assert f"<dDV>{emisor.dv}</dDV>" in xml
+    assert f"<dNomEmi>{emisor.razon_social}</dNomEmi>" in xml
+
+    # Validar datos del receptor
+    assert f"<dNumID>{receptor.ruc}</dNumID>" in xml
+    assert f"<dDV>{receptor.dv}</dDV>" in xml
+    assert f"<dNomRec>{receptor.razon_social}</dNomRec>" in xml
+
+    # Validar items
+    assert "<gItem>" in xml
+    assert f"<dCodPro>{item.codigo}</dCodPro>" in xml
+    assert f"<dDesPro>{item.descripcion}</dDesPro>" in xml
+    assert f"<dCantPro>{item.cantidad}</dCantPro>" in xml
+    assert f"<dPreUniPro>{item.precio_unitario}</dPreUniPro>" in xml
+    assert f"<dTotPro>{item.monto_total}</dTotPro>" in xml
+    assert f"<dPorIVA>{item.iva}</dPorIVA>" in xml
+
+    # Validar totales
+    assert "<dTot>" in xml
+    assert f"<dTotGralOpe>{factura.total_general}</dTotGralOpe>" in xml
+    assert f"<dTotGralOpe>{factura.total_gravada}</dTotGralOpe>" in xml
+    assert f"<dTotGralOpe>{factura.total_exenta}</dTotGralOpe>" in xml
+    assert f"<dTotGralOpe>{factura.total_iva}</dTotGralOpe>" in xml

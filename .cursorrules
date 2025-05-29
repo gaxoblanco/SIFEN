@@ -148,6 +148,7 @@ Mantener actualizada la carpeta `./documents/` con:
 - `architecture.md` - Organización de las carpetas
 - `hoja_de_ruta_optimizada.md` - Arquitectura y pasos del proyecto
 - `manual_tecnico_v150.pdf` - Manual oficial SIFEN
+- `esquemas_XSD.md` - Esquemas XSD SIFEN
 - `sifen_error_codes.json` - Códigos de error oficiales // archivo pendiente
 - `xml_examples/` - Ejemplos válidos de XML por tipo de documento // archivo pendiente
 - `certificate_setup.md` - Guía de configuración de certificados // archivo pendiente

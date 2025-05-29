@@ -40,6 +40,16 @@
                 <dTelRec>{{ receptor.telefono }}</dTelRec>
                 <dEmailRec>{{ receptor.email }}</dEmailRec>
             </dRec>
+            {% for item in items %}
+            <gItem>
+                <dCodPro>{{ item.codigo }}</dCodPro>
+                <dDesPro>{{ item.descripcion }}</dDesPro>
+                <dCantPro>{{ item.cantidad }}</dCantPro>
+                <dPreUniPro>{{ item.precio_unitario }}</dPreUniPro>
+                <dTotPro>{{ item.monto_total }}</dTotPro>
+                <dPorIVA>{{ item.iva }}</dPorIVA>
+            </gItem>
+            {% endfor %}
             <dTot>
                 <dTotGralOpe>{{ total_general }}</dTotGralOpe>
                 <dTotGralOpe>{{ total_gravada }}</dTotGralOpe>

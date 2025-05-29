@@ -30,6 +30,7 @@
             <xs:element name="dDatG" type="tipoDatG"/>
             <xs:element name="dEmi" type="tipoEmi"/>
             <xs:element name="dRec" type="tipoRec"/>
+            <xs:element name="gItem" type="tipoItem" maxOccurs="unbounded"/>
             <xs:element name="dTot" type="tipoTot"/>
         </xs:sequence>
     </xs:complexType>
@@ -85,6 +86,24 @@
             <xs:element name="dDesCiuRec" type="xs:string"/>
             <xs:element name="dTelRec" type="xs:string"/>
             <xs:element name="dEmailRec" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipo para Items/Detalles -->
+    <xs:complexType name="tipoItem">
+        <xs:sequence>
+            <xs:element name="dCodPro" type="xs:string"/>
+            <xs:element name="dDesPro">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="200"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dCantPro" type="xs:decimal"/>
+            <xs:element name="dPreUniPro" type="xs:decimal"/>
+            <xs:element name="dTotPro" type="xs:decimal"/>
+            <xs:element name="dPorIVA" type="xs:decimal"/>
         </xs:sequence>
     </xs:complexType>
 
