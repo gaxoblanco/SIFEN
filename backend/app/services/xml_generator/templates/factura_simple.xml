@@ -1,75 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DE version="1.0">
-    <gDE>
-        <dVer>1.5.0</dVer>
-        <dFecF>{{ fecha_emision }}</dFecF>
-        <gOpeDE>
-            <iTipEmi>1</iTipEmi>
-            <cOpe>1</cOpe>
-            <iTDE>{{ tipo_documento }}</iTDE>
-            <dNumID>{{ numero_documento }}</dNumID>
-        </gOpeDE>
-        <gDatGralOpe>
-            <iNatRec>1</iNatRec>
-            <cMoneO>{{ moneda }}</cMoneO>
-            {% if tipo_cambio %}
-            <dDesTiCam>{{ tipo_cambio }}</dDesTiCam>
-            {% endif %}
-        </gDatGralOpe>
-        <gDatRec>
-            <iTipIDRec>1</iTipIDRec>
-            <dNumIDRec>{{ receptor.ruc }}</dNumIDRec>
-            <dDVRec>{{ receptor.dv }}</dDVRec>
-            <dNomRec>{{ receptor.razon_social }}</dNomRec>
-            <dDirRec>{{ receptor.direccion }}</dDirRec>
-            {% if receptor.telefono %}
-            <dTelRec>{{ receptor.telefono }}</dTelRec>
-            {% endif %}
-            {% if receptor.email %}
-            <dEmailRec>{{ receptor.email }}</dEmailRec>
-            {% endif %}
-        </gDatRec>
-        <gDatGral>
-            <iTipEmi>1</iTipEmi>
-            <dNumID>{{ emisor.ruc }}</dNumID>
-            <dDV>{{ emisor.dv }}</dDV>
-            <dNomEmi>{{ emisor.razon_social }}</dNomEmi>
-            <dDirEmi>{{ emisor.direccion }}</dDirEmi>
-            {% if emisor.telefono %}
-            <dTelEmi>{{ emisor.telefono }}</dTelEmi>
-            {% endif %}
-            {% if emisor.email %}
-            <dEmailEmi>{{ emisor.email }}</dEmailEmi>
-            {% endif %}
-        </gDatGral>
-        <gTotSub>
-            <dSubExe>{{ total_exenta }}</dSubExe>
-            <dSubGra>{{ total_gravada }}</dSubGra>
-            <dSubIVa>{{ total_iva }}</dSubIVa>
-            <dTotOpe>{{ total_general }}</dTotOpe>
-        </gTotSub>
-        <gCamFE>
-            {% for item in items %}
-            <gCamItem>
-                <cUniMed>1</cUniMed>
-                <dDesProSer>{{ item.descripcion }}</dDesProSer>
-                <dCantProSer>{{ item.cantidad }}</dCantProSer>
-                <dPUniProSer>{{ item.precio_unitario }}</dPUniProSer>
-                <dTotBruOpeItem>{{ item.monto_total }}</dTotBruOpeItem>
-                <gValorItem>
-                    <dPUniProSer>{{ item.precio_unitario }}</dPUniProSer>
-                    <dTotBruOpeItem>{{ item.monto_total }}</dTotBruOpeItem>
-                </gValorItem>
-                <gValorRestaItem>
-                    <dDescItem>0</dDescItem>
-                    <dPorcDescItem>0</dPorcDescItem>
-                </gValorRestaItem>
-                <gValorAgreItem>
-                    <dAntPreUniItm>0</dAntPreUniItm>
-                    <dAntGloPreUniItm>0</dAntGloPreUniItm>
-                </gValorAgreItem>
-            </gCamItem>
-            {% endfor %}
-        </gCamFE>
-    </gDE>
-</DE> 
+<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd" version="1.0">
+    <DE>
+        <gDE>
+            <dID>
+                <iTipDE>{{ tipo_documento }}</iTipDE>
+                <dNumID>{{ numero_documento }}</dNumID>
+                <dFeEmiDE>{{ fecha_emision }}</dFeEmiDE>
+            </dID>
+            <dDatG>
+                <dNumID>{{ numero_documento }}</dNumID>
+                <dEst>1</dEst>
+                <dPunExp>1</dPunExp>
+                <dNumID>{{ numero_documento }}</dNumID>
+                <dTipoID>1</dTipoID>
+            </dDatG>
+            <dEmi>
+                <iTipID>1</iTipID>
+                <dNumID>{{ emisor.ruc }}</dNumID>
+                <dDV>{{ emisor.dv }}</dDV>
+                <dNomEmi>{{ emisor.razon_social }}</dNomEmi>
+                <dDirEmi>{{ emisor.direccion }}</dDirEmi>
+                <dNumCas>{{ emisor.numero_casa }}</dNumCas>
+                <cDepEmi>{{ emisor.codigo_departamento }}</cDepEmi>
+                <cCiuEmi>{{ emisor.codigo_ciudad }}</cCiuEmi>
+                <dDesCiuEmi>{{ emisor.descripcion_ciudad }}</dDesCiuEmi>
+                <dTelEmi>{{ emisor.telefono }}</dTelEmi>
+                <dEmailE>{{ emisor.email }}</dEmailE>
+            </dEmi>
+            <dRec>
+                <iTipID>1</iTipID>
+                <dNumID>{{ receptor.ruc }}</dNumID>
+                <dDV>{{ receptor.dv }}</dDV>
+                <dNomRec>{{ receptor.razon_social }}</dNomRec>
+                <dDirRec>{{ receptor.direccion }}</dDirRec>
+                <dNumCas>{{ receptor.numero_casa }}</dNumCas>
+                <cDepRec>{{ receptor.codigo_departamento }}</cDepRec>
+                <cCiuRec>{{ receptor.codigo_ciudad }}</cCiuRec>
+                <dDesCiuRec>{{ receptor.descripcion_ciudad }}</dDesCiuRec>
+                <dTelRec>{{ receptor.telefono }}</dTelRec>
+                <dEmailRec>{{ receptor.email }}</dEmailRec>
+            </dRec>
+            <dTot>
+                <dTotGralOpe>{{ total_general }}</dTotGralOpe>
+                <dTotGralOpe>{{ total_gravada }}</dTotGralOpe>
+                <dTotGralOpe>{{ total_exenta }}</dTotGralOpe>
+                <dTotGralOpe>{{ total_iva }}</dTotGralOpe>
+                <dTotGralOpe>{{ total_general }}</dTotGralOpe>
+            </dTot>
+        </gDE>
+    </DE>
+</rDE>

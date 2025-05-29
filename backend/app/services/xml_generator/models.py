@@ -10,8 +10,12 @@ class Contribuyente(BaseModel):
     dv: str = Field(..., min_length=1, max_length=1)
     razon_social: str = Field(..., min_length=1, max_length=100)
     direccion: str = Field(..., min_length=1, max_length=100)
-    telefono: Optional[str] = Field(None, min_length=1, max_length=20)
-    email: Optional[str] = Field(None, min_length=1, max_length=100)
+    numero_casa: str = Field(..., min_length=1, max_length=10)
+    codigo_departamento: str = Field(..., min_length=1, max_length=3)
+    codigo_ciudad: str = Field(..., min_length=1, max_length=3)
+    descripcion_ciudad: str = Field(..., min_length=1, max_length=50)
+    telefono: str = Field(..., min_length=1, max_length=20)
+    email: str = Field(..., min_length=1, max_length=100)
 
 
 class ItemFactura(BaseModel):
