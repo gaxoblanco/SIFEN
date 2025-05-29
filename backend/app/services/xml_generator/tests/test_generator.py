@@ -68,8 +68,12 @@ def factura_simple():
         total_exenta=Decimal("0"),
         total_general=Decimal("275000"),
         moneda="PYG",
-        tipo_cambio=None,
-        csc="ABCD1234"
+        tipo_cambio=Decimal("1.00"),
+        csc="ABCD1234",
+        condicion_venta="1",
+        condicion_operacion="1",
+        modalidad_transporte="1",
+        categoria_emisor="1"
     )
 
 

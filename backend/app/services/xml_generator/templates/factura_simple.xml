@@ -19,6 +19,12 @@
                 <dCodSeg>1</dCodSeg>
                 <dCSC>{{ csc }}</dCSC>
                 <dFecFirma>{{ fecha_emision }}</dFecFirma>
+                <cConVen>{{ condicion_venta }}</cConVen>
+                <cConOpe>{{ condicion_operacion }}</cConOpe>
+                <cModTra>{{ modalidad_transporte }}</cModTra>
+                <cCatEmi>{{ categoria_emisor }}</cCatEmi>
+                <cMon>{{ moneda }}</cMon>
+                <dTipCam>{{ tipo_cambio }}</dTipCam>
             </dDatG>
             <dEmi>
                 <iTipID>1</iTipID>

@@ -160,3 +160,80 @@ def test_cantidad_maxima_items():
     # Verificar que todos los items están en el XML
     for i in range(100):
         assert f"<dCodPro>PROD{i:03d}</dCodPro>" in xml
+
+
+def test_formato_moneda():
+    """Valida el formato de moneda y tipo de cambio"""
+    factura = create_factura_base()
+    factura.moneda = "USD"
+    factura.tipo_cambio = Decimal("7000.00")
+
+    generator = XMLGenerator()
+    xml = generator.generate_simple_invoice_xml(factura)
+
+    validator = XMLValidator()
+    is_valid, errors = validator.validate_xml(xml)
+
+    assert is_valid, f"XML inválido con moneda extranjera: {errors}"
+    assert "<cMon>USD</cMon>" in xml
+    assert "<dTipCam>7000.00</dTipCam>" in xml
+
+
+def test_formato_condicion_venta():
+    """Test para validar formato de condición de venta"""
+    factura = create_factura_base()
+    factura.condicion_venta = "1"  # 1: Contado
+
+    generator = XMLGenerator()
+    xml = generator.generate_simple_invoice_xml(factura)
+
+    validator = XMLValidator()
+    is_valid, errors = validator.validate_xml(xml)
+
+    assert is_valid, f"XML inválido con condición de venta: {errors}"
+    assert "<cConVen>1</cConVen>" in xml
+
+
+def test_formato_condicion_operacion():
+    """Test para validar formato de condición de operación"""
+    factura = create_factura_base()
+    factura.condicion_operacion = "1"  # 1: Normal
+
+    generator = XMLGenerator()
+    xml = generator.generate_simple_invoice_xml(factura)
+
+    validator = XMLValidator()
+    is_valid, errors = validator.validate_xml(xml)
+
+    assert is_valid, f"XML inválido con condición de operación: {errors}"
+    assert "<cConOpe>1</cConOpe>" in xml
+
+
+def test_formato_modalidad_transporte():
+    """Test para validar formato de modalidad de transporte"""
+    factura = create_factura_base()
+    factura.modalidad_transporte = "1"  # 1: Terrestre
+
+    generator = XMLGenerator()
+    xml = generator.generate_simple_invoice_xml(factura)
+
+    validator = XMLValidator()
+    is_valid, errors = validator.validate_xml(xml)
+
+    assert is_valid, f"XML inválido con modalidad de transporte: {errors}"
+    assert "<cModTra>1</cModTra>" in xml
+
+
+def test_formato_categoria_emisor():
+    """Test para validar formato de categoría de emisor"""
+    factura = create_factura_base()
+    factura.categoria_emisor = "1"  # 1: Normal
+
+    generator = XMLGenerator()
+    xml = generator.generate_simple_invoice_xml(factura)
+
+    validator = XMLValidator()
+    is_valid, errors = validator.validate_xml(xml)
+
+    assert is_valid, f"XML inválido con categoría de emisor: {errors}"
+    assert "<cCatEmi>1</cCatEmi>" in xml

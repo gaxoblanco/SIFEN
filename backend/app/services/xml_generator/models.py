@@ -76,10 +76,18 @@ class FacturaSimple(BaseModel):
     total_gravada: Decimal
     total_exenta: Decimal = Field(..., ge=0)
     total_general: Decimal
-    moneda: str = Field(..., pattern="^(PYG|USD)$")
-    tipo_cambio: Optional[Decimal] = Field(None, gt=0)  # Solo si moneda es USD
+    moneda: str = Field("PYG", pattern="^(PYG|USD|EUR|BRL)$")
+    tipo_cambio: Decimal = Field(Decimal("1.00"), ge=0.01, le=999999.99)
     # Código Seguridad Contribuyente
     csc: str = Field(..., pattern="^[A-Z0-9]{8}$")
+    condicion_venta: str = Field(
+        "1", pattern="^[1-2]$")  # 1: Contado, 2: Crédito
+    condicion_operacion: str = Field(
+        "1", pattern="^[1-2]$")  # 1: Normal, 2: Contingencia
+    # 1: Terrestre, 2: Marítimo, 3: Aéreo
+    modalidad_transporte: str = Field("1", pattern="^[1-3]$")
+    # 1: Normal, 2: Régimen Especial
+    categoria_emisor: str = Field("1", pattern="^[1-2]$")
 
     @field_validator('total_iva', 'total_gravada', 'total_general')
     def validate_negative_amounts(cls, v, info):
@@ -94,13 +102,13 @@ class FacturaSimple(BaseModel):
 
     @field_validator('tipo_cambio')
     def validate_tipo_cambio(cls, v, info):
-        """Valida que tipo_cambio esté presente solo si moneda es USD"""
+        """Valida que tipo_cambio sea 1.00 para PYG y requerido para otras monedas"""
         moneda = info.data.get('moneda')
-        if moneda == 'USD' and v is None:
-            raise ValueError('tipo_cambio es requerido cuando moneda es USD')
-        if moneda == 'PYG' and v is not None:
+        if moneda == 'PYG' and v != Decimal('1.00'):
+            raise ValueError('tipo_cambio debe ser 1.00 cuando moneda es PYG')
+        if moneda != 'PYG' and v is None:
             raise ValueError(
-                'tipo_cambio no debe especificarse cuando moneda es PYG')
+                'tipo_cambio es requerido cuando moneda no es PYG')
         return v
 
     @field_validator('total_general')

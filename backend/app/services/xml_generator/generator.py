@@ -45,7 +45,11 @@ class XMLGenerator:
             "total_gravada": str(factura.total_gravada),
             "total_iva": str(factura.total_iva),
             "total_general": str(factura.total_general),
-            "csc": factura.csc
+            "csc": factura.csc,
+            "condicion_venta": factura.condicion_venta,
+            "condicion_operacion": factura.condicion_operacion,
+            "modalidad_transporte": factura.modalidad_transporte,
+            "categoria_emisor": factura.categoria_emisor
         }
 
         # Generar XML

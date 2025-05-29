@@ -111,6 +111,10 @@ def create_factura_base(
         total_exenta=Decimal("0"),
         total_general=Decimal("110000"),
         moneda="PYG",
-        tipo_cambio=None,  # None cuando moneda es PYG
-        csc=csc
+        tipo_cambio=Decimal("1.00"),  # Valor por defecto para PYG
+        csc=csc,
+        condicion_venta="1",  # 1: Contado
+        condicion_operacion="1",  # 1: Normal
+        modalidad_transporte="1",  # 1: Terrestre
+        categoria_emisor="1"  # 1: Normal
     )
