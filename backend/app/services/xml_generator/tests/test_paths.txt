@@ -1,0 +1,23 @@
+pytest
+
+# Tests de Generación XML
+backend/app/services/xml_generator/tests/test_generator.py
+
+# Tests de Validación
+backend/app/services/xml_generator/tests/test_validator.py
+backend/app/services/xml_generator/tests/test_validations.py
+
+# Tests de Tipos de Documento
+backend/app/services/xml_generator/tests/test_document_types.py
+
+# Tests de Casos Límite
+backend/app/services/xml_generator/tests/test_edge_cases.py
+
+# Tests de Rendimiento
+backend/app/services/xml_generator/tests/test_performance.py
+
+# Tests de Validaciones de Formato
+backend/app/services/xml_generator/tests/test_format_validations.py
+
+# Ejecutar todos los tests
+backend/app/services/xml_generator/tests/ 

@@ -78,6 +78,8 @@ class FacturaSimple(BaseModel):
     total_general: Decimal
     moneda: str = Field(..., pattern="^(PYG|USD)$")
     tipo_cambio: Optional[Decimal] = Field(None, gt=0)  # Solo si moneda es USD
+    # Código Seguridad Contribuyente
+    csc: str = Field(..., pattern="^[A-Z0-9]{8}$")
 
     @field_validator('total_iva', 'total_gravada', 'total_general')
     def validate_negative_amounts(cls, v, info):

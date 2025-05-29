@@ -46,38 +46,58 @@ ITEM_BASE = ItemFactura(
 
 
 def create_factura_base(
-    tipo_documento: str = "1",
+    tipo_documento: str = "1",  # 1 = Factura
     numero_documento: str = "001-001-0000001",
-    fecha_emision: Optional[datetime] = None,
-    emisor: Optional[Contribuyente] = None,
-    receptor: Optional[Contribuyente] = None,
-    items: Optional[List[ItemFactura]] = None,
-    total_iva: Optional[Decimal] = None,
-    total_gravada: Optional[Decimal] = None,
-    total_exenta: Optional[Decimal] = None,
-    total_general: Optional[Decimal] = None,
-    moneda: str = "PYG",
-    tipo_cambio: Optional[Decimal] = None
+    fecha_emision: datetime = datetime.now(),
+    ruc_emisor: str = "12345678",
+    razon_social_emisor: str = "EMPRESA DE PRUEBA S.A.",
+    direccion_emisor: str = "AVENIDA PRINCIPAL 123",
+    telefono_emisor: str = "0981123456",
+    email_emisor: str = "contacto@empresa.com",
+    ruc_receptor: str = "98765432",
+    razon_social_receptor: str = "CLIENTE DE PRUEBA S.A.",
+    direccion_receptor: str = "CALLE SECUNDARIA 456",
+    telefono_receptor: str = "0987654321",
+    email_receptor: str = "contacto@cliente.com",
+    csc: str = "ABCD1234"
 ) -> FacturaSimple:
-    """
-    Crea una factura base con valores por defecto o personalizados
-    """
-    if fecha_emision is None:
-        fecha_emision = datetime.now()
-    if emisor is None:
-        emisor = EMISOR_BASE
-    if receptor is None:
-        receptor = RECEPTOR_BASE
-    if items is None:
-        items = [ITEM_BASE]
-    if total_iva is None:
-        total_iva = Decimal("20000")
-    if total_gravada is None:
-        total_gravada = Decimal("200000")
-    if total_exenta is None:
-        total_exenta = Decimal("0")
-    if total_general is None:
-        total_general = Decimal("220000")
+    """Crea una factura base para testing"""
+    emisor = Contribuyente(
+        ruc=ruc_emisor,
+        razon_social=razon_social_emisor,
+        direccion=direccion_emisor,
+        telefono=telefono_emisor,
+        email=email_emisor,
+        dv="9",
+        numero_casa="123",
+        codigo_departamento="11",
+        codigo_ciudad="101",
+        descripcion_ciudad="ASUNCION"
+    )
+
+    receptor = Contribuyente(
+        ruc=ruc_receptor,
+        razon_social=razon_social_receptor,
+        direccion=direccion_receptor,
+        telefono=telefono_receptor,
+        email=email_receptor,
+        dv="1",
+        numero_casa="456",
+        codigo_departamento="11",
+        codigo_ciudad="101",
+        descripcion_ciudad="ASUNCION"
+    )
+
+    items = [
+        ItemFactura(
+            codigo="001",
+            descripcion="Producto de prueba",
+            cantidad=Decimal("1"),
+            precio_unitario=Decimal("100000"),
+            iva=Decimal("10"),
+            monto_total=Decimal("100000")
+        )
+    ]
 
     return FacturaSimple(
         tipo_documento=tipo_documento,
@@ -86,10 +106,11 @@ def create_factura_base(
         emisor=emisor,
         receptor=receptor,
         items=items,
-        total_iva=total_iva,
-        total_gravada=total_gravada,
-        total_exenta=total_exenta,
-        total_general=total_general,
-        moneda=moneda,
-        tipo_cambio=tipo_cambio
+        total_gravada=Decimal("100000"),
+        total_iva=Decimal("10000"),
+        total_exenta=Decimal("0"),
+        total_general=Decimal("110000"),
+        moneda="PYG",
+        tipo_cambio=None,  # None cuando moneda es PYG
+        csc=csc
     )

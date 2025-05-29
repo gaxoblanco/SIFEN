@@ -68,7 +68,8 @@ def factura_simple():
         total_exenta=Decimal("0"),
         total_general=Decimal("275000"),
         moneda="PYG",
-        tipo_cambio=None
+        tipo_cambio=None,
+        csc="ABCD1234"
     )
 
 
@@ -79,11 +80,13 @@ def test_generate_simple_invoice_xml(factura_simple):
 
     # Validaciones básicas del XML generado
     assert '<?xml version="1.0" encoding="UTF-8"?>' in xml
-    assert '<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd" version="1.0">' in xml
+    assert 'xmlns="http://ekuatia.set.gov.py/sifen/xsd"' in xml
+    assert 'version="1.5.0"' in xml
     assert factura_simple.numero_documento in xml
     assert factura_simple.emisor.ruc in xml
     assert factura_simple.receptor.ruc in xml
     assert str(factura_simple.total_general) in xml
+    assert factura_simple.csc in xml
 
     # Validar estructura de items
     for item in factura_simple.items:

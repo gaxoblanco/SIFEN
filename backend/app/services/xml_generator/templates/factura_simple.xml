@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd" version="1.0">
+<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://ekuatia.set.gov.py/sifen/xsd DE_v150.xsd"
+     version="1.5.0">
     <DE>
         <gDE>
             <dID>
@@ -11,10 +14,10 @@
                 <dNumID>{{ numero_documento }}</dNumID>
                 <dEst>1</dEst>
                 <dPunExp>1</dPunExp>
-                <dNumID>{{ numero_documento }}</dNumID>
                 <dTipoID>1</dTipoID>
                 <dTipoEmi>1</dTipoEmi>
                 <dCodSeg>1</dCodSeg>
+                <dCSC>{{ csc }}</dCSC>
                 <dFecFirma>{{ fecha_emision }}</dFecFirma>
             </dDatG>
             <dEmi>
@@ -43,30 +46,20 @@
                 <dTelRec>{{ receptor.telefono }}</dTelRec>
                 <dEmailRec>{{ receptor.email }}</dEmailRec>
             </dRec>
-            <gOpeCom>
-                <gCamFE>
-                    <iMon>{{ moneda }}</iMon>
-                    {% if tipo_cambio %}
-                    <dMonTiCam>{{ tipo_cambio }}</dMonTiCam>
-                    {% endif %}
-                </gCamFE>
-                {% for item in items %}
-                <gItem>
-                    <dCodPro>{{ item.codigo }}</dCodPro>
-                    <dDesPro>{{ item.descripcion }}</dDesPro>
-                    <dCantPro>{{ item.cantidad }}</dCantPro>
-                    <dPreUniPro>{{ item.precio_unitario }}</dPreUniPro>
-                    <dTotPro>{{ item.monto_total }}</dTotPro>
-                    <dPorIVA>{{ item.iva }}</dPorIVA>
-                    <dBasGra>{{ item.monto_total }}</dBasGra>
-                </gItem>
-                {% endfor %}
-            </gOpeCom>
+            {% for item in items %}
+            <gItem>
+                <dCodPro>{{ item.codigo }}</dCodPro>
+                <dDesPro>{{ item.descripcion }}</dDesPro>
+                <dCantPro>{{ item.cantidad }}</dCantPro>
+                <dPreUniPro>{{ item.precio_unitario }}</dPreUniPro>
+                <dTotPro>{{ item.monto_total }}</dTotPro>
+                <dPorIVA>{{ item.iva }}</dPorIVA>
+            </gItem>
+            {% endfor %}
             <dTot>
-                <dTotGralOpe>{{ total_general }}</dTotGralOpe>
-                <dTotGralOpe>{{ total_gravada }}</dTotGralOpe>
-                <dTotGralOpe>{{ total_exenta }}</dTotGralOpe>
-                <dTotGralOpe>{{ total_iva }}</dTotGralOpe>
+                <dTotGrav>{{ total_gravada }}</dTotGrav>
+                <dTotExe>{{ total_exenta }}</dTotExe>
+                <dTotIVA>{{ total_iva }}</dTotIVA>
                 <dTotGralOpe>{{ total_general }}</dTotGralOpe>
             </dTot>
         </gDE>
