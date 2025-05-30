@@ -1,7 +1,13 @@
 """
-Módulo de Firma Digital para documentos SIFEN
+Módulo de firma digital para documentos XML SIFEN
 """
-from .signer import DigitalSigner
-from .models import Certificate, SignatureResult
+from .certificate_manager import CertificateManager
+from .xml_signer import XMLSigner
+from .config import CertificateConfig, DigitalSignConfig
 
-__all__ = ['DigitalSigner', 'Certificate', 'SignatureResult']
+__all__ = [
+    'CertificateManager',
+    'XMLSigner',
+    'CertificateConfig',
+    'DigitalSignConfig'
+]

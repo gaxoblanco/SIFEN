@@ -1,0 +1,36 @@
+# Rutas de archivos de prueba para el módulo de firma digital
+
+# Certificados
+backend/app/services/digital_sign/tests/fixtures/test.pfx
+
+# XMLs de prueba
+backend/app/services/digital_sign/tests/fixtures/test.xml
+backend/app/services/digital_sign/tests/fixtures/test_signed.xml
+backend/app/services/digital_sign/tests/fixtures/test_invalid.xml
+
+# Notas:
+# - test.pfx: Certificado de prueba con contraseña "test123"
+# - test.xml: XML válido para pruebas de firma
+# - test_signed.xml: XML ya firmado para pruebas de verificación
+# - test_invalid.xml: XML malformado para pruebas de error
+
+# Comandos para ejecutar pruebas:
+
+# 1. Crear directorio fixtures si no existe
+mkdir -p backend/app/services/digital_sign/tests/fixtures
+
+# 2. Generar certificado de prueba
+python -m backend.app.services.digital_sign.examples.generate_test_cert
+
+# 3. Ejecutar todos los tests
+pytest backend/app/services/digital_sign/tests/ -v
+
+# 4. Ejecutar tests específicos
+pytest backend/app/services/digital_sign/tests/test_certificate_manager.py -v
+pytest backend/app/services/digital_sign/tests/test_xml_signer.py -v
+pytest backend/app/services/digital_sign/tests/test_signer.py -v
+pytest backend/app/services/digital_sign/tests/test_models.py -v
+pytest backend/app/services/digital_sign/tests/test_extract_ruc_from_certificate.py -v
+
+# 5. Ejecutar tests con cobertura
+pytest backend/app/services/digital_sign/tests/ -v --cov=backend.app.services.digital_sign 
