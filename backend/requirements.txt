@@ -1,14 +1,105 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-sqlalchemy==2.0.23
-psycopg2-binary==2.9.9
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
-pydantic==2.5.2
-pydantic-settings==2.1.0
-python-dotenv==1.0.0
-alembic==1.12.1
-pytest==7.4.3
-pytest-cov==4.1.0
-httpx==0.25.2 
+# ================================================
+# DEPENDENCIAS BASE DEL PROYECTO
+# ================================================
+
+# FastAPI y servidor web
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Base de datos
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+alembic>=1.12.1
+
+# Configuración y validación  
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+
+# Templates y procesamiento XML
+jinja2>=3.1.2
+lxml>=4.9.3
+
+# Testing
+pytest>=7.4.3
+pytest-cov>=4.1.0
+httpx>=0.25.2
+
+# Seguridad y autenticación
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+
+# ================================================
+# DEPENDENCIAS MÓDULO XML_GENERATOR
+# ================================================
+
+# Procesamiento XML y validación XSD
+# (ya incluido: lxml>=4.9.3)
+
+# ================================================
+# DEPENDENCIAS MÓDULO DIGITAL_SIGN  
+# ================================================
+
+# Criptografía para firma digital
+cryptography>=41.0.0
+
+# ================================================
+# DEPENDENCIAS MÓDULO SIFEN_CLIENT
+# ================================================
+
+# Cliente SOAP robusto para SIFEN
+zeep>=4.2.1
+
+# Clientes HTTP asíncronos
+aiohttp>=3.8.0
+httpx>=0.25.0
+
+# Logging estructurado (requerido por .cursorrules)
+structlog>=23.1.0
+
+# ================================================
+# DEPENDENCIAS FUTURAS (PREPARACIÓN)
+# ================================================
+
+# Generación PDF (para módulo pdf_generator)
+reportlab>=4.0.0
+weasyprint>=60.0
+
+# Sistema de colas (para escalabilidad)
+celery>=5.3.0
+redis>=5.0.0
+
+# Monitoreo y métricas
+prometheus-client>=0.17.0
+
+# ================================================
+# DEPENDENCIAS DE DESARROLLO (OPCIONAL)
+# ================================================
+
+# Formateo y linting
+black>=23.0.0
+isort>=5.12.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Documentación
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+
+# ================================================
+# NOTAS DE INSTALACIÓN
+# ================================================
+
+# Para instalar dependencias base:
+# pip install -r requirements.txt
+
+# Para desarrollo completo:
+# pip install -r requirements.txt
+# pip install black isort flake8 mypy
+# pip install mkdocs mkdocs-material
+
+# Para ambiente mínimo (solo runtime):
+# pip install fastapi uvicorn sqlalchemy psycopg2-binary
+# pip install pydantic python-dotenv lxml cryptography
+# pip install zeep aiohttp structlog
