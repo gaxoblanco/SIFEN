@@ -27,7 +27,7 @@ Basado en:
 from datetime import datetime
 from typing import List, Optional, Dict, Any, Union, Literal
 from enum import Enum
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import re
 import structlog
 
@@ -94,14 +94,11 @@ class SifenBaseModel(BaseModel):
     serialización segura y metadatos.
     """
 
-    class Config:
-        # Configuración Pydantic
-        validate_assignment = True
-        use_enum_values = True
-        allow_population_by_field_name = True
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat(),
-        }
+    model_config = ConfigDict(
+        validate_assignment=True,
+        use_enum_values=True,
+        populate_by_name=True,  # Era allow_population_by_field_name
+    )
 
     def dict_safe(self, exclude_sensitive: bool = True) -> Dict[str, Any]:
         """

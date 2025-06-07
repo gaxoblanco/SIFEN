@@ -19,7 +19,7 @@ import ssl
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from pathlib import Path
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 import structlog
 
 # Logger para configuración
@@ -214,14 +214,14 @@ class SifenConfig(BaseModel):
     # VALIDADORES
     # ==========================================
 
-    @validator('environment')
+    @field_validator('environment')
     def validate_environment(cls, v):
         """Valida que el ambiente sea correcto"""
         if v not in ['test', 'production']:
             raise ValueError("environment debe ser 'test' o 'production'")
         return v
 
-    @validator('tls_version')
+    @field_validator('tls_version')
     def validate_tls_version(cls, v):
         """Valida versión TLS (SIFEN requiere 1.2+)"""
         valid_versions = ['1.2', '1.3']
@@ -229,10 +229,10 @@ class SifenConfig(BaseModel):
             raise ValueError(f"tls_version debe ser una de: {valid_versions}")
         return v
 
-    @validator('verify_ssl')
-    def validate_ssl_for_production(cls, v, values):
+    @field_validator('verify_ssl')
+    def validate_ssl_for_production(cls, v, info):
         """SSL verificación obligatoria en producción"""
-        if values.get('environment') == 'production' and not v:
+        if info.data.get('environment') == 'production' and not v:
             raise ValueError("verify_ssl debe ser True en producción")
         return v
 

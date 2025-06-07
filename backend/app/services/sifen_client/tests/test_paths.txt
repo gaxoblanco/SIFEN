@@ -1,0 +1,51 @@
+# Rutas de archivos de prueba para el módulo SIFEN Client
+# Configuración de tests
+backend/app/services/sifen_client/tests/conftest.py
+backend/app/services/sifen_client/tests/run_sifen_tests.py
+
+# Tests principales
+backend/app/services/sifen_client/tests/test_sifen_integration.py
+
+# Fixtures y datos de prueba
+backend/app/services/sifen_client/tests/fixtures/test_documents.py
+
+# Mocks para testing offline
+backend/app/services/sifen_client/tests/mocks/mock_soap_client.py
+
+# Variables de entorno requeridas:
+# export SIFEN_TEST_CERT_SERIAL="numero_serie_certificado"
+# export SIFEN_TEST_CERT_PATH="/path/to/certificado.p12"
+# export SIFEN_TEST_RUC="80016875-5"
+
+# Comandos para ejecutar pruebas:
+
+# 1. Desde raíz del proyecto - Tests completos con runner
+cd backend/app/services/sifen_client/tests/
+python run_sifen_tests.py
+
+# 2. Desde raíz del proyecto - Tests con pytest
+pytest backend/app/services/sifen_client/tests/ -v
+
+# 3. Desde raíz del proyecto - Tests específicos
+pytest backend/app/services/sifen_client/tests/test_sifen_integration.py -v
+
+# 4. Desde raíz del proyecto - Tests de integración solamente
+pytest backend/app/services/sifen_client/tests/ -v -m integration
+
+# 5. Desde raíz del proyecto - Tests con cobertura
+pytest backend/app/services/sifen_client/tests/ -v --cov=backend.app.services.sifen_client
+
+# 6. Tests rápidos (sin integración)
+pytest backend/app/services/sifen_client/tests/ -v -m "not integration"
+
+# 7. Runner con opciones específicas
+cd backend/app/services/sifen_client/tests/
+python run_sifen_tests.py --integration
+python run_sifen_tests.py --coverage
+python run_sifen_tests.py --all
+
+# Notas:
+# - Ejecutar siempre desde la raíz del proyecto para evitar errores de importación
+# - Los tests de integración requieren conectividad con https://sifen-test.set.gov.py
+# - El certificado .p12 debe ser válido para ambiente TEST de SIFEN
+# - Para tests offline, usar mocks: pytest -v -m "not integration"
