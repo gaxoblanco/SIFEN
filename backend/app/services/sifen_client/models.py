@@ -128,10 +128,225 @@ class SifenBaseModel(BaseModel):
 
         return data
 
+# ========================================
+# EXCEPCIONES ESPECÍFICAS DE SIFEN
+# ========================================
 
+
+class SifenError(Exception):
+    """
+    Excepción base para todos los errores del cliente SIFEN
+
+    Proporciona información estructurada sobre errores específicos
+    del procesamiento SIFEN para manejo diferenciado por tipo.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        raw_response: Optional[str] = None
+    ):
+        super().__init__(message)
+        self.message = message
+        self.code = code
+        self.details = details or {}
+        self.raw_response = raw_response
+        self.timestamp = datetime.now()
+
+    def __str__(self) -> str:
+        if self.code:
+            return f"[{self.code}] {self.message}"
+        return self.message
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte la excepción a diccionario para logging"""
+        return {
+            'error_type': self.__class__.__name__,
+            'message': self.message,
+            'code': self.code,
+            'details': self.details,
+            'timestamp': self.timestamp.isoformat()
+        }
+
+
+class SifenConnectionError(SifenError):
+    """
+    Error de conectividad con servicios SIFEN
+
+    Se lanza cuando hay problemas de red, DNS, o SSL
+    que impiden la comunicación con los endpoints de SIFEN.
+    """
+    pass
+
+
+class SifenTimeoutError(SifenError):
+    """
+    Error de timeout en operaciones SIFEN
+
+    Se lanza cuando una operación excede los timeouts configurados,
+    ya sea de conexión o de lectura de respuesta.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        timeout_seconds: Optional[float] = None,
+        operation: Optional[str] = None,
+        **kwargs
+    ):
+        super().__init__(message, **kwargs)
+        self.timeout_seconds = timeout_seconds
+        self.operation = operation
+
+
+class SifenValidationError(SifenError):
+    """
+    Error de validación de datos o estructura XML
+
+    Se lanza cuando los datos enviados no cumplen con las
+    validaciones locales antes del envío a SIFEN.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        field: Optional[str] = None,
+        value: Optional[Any] = None,
+        **kwargs
+    ):
+        super().__init__(message, **kwargs)
+        self.field = field
+        self.value = value
+
+
+class SifenAuthenticationError(SifenError):
+    """
+    Error de autenticación con SIFEN
+
+    Se lanza cuando hay problemas con certificados digitales,
+    credenciales o autorización para acceder a los servicios.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        certificate_serial: Optional[str] = None,
+        **kwargs
+    ):
+        super().__init__(message, **kwargs)
+        self.certificate_serial = certificate_serial
+
+
+class SifenServerError(SifenError):
+    """
+    Error interno del servidor SIFEN
+
+    Se lanza cuando SIFEN retorna códigos de error 5XXX
+    indicando problemas del lado del servidor.
+    """
+    pass
+
+
+class SifenBusinessRuleError(SifenError):
+    """
+    Error de reglas de negocio SIFEN
+
+    Se lanza cuando SIFEN rechaza el documento por no cumplir
+    con reglas específicas de negocio (RUC inexistente, CDC duplicado, etc.)
+    """
+
+    def __init__(
+        self,
+        message: str,
+        business_rule: Optional[str] = None,
+        **kwargs
+    ):
+        super().__init__(message, **kwargs)
+        self.business_rule = business_rule
+
+
+class SifenRetryExhaustedError(SifenError):
+    """
+    Error cuando se agotan los reintentos configurados
+
+    Se lanza cuando el sistema de reintentos ha agotado
+    todos los intentos sin obtener una respuesta exitosa.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        attempt_count: int = 0,
+        last_error: Optional[Exception] = None,
+        **kwargs
+    ):
+        super().__init__(message, **kwargs)
+        self.attempt_count = attempt_count
+        self.last_error = last_error
+
+
+class SifenParsingError(SifenError):
+    """
+    Error al parsear respuestas de SIFEN
+
+    Se lanza cuando no se puede interpretar o parsear
+    la respuesta XML recibida de SIFEN.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        xml_content: Optional[str] = None,
+        parsing_stage: Optional[str] = None,
+        **kwargs
+    ):
+        super().__init__(message, **kwargs)
+        self.xml_content = xml_content
+        self.parsing_stage = parsing_stage
+
+
+# Mapeo de códigos SIFEN a excepciones específicas
+SIFEN_CODE_TO_EXCEPTION = {
+    # Errores de validación
+    '1000': SifenValidationError,
+    '1001': SifenBusinessRuleError,  # CDC duplicado
+    '1101': SifenValidationError,    # Timbrado inválido
+    '1250': SifenBusinessRuleError,  # RUC inexistente
+
+    # Errores de autenticación
+    '0141': SifenAuthenticationError,  # Firma digital inválida
+
+    # Errores del servidor
+    '5000': SifenServerError,
+    '5001': SifenServerError,
+    '5002': SifenServerError,
+}
+
+
+def create_sifen_exception(
+    code: str,
+    message: str,
+    **kwargs
+) -> SifenError:
+    """
+    Factory para crear excepción apropiada según código SIFEN
+
+    Args:
+        code: Código de error SIFEN
+        message: Mensaje de error
+        **kwargs: Parámetros adicionales
+
+    Returns:
+        Instancia de la excepción apropiada
+    """
+    exception_class = SIFEN_CODE_TO_EXCEPTION.get(code, SifenError)
+    return exception_class(message, code=code, **kwargs)
 # ========================================
 # MODELOS DE REQUEST
 # ========================================
+
 
 class DocumentRequest(SifenBaseModel):
     """

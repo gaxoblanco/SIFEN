@@ -577,6 +577,26 @@ TEST_CSC_CODES = [
     'TESTCODE'
 ]
 
+# =====================================
+# DATOS ADICIONALES PARA MOCK CLIENT
+# =====================================
+
+# RUCs adicionales para testing del mock
+ADDITIONAL_TEST_RUCS = {
+    'always_success': '80016875-5',    # Siempre exitoso
+    'always_error_1250': '99999999-9',  # Siempre RUC inexistente
+    'always_timeout': '11111111-1',    # Siempre timeout
+    'slow_response': '22222222-2'      # Respuesta lenta
+}
+
+# CDCs para casos específicos del mock
+MOCK_TEST_CDCS = {
+    'success': '01800695631001001000000612021112917595714694',
+    'duplicate': '01800695631001001000000612021112917595714695',
+    'timeout': '01800695631001001000000612021112917595714696',
+    'server_error': '01800695631001001000000612021112917595714697'
+}
+
 TEST_DOCUMENT_NUMBERS = [
     '001-001-0000001',
     '001-001-0000002',
@@ -664,6 +684,187 @@ def get_valid_nota_credito_xml(
         numero_documento=numero_documento,
         csc=csc
     )
+
+
+def get_xml_with_error(error_type: str = 'ruc_invalido') -> str:
+    """
+    Genera XML con errores específicos para testing
+
+    Args:
+        error_type: Tipo de error a simular
+                   - 'ruc_invalido': RUC que no existe en SIFEN
+                   - 'cdc_invalido': CDC malformateado  
+                   - 'xml_malformado': XML con estructura incorrecta
+                   - 'firma_invalida': Firma digital incorrecta
+                   - 'timbrado_invalido': Timbrado no válido
+                   - 'fecha_invalida': Fecha fuera de rango
+                   - 'monto_invalido': Montos negativos o incorrectos
+
+    Returns:
+        XML con error específico para test
+    """
+    if error_type == 'ruc_invalido':
+        # Usar RUC que no existe en SIFEN
+        return get_valid_factura_xml(
+            ruc_emisor='99999999'  # RUC inexistente
+        )
+
+    elif error_type == 'cdc_invalido':
+        # CDC con formato incorrecto (muy corto)
+        return get_valid_factura_xml().replace(
+            'Id="01800695631001001000000612021112917595714694"',
+            'Id="018006956310010010000006120211129175957146"'  # Solo 43 caracteres
+        )
+
+    elif error_type == 'xml_malformado':
+        # XML con estructura rota
+        xml = get_valid_factura_xml()
+        # Romper la estructura XML
+        return xml.replace('<gDatEm>', '<gDatEm><TAG_ROTO_SIN_CERRAR>')
+
+    elif error_type == 'firma_invalida':
+        # Firma digital inválida
+        xml = get_valid_factura_xml()
+        return xml.replace(
+            '<SignatureValue>',
+            '<SignatureValue>FIRMA_DIGITAL_INVALIDA_PARA_TEST_'
+        )
+
+    elif error_type == 'timbrado_invalido':
+        # Timbrado inválido
+        return get_valid_factura_xml().replace(
+            '<dNumTim>12345678</dNumTim>',
+            '<dNumTim>00000000</dNumTim>'  # Timbrado inexistente
+        )
+
+    elif error_type == 'fecha_invalida':
+        # Fecha futura (no permitida)
+        return get_valid_factura_xml(
+            fecha_emision='2030-12-31T23:59:59'  # Fecha muy futura
+        )
+
+    elif error_type == 'monto_invalido':
+        # Montos negativos
+        xml = get_valid_factura_xml()
+        return xml.replace(
+            '<dTotGralOpe>110000</dTotGralOpe>',
+            '<dTotGralOpe>-110000</dTotGralOpe>'  # Monto negativo
+        ).replace(
+            '<dPUniProSer>100000.00</dPUniProSer>',
+            '<dPUniProSer>-100000.00</dPUniProSer>'
+        )
+
+    elif error_type == 'namespace_faltante':
+        # XML sin namespace requerido
+        xml = get_valid_factura_xml()
+        return xml.replace(
+            'xmlns="http://ekuatia.set.gov.py/sifen/xsd"',
+            ''  # Remover namespace
+        )
+
+    elif error_type == 'elementos_faltantes':
+        # XML sin elementos obligatorios
+        xml = get_valid_factura_xml()
+        return xml.replace(
+            '<gOpeDE>.*?</gOpeDE>',
+            ''  # Remover elemento obligatorio
+        )
+
+    elif error_type == 'caracteres_especiales':
+        # XML con caracteres no válidos
+        xml = get_valid_factura_xml()
+        return xml.replace(
+            'Empresa Test S.A.',
+            'Empresa Test & Símbolos <> Inválidos ]]>'
+        )
+
+    else:
+        # Error desconocido, devolver RUC inválido por defecto
+        return get_xml_with_error('ruc_invalido')
+
+
+def get_xml_with_multiple_errors(error_types: list) -> str:
+    """
+    Genera XML con múltiples errores para testing complejo
+
+    Args:
+        error_types: Lista de tipos de errores a combinar
+
+    Returns:
+        XML con múltiples errores
+    """
+    xml = get_valid_factura_xml()
+
+    for error_type in error_types:
+        if error_type == 'ruc_invalido':
+            xml = xml.replace('ruc_emisor}', '99999999')
+        elif error_type == 'timbrado_invalido':
+            xml = xml.replace('<dNumTim>12345678</dNumTim>',
+                              '<dNumTim>00000000</dNumTim>')
+        elif error_type == 'monto_invalido':
+            xml = xml.replace('<dTotGralOpe>110000</dTotGralOpe>',
+                              '<dTotGralOpe>-110000</dTotGralOpe>')
+
+    return xml
+
+
+def validate_error_xml(xml_content: str, expected_error_type: str) -> bool:
+    """
+    Valida que un XML contenga el tipo de error esperado
+
+    Args:
+        xml_content: Contenido XML a validar
+        expected_error_type: Tipo de error esperado
+
+    Returns:
+        True si contiene el error esperado, False en caso contrario
+    """
+    if expected_error_type == 'ruc_invalido':
+        return '99999999' in xml_content
+    elif expected_error_type == 'cdc_invalido':
+        # Buscar CDC con longitud incorrecta
+        import re
+        cdc_match = re.search(r'Id="([^"]+)"', xml_content)
+        if cdc_match:
+            return len(cdc_match.group(1)) != 44
+    elif expected_error_type == 'xml_malformado':
+        return 'TAG_ROTO_SIN_CERRAR' in xml_content
+    elif expected_error_type == 'timbrado_invalido':
+        return '<dNumTim>00000000</dNumTim>' in xml_content
+    elif expected_error_type == 'monto_invalido':
+        return '-110000' in xml_content
+    elif expected_error_type == 'namespace_faltante':
+        return 'xmlns="http://ekuatia.set.gov.py/sifen/xsd"' not in xml_content
+
+    return False
+
+
+# Mapeo de tipos de error a códigos SIFEN esperados
+ERROR_TYPE_TO_SIFEN_CODE = {
+    'ruc_invalido': '1250',
+    'cdc_invalido': '1000',
+    'xml_malformado': '1000',
+    'firma_invalida': '0141',
+    'timbrado_invalido': '1101',
+    'fecha_invalida': '1401',
+    'monto_invalido': '1501',
+    'namespace_faltante': '1000',
+    'elementos_faltantes': '1000',
+    'caracteres_especiales': '1000'
+}
+
+
+def get_expected_error_code(error_type: str) -> str:
+    """
+    Obtiene el código de error SIFEN esperado para un tipo de error
+
+    Args:
+        error_type: Tipo de error
+
+    Returns:
+        Código SIFEN esperado
+    """
+    return ERROR_TYPE_TO_SIFEN_CODE.get(error_type, '5000')
 
 
 def get_invalid_xml_by_type(error_type: str) -> str:
@@ -1021,3 +1222,244 @@ TEST_METADATA = {
         'security'
     ]
 }
+
+# =====================================
+# CÓDIGOS Y MENSAJES OFICIALES SIFEN
+# =====================================
+
+# Códigos de respuesta SIFEN según Manual Técnico v150
+SIFEN_CODES = {
+    # Códigos de éxito
+    'SUCCESS': '0260',                    # Aprobado
+    'SUCCESS_WITH_OBS': '1005',          # Aprobado con observaciones
+
+    # Errores de validación de estructura
+    'CDC_MISMATCH': '1000',              # CDC no corresponde con XML
+    'CDC_DUPLICATE': '1001',             # CDC duplicado
+    'INVALID_XML_STRUCTURE': '1002',     # Estructura XML inválida
+    'MISSING_REQUIRED_FIELD': '1003',    # Campo obligatorio faltante
+    'INVALID_FIELD_FORMAT': '1004',      # Formato de campo inválido
+
+    # Errores de timbrado y numeración
+    'INVALID_TIMBRADO': '1101',          # Timbrado inválido o vencido
+    'INVALID_ESTABLISHMENT': '1102',     # Establecimiento inválido
+    'INVALID_POINT': '1103',             # Punto de expedición inválido
+    'INVALID_DOCUMENT_NUMBER': '1104',   # Número de documento inválido
+    'SEQUENCE_ERROR': '1105',            # Error en secuencia de numeración
+
+    # Errores de datos del contribuyente
+    'RUC_NOT_FOUND': '1250',             # RUC emisor inexistente
+    'RUC_INACTIVE': '1251',              # RUC emisor inactivo
+    'RUC_SUSPENDED': '1252',             # RUC emisor suspendido
+    'UNAUTHORIZED_RUC': '1253',          # RUC no autorizado para DE
+
+    # Errores de certificado y firma
+    'INVALID_SIGNATURE': '0141',         # Firma digital inválida
+    'CERTIFICATE_EXPIRED': '0142',       # Certificado vencido
+    'CERTIFICATE_REVOKED': '0143',       # Certificado revocado
+    'CERTIFICATE_NOT_AUTHORIZED': '0144',  # Certificado no autorizado
+    'SIGNATURE_VERIFICATION_FAILED': '0145',  # Verificación de firma falló
+
+    # Errores de fechas y rangos
+    'INVALID_DATE': '1401',              # Fecha inválida
+    'DATE_OUT_OF_RANGE': '1402',         # Fecha fuera de rango permitido
+    'FUTURE_DATE_NOT_ALLOWED': '1403',   # Fecha futura no permitida
+    'DOCUMENT_TOO_OLD': '1404',          # Documento muy antiguo
+
+    # Errores de montos y cálculos
+    'INVALID_AMOUNT': '1501',            # Monto inválido
+    'CALCULATION_ERROR': '1502',         # Error en cálculos
+    'NEGATIVE_AMOUNT': '1503',           # Monto negativo no permitido
+    'AMOUNT_EXCEEDS_LIMIT': '1504',      # Monto excede límite permitido
+
+    # Errores del servidor SIFEN
+    'SERVER_ERROR': '5000',              # Error interno del servidor
+    'SERVER_BUSY': '5001',               # Servidor ocupado, reintentar
+    'MAINTENANCE_MODE': '5002',          # Servidor en mantenimiento
+    'DATABASE_ERROR': '5003',            # Error de base de datos
+    'TIMEOUT_ERROR': '5004',             # Timeout interno del servidor
+
+    # Errores de comunicación
+    'INVALID_REQUEST': '4000',           # Request inválido
+    'MISSING_HEADERS': '4001',           # Headers faltantes
+    'INVALID_CONTENT_TYPE': '4002',      # Content-Type inválido
+    'REQUEST_TOO_LARGE': '4003',         # Request muy grande
+
+    # Códigos especiales para testing
+    'TEST_SUCCESS': '9260',              # Éxito en ambiente test
+    'TEST_ERROR': '9999',                # Error genérico de test
+}
+
+# Mensajes descriptivos para cada código SIFEN
+SIFEN_MESSAGES = {
+    # Mensajes de éxito
+    '0260': 'Documento aprobado exitosamente',
+    '1005': 'Documento aprobado con observaciones',
+
+    # Mensajes de errores de validación
+    '1000': 'El CDC no corresponde con el contenido del XML',
+    '1001': 'El CDC ya fue enviado anteriormente (duplicado)',
+    '1002': 'La estructura del XML no es válida',
+    '1003': 'Campo obligatorio faltante en el documento',
+    '1004': 'Formato de campo inválido',
+
+    # Mensajes de timbrado y numeración
+    '1101': 'Número de timbrado inválido o vencido',
+    '1102': 'Código de establecimiento inválido',
+    '1103': 'Código de punto de expedición inválido',
+    '1104': 'Número de documento inválido',
+    '1105': 'Error en la secuencia de numeración',
+
+    # Mensajes de RUC
+    '1250': 'RUC del emisor no existe en la base de datos',
+    '1251': 'RUC del emisor está inactivo',
+    '1252': 'RUC del emisor está suspendido',
+    '1253': 'RUC no está autorizado para emitir documentos electrónicos',
+
+    # Mensajes de certificado y firma
+    '0141': 'La firma digital no es válida',
+    '0142': 'El certificado digital está vencido',
+    '0143': 'El certificado digital está revocado',
+    '0144': 'El certificado no está autorizado para firmar',
+    '0145': 'Error en la verificación de la firma digital',
+
+    # Mensajes de fechas
+    '1401': 'La fecha especificada no es válida',
+    '1402': 'La fecha está fuera del rango permitido',
+    '1403': 'No se permiten fechas futuras',
+    '1404': 'El documento es muy antiguo para ser procesado',
+
+    # Mensajes de montos
+    '1501': 'El monto especificado no es válido',
+    '1502': 'Error en los cálculos del documento',
+    '1503': 'No se permiten montos negativos',
+    '1504': 'El monto excede el límite permitido',
+
+    # Mensajes del servidor
+    '5000': 'Error interno del servidor SIFEN',
+    '5001': 'Servidor ocupado, intente nuevamente más tarde',
+    '5002': 'Servidor en mantenimiento, servicio temporalmente no disponible',
+    '5003': 'Error de base de datos, intente nuevamente',
+    '5004': 'Timeout interno del servidor',
+
+    # Mensajes de comunicación
+    '4000': 'La solicitud no es válida',
+    '4001': 'Headers requeridos faltantes',
+    '4002': 'Content-Type no válido',
+    '4003': 'El tamaño de la solicitud excede el límite permitido',
+
+    # Mensajes especiales para testing
+    '9260': 'Documento aprobado en ambiente de pruebas',
+    '9999': 'Error genérico para testing',
+}
+
+# Mapeo de códigos a categorías para facilitar el manejo
+SIFEN_CODE_CATEGORIES = {
+    'success': ['0260', '1005', '9260'],
+    'validation_errors': ['1000', '1001', '1002', '1003', '1004'],
+    'timbrado_errors': ['1101', '1102', '1103', '1104', '1105'],
+    'ruc_errors': ['1250', '1251', '1252', '1253'],
+    'certificate_errors': ['0141', '0142', '0143', '0144', '0145'],
+    'date_errors': ['1401', '1402', '1403', '1404'],
+    'amount_errors': ['1501', '1502', '1503', '1504'],
+    'server_errors': ['5000', '5001', '5002', '5003', '5004'],
+    'communication_errors': ['4000', '4001', '4002', '4003'],
+    'test_codes': ['9260', '9999']
+}
+
+# Helper functions para trabajar con códigos
+
+
+def get_sifen_message(code: str) -> str:
+    """
+    Obtiene el mensaje descriptivo para un código SIFEN
+
+    Args:
+        code: Código SIFEN (ej: '0260', '1000')
+
+    Returns:
+        Mensaje descriptivo o mensaje por defecto si no existe
+    """
+    return SIFEN_MESSAGES.get(code, f'Código SIFEN desconocido: {code}')
+
+
+def is_success_code(code: str) -> bool:
+    """
+    Verifica si un código SIFEN indica éxito
+
+    Args:
+        code: Código SIFEN
+
+    Returns:
+        True si es código de éxito, False en caso contrario
+    """
+    return code in SIFEN_CODE_CATEGORIES['success']
+
+
+def is_error_code(code: str) -> bool:
+    """
+    Verifica si un código SIFEN indica error
+
+    Args:
+        code: Código SIFEN
+
+    Returns:
+        True si es código de error, False en caso contrario
+    """
+    return not is_success_code(code)
+
+
+def get_error_category(code: str) -> str:
+    """
+    Obtiene la categoría de un código de error SIFEN
+
+    Args:
+        code: Código SIFEN
+
+    Returns:
+        Categoría del error o 'unknown' si no se encuentra
+    """
+    for category, codes in SIFEN_CODE_CATEGORIES.items():
+        if code in codes:
+            return category
+    return 'unknown'
+
+
+def get_retry_recommendation(code: str) -> bool:
+    """
+    Determina si se recomienda reintentar para un código específico
+
+    Args:
+        code: Código SIFEN
+
+    Returns:
+        True si se recomienda reintentar, False en caso contrario
+    """
+    # Códigos que permiten reintento (errores temporales del servidor)
+    retryable_codes = ['5001', '5003', '5004']
+    return code in retryable_codes
+
+
+def simulate_sifen_response(scenario: str = 'success') -> tuple[str, str]:
+    """
+    Simula una respuesta SIFEN para testing
+
+    Args:
+        scenario: Escenario a simular ('success', 'ruc_error', 'cdc_error', etc.)
+
+    Returns:
+        Tuple con (código, mensaje)
+    """
+    scenarios = {
+        'success': ('0260', SIFEN_MESSAGES['0260']),
+        'success_with_obs': ('1005', SIFEN_MESSAGES['1005']),
+        'ruc_error': ('1250', SIFEN_MESSAGES['1250']),
+        'cdc_error': ('1000', SIFEN_MESSAGES['1000']),
+        'duplicate_cdc': ('1001', SIFEN_MESSAGES['1001']),
+        'invalid_timbrado': ('1101', SIFEN_MESSAGES['1101']),
+        'invalid_signature': ('0141', SIFEN_MESSAGES['0141']),
+        'server_error': ('5000', SIFEN_MESSAGES['5000']),
+        'server_busy': ('5001', SIFEN_MESSAGES['5001']),
+    }
+
+    return scenarios.get(scenario, ('9999', 'Escenario de test desconocido'))

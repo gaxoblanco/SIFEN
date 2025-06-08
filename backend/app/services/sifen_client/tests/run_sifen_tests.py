@@ -42,7 +42,7 @@ sys.path.insert(0, str(project_root))
 try:
     from app.services.sifen_client.config import SifenConfig
     from app.services.sifen_client.document_sender import DocumentSender
-    from app.services.sifen_client.tests.test_documents import (
+    from backend.app.services.sifen_client.tests.fixtures.test_documents import (
         get_valid_factura_xml,
         TEST_CERTIFICATE_DATA,
         validate_xml_structure

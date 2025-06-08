@@ -29,7 +29,7 @@ from app.services.sifen_client.models import (
     SifenRequest, SifenEnvironment, SifenValidationError,
     BatchSifenRequest, QueryDocumentRequest
 )
-from app.services.sifen_client.tests.test_documents import (
+from backend.app.services.sifen_client.tests.fixtures.test_documents import (
     get_valid_factura_xml,
     get_valid_nota_credito_xml,
     get_invalid_xml_by_type,
