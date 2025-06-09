@@ -236,7 +236,7 @@ class DocumentSender:
             # Calcular métricas
             processing_time = (
                 datetime.now() - start_time).total_seconds() * 1000
-            retry_count = self._get_retry_count_from_stats()
+            retry_count = await self._get_retry_count_from_stats()
 
             # Actualizar estadísticas
             self._update_stats(True, processing_time, retry_count)
@@ -268,7 +268,7 @@ class DocumentSender:
             # Calcular tiempo incluso en error
             processing_time = (
                 datetime.now() - start_time).total_seconds() * 1000
-            retry_count = self._get_retry_count_from_stats()
+            retry_count = await self._get_retry_count_from_stats()
 
             # Actualizar estadísticas de error
             self._update_stats(False, processing_time, retry_count)
@@ -675,10 +675,16 @@ class DocumentSender:
             batch_status=batch_status
         )
 
-    def _get_retry_count_from_stats(self) -> int:
+    async def _get_retry_count_from_stats(self) -> int:
         """Obtiene el conteo de reintentos desde las estadísticas del retry manager"""
-        retry_stats = self._retry_manager.get_stats()
-        return retry_stats.get('total_retries', 0)
+        try:
+            retry_stats = self._retry_manager.get_stats()
+            return retry_stats.get('total_retries', 0)
+        except Exception as e:
+            # Fallback robusto si no se pueden obtener estadísticas
+            logger.warning(
+                f"No se pudieron obtener estadísticas de reintentos: {e}")
+            return 0
 
     def _update_stats(self, success: bool, processing_time_ms: float, retry_count: int):
         """Actualiza las estadísticas del document sender"""
@@ -714,14 +720,19 @@ class DocumentSender:
             return "***"
         return f"{ruc[:2]}***{ruc[-2:]}"
 
-    def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> Dict[str, Any]:
         """
         Obtiene estadísticas completas del document sender
 
         Returns:
             Diccionario con estadísticas detalladas
         """
-        retry_stats = self._retry_manager.get_stats()
+        try:
+            retry_stats = self._retry_manager.get_stats()
+        except Exception as e:
+            logger.warning(
+                f"Error obteniendo estadísticas de retry manager: {e}")
+            retry_stats = {'error': 'stats_unavailable'}
 
         return {
             'document_sender': self._stats.copy(),
@@ -734,7 +745,7 @@ class DocumentSender:
             }
         }
 
-    def reset_stats(self):
+    async def reset_stats(self):
         """Resetea todas las estadísticas"""
         self._stats = {
             'total_documents_sent': 0,
@@ -743,7 +754,12 @@ class DocumentSender:
             'total_retries': 0,
             'avg_processing_time_ms': 0.0
         }
-        self._retry_manager.reset_stats()
+
+        try:
+            self._retry_manager.reset_stats()
+        except Exception as e:
+            logger.warning(
+                f"Error reseteando estadísticas de retry manager: {e}")
 
         logger.info("document_sender_stats_reset")
 
