@@ -236,7 +236,7 @@ class DocumentSender:
             # Calcular métricas
             processing_time = (
                 datetime.now() - start_time).total_seconds() * 1000
-            retry_count = await self._get_retry_count_from_stats()
+            retry_count = self._get_retry_count_from_stats()
 
             # Actualizar estadísticas
             self._update_stats(True, processing_time, retry_count)
@@ -268,7 +268,7 @@ class DocumentSender:
             # Calcular tiempo incluso en error
             processing_time = (
                 datetime.now() - start_time).total_seconds() * 1000
-            retry_count = await self._get_retry_count_from_stats()
+            retry_count = self._get_retry_count_from_stats()
 
             # Actualizar estadísticas de error
             self._update_stats(False, processing_time, retry_count)
@@ -675,7 +675,7 @@ class DocumentSender:
             batch_status=batch_status
         )
 
-    async def _get_retry_count_from_stats(self) -> int:
+    def _get_retry_count_from_stats(self) -> int:
         """Obtiene el conteo de reintentos desde las estadísticas del retry manager"""
         try:
             retry_stats = self._retry_manager.get_stats()
@@ -720,7 +720,7 @@ class DocumentSender:
             return "***"
         return f"{ruc[:2]}***{ruc[-2:]}"
 
-    async def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> Dict[str, Any]:
         """
         Obtiene estadísticas completas del document sender
 

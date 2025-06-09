@@ -16,6 +16,7 @@ Cobertura completa:
 """
 
 import pytest
+import asyncio
 from typing import Optional
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
@@ -101,8 +102,7 @@ class TestDocumentStatusProcessing:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = pendiente_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
@@ -150,8 +150,7 @@ class TestDocumentStatusProcessing:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = procesando_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
@@ -205,8 +204,7 @@ class TestDocumentStatusSuccess:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = aprobado_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
@@ -259,8 +257,7 @@ class TestDocumentStatusSuccess:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = aprobado_obs_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
@@ -323,8 +320,7 @@ class TestDocumentStatusError:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = rechazado_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
@@ -380,8 +376,7 @@ class TestDocumentStatusError:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = duplicado_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
@@ -435,8 +430,7 @@ class TestDocumentStatusError:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = ruc_error_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
@@ -492,8 +486,7 @@ class TestDocumentStatusError:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = error_tecnico_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 3})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 3})
 
         sender = DocumentSender(
             config=test_config,
@@ -557,8 +550,7 @@ class TestDocumentStatusSpecial:
         # EJECUTAR: Mock y envío
         mock_retry_manager = AsyncMock()
         mock_retry_manager.execute_with_retry.return_value = extemporaneo_response
-        mock_retry_manager.get_stats = AsyncMock(
-            return_value={'total_retries': 0})
+        mock_retry_manager.get_stats = Mock(return_value={'total_retries': 0})
 
         sender = DocumentSender(
             config=test_config,
