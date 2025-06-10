@@ -240,7 +240,7 @@ class DocumentSender:
             retry_count = self._get_retry_count_from_stats()
 
             # Actualizar estadísticas
-            self._update_stats(True, processing_time, retry_count)
+            self._update_stats(response.success, processing_time, retry_count)
 
             # Crear resultado
             result = SendResult(
