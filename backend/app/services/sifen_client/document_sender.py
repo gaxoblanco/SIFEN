@@ -150,11 +150,12 @@ class DocumentSender:
             await self._soap_client._cleanup()
 
     async def _ensure_client_initialized(self):
-        """Asegura que el cliente SOAP esté inicializado"""
-        if not self._client_initialized:
-            if self._soap_client is None:
-                self._soap_client = SifenSOAPClient(self.config)
+        """Verifica que el cliente esté inicializado, sin auto-creación"""
+        if self._soap_client is None:
+            raise SifenClientError(
+                "Cliente SOAP no inicializado. Debe proporcionarse en constructor o usar context manager.")
 
+        if not self._client_initialized:
             await self._soap_client._initialize()
             self._client_initialized = True
 
