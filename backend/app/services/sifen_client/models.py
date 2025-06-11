@@ -360,7 +360,7 @@ class DocumentRequest(SifenBaseModel):
     xml_content: str = Field(
         ...,
         min_length=100,
-        max_length=10_000_000,  # 10MB máximo
+
         description="Contenido XML del documento firmado digitalmente"
     )
 

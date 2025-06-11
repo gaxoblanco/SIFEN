@@ -563,10 +563,15 @@ class DocumentSender:
             # Validación básica de XML
             if not xml_content or not xml_content.strip():
                 raise SifenValidationError("XML no puede estar vacío")
-
-            if len(xml_content) > 10_000_000:  # 10MB
+            # Calcular tamaño en bytes UTF-8 y usar límite inclusivo según Manual v150
+            xml_size_bytes = len(xml_content.encode('utf-8'))
+            MAX_XML_SIZE_BYTES = 10 * 1024 * 1024  # 10MB exactos en bytes
+            if xml_size_bytes > MAX_XML_SIZE_BYTES:
+                xml_size_mb = xml_size_bytes / (1024 * 1024)
                 raise SifenValidationError(
-                    "XML excede el tamaño máximo permitido (10MB)")
+                    f"XML excede el tamaño máximo permitido. "
+                    f"Tamaño actual: {xml_size_mb:.2f}MB, máximo permitido: 10MB"
+                )
 
             # Validación de estructura XML básica
             if not xml_content.strip().startswith('<?xml'):
