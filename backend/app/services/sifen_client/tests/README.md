@@ -24,6 +24,7 @@ backend/app/services/sifen_client/tests/
 ├── ✅ test_document_size_limits.py        # 🟡 ALTO - Tamaños y límites (COMPLETO ✅)
 ├── ✅ test_concurrency_rate_limits.py     # 🟡 ALTO - Rate limiting SIFEN (COMPLETO ✅)
 ├── ✅ test_currency_amount_validation.py  # 🟡 ALTO - Monedas y montos (COMPLETO ✅)
+├── ✅ test_contingency_mode.py            # 🟢 MEDIO - Modo contingencia (COMPLETO ✅)
 ├── ❌ test_sifen_integration.py          # 🚫 DEPRECADO - Reemplazado por tests modulares
 ├── fixtures/
 │   ├── ✅ test_documents.py               # Fixtures de documentos XML con datos reales
@@ -36,7 +37,6 @@ backend/app/services/sifen_client/tests/
 ```
 backend/app/services/sifen_client/tests/
 (ÚNICO CRÍTICO RESTANTE)
-├── ❌ test_contingency_mode.py            # 🟢 MEDIO - Modo contingencia
 ├── ❌ test_document_types_specific.py     # 🟢 MEDIO - AFE, NCE, NDE, NRE
 ├── ❌ test_async_batch_workflow.py        # 🟢 MEDIO - Lotes asíncronos
 └── ❌ test_encoding_special_chars.py      # 🟢 MEDIO - UTF-8 y guaraní
