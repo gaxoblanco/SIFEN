@@ -21,6 +21,8 @@ backend/app/services/sifen_client/tests/
 ├── ✅ test_sifen_error_codes.py          # 🔴 CRÍTICO - Códigos específicos v150 (COMPLETO ✅)
 ├── ✅ test_time_limits_validation.py     # 🔴 CRÍTICO - Límites 72h/720h (COMPLETO ✅)
 ├── ✅ test_certificate_validation.py      # 🔴 CRÍTICO - Certificados PSC (COMPLETO ✅)
+├── ✅ test_document_size_limits.py        # 🟡 ALTO - Tamaños y límites (COMPLETO ✅)
+├── ✅ test_concurrency_rate_limits.py     # 🟡 ALTO - Rate limiting SIFEN (COMPLETO ✅)
 ├── ❌ test_sifen_integration.py          # 🚫 DEPRECADO - Reemplazado por tests modulares
 ├── fixtures/
 │   ├── ✅ test_documents.py               # Fixtures de documentos XML con datos reales
@@ -33,8 +35,6 @@ backend/app/services/sifen_client/tests/
 ```
 backend/app/services/sifen_client/tests/
 (ÚNICO CRÍTICO RESTANTE)
-├── ❌ test_document_size_limits.py        # 🟡 ALTO - Tamaños y límites
-├── ❌ test_concurrency_rate_limits.py     # 🟡 ALTO - Rate limiting SIFEN
 ├── ❌ test_currency_amount_validation.py  # 🟡 ALTO - Monedas y montos
 ├── ❌ test_contingency_mode.py            # 🟢 MEDIO - Modo contingencia
 ├── ❌ test_document_types_specific.py     # 🟢 MEDIO - AFE, NCE, NDE, NRE
