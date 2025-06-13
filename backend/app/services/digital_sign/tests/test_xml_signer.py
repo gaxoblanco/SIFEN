@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from ..xml_signer import XMLSigner
 from ..config import CertificateConfig, DigitalSignConfig
 from ..certificate_manager import CertificateManager
+from cryptography.hazmat.primitives.serialization import pkcs12
 
 
 @pytest.fixture
@@ -27,11 +28,74 @@ def test_xml():
 
 @pytest.fixture
 def test_certificate():
-    """Fixture que proporciona un certificado de prueba"""
-    # Aquí deberíamos crear un certificado de prueba
-    # Por ahora retornamos None ya que el certificado real
-    # se maneja a través del CertificateManager
-    return None
+    """Fixture que genera certificado auto-firmado para tests"""
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from datetime import datetime, timedelta
+    import tempfile
+    import os
+
+    # Generar clave privada
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+
+    # Crear certificado auto-firmado
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "PY"),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Central"),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, "Asunción"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Test Company"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "test.sifen.local"),
+    ])
+
+    cert = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        issuer
+    ).public_key(
+        private_key.public_key()
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.utcnow()
+    ).not_valid_after(
+        datetime.utcnow() + timedelta(days=365)
+    ).add_extension(
+        x509.SubjectAlternativeName([
+            x509.DNSName("test.sifen.local"),
+        ]),
+        critical=False,
+    ).sign(private_key, hashes.SHA256())
+
+    # Crear archivo PFX temporal
+    p12_password = b"test123"
+    p12_data = pkcs12.serialize_key_and_certificates(
+        name=b"Test Certificate",
+        key=private_key,
+        cert=cert,
+        cas=None,
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            p12_password)
+    )
+
+    # Guardar en archivo temporal
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pfx') as tmp:
+        tmp.write(p12_data)
+        tmp_path = tmp.name
+
+    yield {
+        'path': tmp_path,
+        'password': 'test123',
+        'certificate': cert,
+        'private_key': private_key
+    }
+
+    # Limpiar archivo temporal
+    os.unlink(tmp_path)
 
 
 @pytest.fixture

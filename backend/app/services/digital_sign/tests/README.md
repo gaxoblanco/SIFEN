@@ -17,12 +17,12 @@ backend/app/services/digital_sign/tests/
 ├── ✅ test_certificate_manager.py         # ⭐ Tests gestión certificados PFX (COMPLETO)
 ├── fixtures/
 │   └── ✅ test_certificate.pfx            # Certificado de prueba (NO REAL)
+├── ✅ test_csc_manager.py                 # 🔴 CRÍTICO - Gestión CSC SIFEN (COMPLETO)
 ```
 
 ### ❌ **Tests RESTANTES (Por Implementar)**
 ```
 backend/app/services/digital_sign/tests/
-├── ❌ test_csc_manager.py                 # 🔴 CRÍTICO - Gestión CSC SIFEN
 ├── ❌ test_signature_validation.py        # 🔴 CRÍTICO - Validación firmas existentes
 ├── ❌ test_certificate_expiration.py      # 🟡 ALTO - Vencimiento certificados
 ├── ❌ test_multiple_certificates.py       # 🟡 ALTO - Múltiples certificados empresa
