@@ -21,12 +21,12 @@ backend/app/services/digital_sign/tests/
 ├── ✅ test_signature_validation.py        # 🔴 CRÍTICO - Validación firmas existentes (COMPLETO)
 ├── ✅ test_certificate_expiration.py      # 🟡 ALTO - Vencimiento certificados (COMPLETO)
 ├── ✅ test_multiple_certificates.py       # 🟡 ALTO - Múltiples certificados empresa (COMPLETO)
+├── 🟡 test_performance_signing.py         # 🟡 ALTO - Performance y 
 ```
 
 ### ❌ **Tests RESTANTES (Por Implementar)**
 ```
-backend/app/services/digital_sign/tests/
-├── ❌ test_performance_signing.py         # 🟡 ALTO - Performance y benchmarks
+backend/app/services/digital_sign/tests/benchmarks
 ├── ❌ test_edge_cases_certificates.py     # 🟢 MEDIO - Casos extremos y errores
 ├── ❌ test_xml_signature_integration.py   # 🟢 MEDIO - Integración XML+Firma
 ├── ❌ test_certificate_formats.py         # 🟢 MEDIO - Múltiples formatos cert

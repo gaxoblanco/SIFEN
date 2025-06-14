@@ -24,6 +24,7 @@ lxml>=4.9.3
 pytest>=7.4.3
 pytest-cov>=4.1.0
 httpx>=0.25.2
+requirements
 
 # Seguridad y autenticación
 python-jose[cryptography]>=3.3.0
