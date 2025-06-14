@@ -18,12 +18,12 @@ backend/app/services/digital_sign/tests/
 ├── fixtures/
 │   └── ✅ test_certificate.pfx            # Certificado de prueba (NO REAL)
 ├── ✅ test_csc_manager.py                 # 🔴 CRÍTICO - Gestión CSC SIFEN (COMPLETO)
+├── ✅ test_signature_validation.py        # 🔴 CRÍTICO - Validación firmas existentes (COMPLETO)
 ```
 
 ### ❌ **Tests RESTANTES (Por Implementar)**
 ```
 backend/app/services/digital_sign/tests/
-├── ❌ test_signature_validation.py        # 🔴 CRÍTICO - Validación firmas existentes
 ├── ❌ test_certificate_expiration.py      # 🟡 ALTO - Vencimiento certificados
 ├── ❌ test_multiple_certificates.py       # 🟡 ALTO - Múltiples certificados empresa
 ├── ❌ test_performance_signing.py         # 🟡 ALTO - Performance y benchmarks
@@ -42,63 +42,6 @@ backend/app/services/digital_sign/tests/
 ---
 
 ## 🚨 **Tests Críticos Detallados**
-
-#### **1. test_csc_manager.py** - Gestión CSC (Código Seguridad Contribuyente)
-```python
-"""
-OBJETIVO: Validar generación y gestión CSC según SIFEN
-ALGORITMO: Específico Paraguay (entropy mínima 128 bits)
-FORMATOS: Alfanumérico 9 caracteres exactos
-"""
-
-class TestCSCManager:
-    
-    def test_generate_valid_csc_code(self):
-        """Generar CSC válido según algoritmo SIFEN"""
-        # Longitud exacta: 9 caracteres
-        # Solo alfanuméricos: A-Z, 0-9
-        # Entropy mínima: 128 bits
-        
-    def test_csc_format_validation(self):
-        """Validar formato CSC estricto"""
-        # Debe rechazar: símbolos especiales, minúsculas, <9 chars
-        
-    def test_csc_collision_detection(self):
-        """Detectar colisiones en generación CSC"""
-        # Generar 1000 CSCs, todos únicos
-        
-    def test_csc_with_certificate_binding(self):
-        """CSC vinculado correctamente con certificado"""
-        # CSC debe asociarse con certificado específico
-```
-
-#### **2. test_signature_validation.py** - Validación Firmas Digitales
-```python
-"""
-OBJETIVO: Validar firmas XML existentes exhaustivamente
-ALGORITMOS: RSA-SHA256, RSA-SHA1 (legacy)
-ESTÁNDAR: XMLDSig W3C compliance
-"""
-
-class TestSignatureValidation:
-    
-    def test_valid_xmldsig_signature(self):
-        """Validar firma XMLDSig correcta"""
-        # Signature, SignedInfo, Reference válidos
-        # Canonicalización C14N correcta
-        
-    def test_tampered_document_detection(self):
-        """Detectar alteración documento firmado"""
-        # Modificar XML después de firma → debe fallar
-        
-    def test_certificate_chain_validation(self):
-        """Validar cadena completa certificado"""
-        # Desde certificado hasta CA raíz PSC
-        
-    def test_revoked_certificate_detection(self):
-        """Detectar certificado revocado"""
-        # Consulta CRL/OCSP cuando disponible
-```
 
 #### **3. test_certificate_expiration.py** - Gestión Vencimiento
 ```python
