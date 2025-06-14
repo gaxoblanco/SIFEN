@@ -19,13 +19,13 @@ backend/app/services/digital_sign/tests/
 │   └── ✅ test_certificate.pfx            # Certificado de prueba (NO REAL)
 ├── ✅ test_csc_manager.py                 # 🔴 CRÍTICO - Gestión CSC SIFEN (COMPLETO)
 ├── ✅ test_signature_validation.py        # 🔴 CRÍTICO - Validación firmas existentes (COMPLETO)
+├── ✅ test_certificate_expiration.py      # 🟡 ALTO - Vencimiento certificados (COMPLETO)
+├── ✅ test_multiple_certificates.py       # 🟡 ALTO - Múltiples certificados empresa (COMPLETO)
 ```
 
 ### ❌ **Tests RESTANTES (Por Implementar)**
 ```
 backend/app/services/digital_sign/tests/
-├── ❌ test_certificate_expiration.py      # 🟡 ALTO - Vencimiento certificados
-├── ❌ test_multiple_certificates.py       # 🟡 ALTO - Múltiples certificados empresa
 ├── ❌ test_performance_signing.py         # 🟡 ALTO - Performance y benchmarks
 ├── ❌ test_edge_cases_certificates.py     # 🟢 MEDIO - Casos extremos y errores
 ├── ❌ test_xml_signature_integration.py   # 🟢 MEDIO - Integración XML+Firma
@@ -43,59 +43,7 @@ backend/app/services/digital_sign/tests/
 
 ## 🚨 **Tests Críticos Detallados**
 
-#### **3. test_certificate_expiration.py** - Gestión Vencimiento
-```python
-"""
-OBJETIVO: Gestión completa ciclo vida certificados
-ALERTAS: 90, 30, 7 días antes vencimiento
-ACCIONES: Bloqueo automático post-vencimiento
-"""
-
-class TestCertificateExpiration:
-    
-    def test_certificate_validity_check(self):
-        """Verificar vigencia certificado actual"""
-        # Validar: not_before <= now <= not_after
-        
-    def test_expiration_warning_thresholds(self):
-        """Alertas pre-vencimiento escalonadas"""
-        # 90 días: INFO, 30 días: WARNING, 7 días: CRITICAL
-        
-    def test_expired_certificate_rejection(self):
-        """Rechazar certificado vencido automáticamente"""
-        # Debe fallar firma con certificado expirado
-        
-    def test_grace_period_handling(self):
-        """Período gracia post-vencimiento"""
-        # 24h gracia para completar procesos iniciados
-```
-
----
-
 ## 🟡 **Tests de Alto Impacto**
-
-#### **4. test_multiple_certificates.py** - Múltiples Certificados
-```python
-"""
-OBJETIVO: Gestión múltiples certificados por empresa
-ESCENARIOS: Primario/backup, rotación, selección automática
-"""
-
-class TestMultipleCertificates:
-    
-    def test_primary_backup_selection(self):
-        """Selección certificado primario con backup"""
-        # Primario disponible → usar primario
-        # Primario no disponible → usar backup
-        
-    def test_certificate_rotation_workflow(self):
-        """Rotación ordenada de certificados"""
-        # Proceso: nuevo → test → activar → deprecar anterior
-        
-    def test_concurrent_signing_multiple_certs(self):
-        """Firma concurrente con certificados distintos"""
-        # Múltiples procesos, certificados diferentes, sin conflictos
-```
 
 #### **5. test_performance_signing.py** - Performance y Benchmarks
 ```python
