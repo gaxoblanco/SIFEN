@@ -40,11 +40,11 @@
             <xs:element name="iTipDE">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:enumeration value="1"/> <!-- Factura Electrónica -->
-                        <xs:enumeration value="2"/> <!-- Autofactura Electrónica -->
-                        <xs:enumeration value="3"/> <!-- Nota de Crédito -->
-                        <xs:enumeration value="4"/> <!-- Nota de Débito -->
-                        <xs:enumeration value="5"/> <!-- Nota de Remisión -->
+                        <xs:enumeration value="1"/> <!-- Factura Electrónica (FE) -->
+                        <xs:enumeration value="4"/> <!-- Autofactura Electrónica (AFE) -->
+                        <xs:enumeration value="5"/> <!-- Nota de Crédito Electrónica (NCE) -->
+                        <xs:enumeration value="6"/> <!-- Nota de Débito Electrónica (NDE) -->
+                        <xs:enumeration value="7"/> <!-- Nota de Remisión Electrónica (NRE) -->
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
