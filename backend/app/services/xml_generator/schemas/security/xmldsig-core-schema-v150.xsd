@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.w3.org/2000/09/xmldsig#"
+           xmlns="http://www.w3.org/2000/09/xmldsig#"
+           elementFormDefault="qualified"
+           version="1.5.0">
+
+    <xs:annotation>
+        <xs:documentation>
+            Esquema XSD para Firma Digital XML SIFEN v150
+            Basado en W3C XML Digital Signature estándar
+            Sistema de Facturación Electrónica - Paraguay
+            
+            Especificaciones:
+            - Estándar: W3C XML Digital Signature (Enveloped)
+            - Algoritmo Hash: SHA-256
+            - Algoritmo Firma: RSA-SHA256
+            - Certificado: X.509 v3 (PSC Paraguay)
+            - Transformaciones: Enveloped + Exclusive C14N
+            
+            Versión: 150 (Septiembre 2019)
+            Namespace: http://www.w3.org/2000/09/xmldsig#
+        </xs:documentation>
+    </xs:annotation>
+
+    <!-- ================================================================ -->
+    <!-- ELEMENTO RAÍZ: Signature (XS01) -->
+    <!-- ================================================================ -->
+    <xs:element name="Signature">
+        <xs:annotation>
+            <xs:documentation>
+                Elemento raíz de la firma digital XML.
+                Contiene toda la información necesaria para validar la firma digital
+                del documento electrónico según estándar W3C.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- SignedInfo: Información firmada (XS02) -->
+                <xs:element name="SignedInfo" type="SignedInfoType" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Grupo de información de la firma que contiene los metadatos
+                            sobre cómo se realizó la firma digital.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                
+                <!-- SignatureValue: Valor de la firma (XS18) -->
+                <xs:element name="SignatureValue" type="SignatureValueType" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Valor de la firma digital codificado en Base64.
+                            Resultado de firmar SignedInfo con la clave privada del certificado.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                
+                <!-- KeyInfo: Información de la clave (XS19) -->
+                <xs:element name="KeyInfo" type="KeyInfoType" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Información sobre la clave pública utilizada para verificar la firma.
+                            Contiene el certificado digital X.509 del emisor.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+            
+            <!-- Atributos opcionales -->
+            <xs:attribute name="Id" type="xs:ID" use="optional">
+                <xs:annotation>
+                    <xs:documentation>
+                        Identificador único de la firma (opcional).
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ================================================================ -->
+    <!-- TIPO COMPLEJO: SignedInfoType (XS02) -->
+    <!-- ================================================================ -->
+    <xs:complexType name="SignedInfoType">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo que define la estructura de SignedInfo.
+                Contiene la información que es firmada digitalmente.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- CanonicalizationMethod: Método de canonicalización (XS03) -->
+            <xs:element name="CanonicalizationMethod" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Método de canonicalización utilizado para normalizar el XML
+                        antes de calcular la firma digital.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:attribute name="Algorithm" type="CanonicalizationAlgorithmType" use="required">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Algoritmo de canonicalización.
+                                Valor fijo: http://www.w3.org/TR/2001/REC-xml-c14n-20010315
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+            
+            <!-- SignatureMethod: Método de firma (XS05) -->
+            <xs:element name="SignatureMethod" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Método de firma digital utilizado.
+                        Para SIFEN: RSA con SHA-256.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:attribute name="Algorithm" type="SignatureAlgorithmType" use="required">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Algoritmo de firma digital.
+                                Valor fijo: http://www.w3.org/2001/04/xmldsig-more#rsa-sha256
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+            
+            <!-- Reference: Referencia al documento firmado (XS07) -->
+            <xs:element name="Reference" type="ReferenceType" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Referencia al elemento del documento que está siendo firmado.
+                        El atributo URI debe contener el CDC precedido por '#'.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================ -->
+    <!-- TIPO COMPLEJO: ReferenceType (XS07) -->
+    <!-- ================================================================ -->
+    <xs:complexType name="ReferenceType">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo que define la referencia al elemento firmado.
+                Incluye transformaciones aplicadas y valor hash.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Transforms: Transformaciones aplicadas (XS10) -->
+            <xs:element name="Transforms" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Transformaciones aplicadas al documento antes de calcular el hash.
+                        Para SIFEN: Enveloped + Exclusive Canonicalization.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence>
+                        <!-- Transform: Transformación individual (XS12) -->
+                        <xs:element name="Transform" minOccurs="2" maxOccurs="2">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Transformación individual aplicada al documento.
+                                    SIFEN requiere exactamente 2 transformaciones.
+                                </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <!-- XPath: Expresión XPath (XS14) - Opcional -->
+                                    <xs:element name="XPath" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                Expresión XPath para transformaciones específicas (opcional).
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:element>
+                                </xs:sequence>
+                                <xs:attribute name="Algorithm" type="TransformAlgorithmType" use="required">
+                                    <xs:annotation>
+                                        <xs:documentation>
+                                            Algoritmo de transformación.
+                                            Valores válidos:
+                                            - http://www.w3.org/2000/09/xmldsig#enveloped-signature
+                                            - http://www.w3.org/2001/10/xml-exc-c14n#
+                                        </xs:documentation>
+                                    </xs:annotation>
+                                </xs:attribute>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            
+            <!-- DigestMethod: Método de hash (XS15) -->
+            <xs:element name="DigestMethod" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Método utilizado para calcular el hash del documento.
+                        Para SIFEN: SHA-256.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:attribute name="Algorithm" type="DigestAlgorithmType" use="required">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Algoritmo de hash.
+                                Valor fijo: http://www.w3.org/2001/04/xmlenc#sha256
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+            
+            <!-- DigestValue: Valor del hash (XS17) -->
+            <xs:element name="DigestValue" type="DigestValueType" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Valor del hash SHA-256 del documento, codificado en Base64.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        
+        <!-- URI: Referencia al elemento firmado (XS08) -->
+        <xs:attribute name="URI" type="URIReferenceType" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    URI que identifica el elemento que se está firmando.
+                    Para SIFEN debe ser: '#' seguido del CDC (Código de Control).
+                    Ejemplo: #01444444017001001001452822011701251587322609881
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- ================================================================ -->
+    <!-- TIPO COMPLEJO: KeyInfoType (XS19) -->
+    <!-- ================================================================ -->
+    <xs:complexType name="KeyInfoType">
+        <xs:annotation>
+            <xs:documentation>
+                Información sobre la clave pública utilizada para verificar la firma.
+                Contiene el certificado digital X.509 del emisor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- X509Data: Datos del certificado X.509 (XS20) -->
+            <xs:element name="X509Data" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Datos del certificado digital X.509 v3.
+                        Contiene el certificado en formato DER codificado en Base64.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence>
+                        <!-- X509Certificate: Certificado digital (XS21) -->
+                        <xs:element name="X509Certificate" type="X509CertificateType" minOccurs="1" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Certificado digital X.509 v3 en formato DER codificado en Base64.
+                                    Debe ser emitido por un PSC habilitado en Paraguay.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================ -->
+    <!-- TIPOS SIMPLES: Restricciones de Algoritmos -->
+    <!-- ================================================================ -->
+    
+    <!-- Algoritmo de Canonicalización -->
+    <xs:simpleType name="CanonicalizationAlgorithmType">
+        <xs:annotation>
+            <xs:documentation>
+                Algoritmo de canonicalización permitido para SIFEN.
+                Solo se permite el algoritmo estándar W3C.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:anyURI">
+            <xs:enumeration value="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">
+                <xs:annotation>
+                    <xs:documentation>Canonical XML 1.0 (W3C Recommendation)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Algoritmo de Firma Digital -->
+    <xs:simpleType name="SignatureAlgorithmType">
+        <xs:annotation>
+            <xs:documentation>
+                Algoritmo de firma digital permitido para SIFEN.
+                Solo RSA con SHA-256.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:anyURI">
+            <xs:enumeration value="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+                <xs:annotation>
+                    <xs:documentation>RSA con SHA-256</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Algoritmo de Transformación -->
+    <xs:simpleType name="TransformAlgorithmType">
+        <xs:annotation>
+            <xs:documentation>
+                Algoritmos de transformación permitidos para SIFEN.
+                Se requieren ambos algoritmos en el orden especificado.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:anyURI">
+            <xs:enumeration value="http://www.w3.org/2000/09/xmldsig#enveloped-signature">
+                <xs:annotation>
+                    <xs:documentation>Enveloped Signature Transform</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="http://www.w3.org/2001/10/xml-exc-c14n#">
+                <xs:annotation>
+                    <xs:documentation>Exclusive XML Canonicalization 1.0</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Algoritmo de Hash/Digest -->
+    <xs:simpleType name="DigestAlgorithmType">
+        <xs:annotation>
+            <xs:documentation>
+                Algoritmo de hash permitido para SIFEN.
+                Solo SHA-256.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:anyURI">
+            <xs:enumeration value="http://www.w3.org/2001/04/xmlenc#sha256">
+                <xs:annotation>
+                    <xs:documentation>SHA-256 Hash Algorithm</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================ -->
+    <!-- TIPOS SIMPLES: Valores y Referencias -->
+    <!-- ================================================================ -->
+    
+    <!-- Valor de Firma Digital -->
+    <xs:simpleType name="SignatureValueType">
+        <xs:annotation>
+            <xs:documentation>
+                Valor de la firma digital codificado en Base64.
+                Resultado de firmar SignedInfo con la clave privada RSA.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:base64Binary">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Valor del Hash -->
+    <xs:simpleType name="DigestValueType">
+        <xs:annotation>
+            <xs:documentation>
+                Valor del hash SHA-256 codificado en Base64.
+                Longitud esperada: 44 caracteres en Base64 (32 bytes SHA-256).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:base64Binary">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Certificado X.509 -->
+    <xs:simpleType name="X509CertificateType">
+        <xs:annotation>
+            <xs:documentation>
+                Certificado digital X.509 v3 en formato DER codificado en Base64.
+                Debe ser emitido por un PSC (Proveedor de Servicios de Certificación)
+                habilitado en la República del Paraguay.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:base64Binary">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Referencia URI -->
+    <xs:simpleType name="URIReferenceType">
+        <xs:annotation>
+            <xs:documentation>
+                URI de referencia al elemento firmado.
+                Para SIFEN debe ser '#' seguido del CDC (44 dígitos).
+                Ejemplo: #01444444017001001001452822011701251587322609881
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:anyURI">
+            <xs:pattern value="#\d{44}">
+                <xs:annotation>
+                    <xs:documentation>
+                        Patrón: # seguido de exactamente 44 dígitos (CDC).
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>
