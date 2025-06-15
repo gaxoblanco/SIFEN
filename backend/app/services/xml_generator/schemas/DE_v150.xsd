@@ -1,45 +1,133 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+ESQUEMA XSD SIFEN v150 - COMPLETAMENTE CORREGIDO
+===============================================
+
+BASADO EN: Manual Técnico SIFEN v150 oficial (SET Paraguay)
+FECHA: Junio 2025 - Análisis completo y corrección estructura
+
+CAMBIOS CRÍTICOS APLICADOS:
+✅ Estructura XML corregida según Manual oficial
+✅ Elementos obligatorios agregados (dVerFor, gOpeDE, gTimb, etc.)
+✅ Tipos de documento oficiales: {1, 4, 5, 6, 7}
+✅ Jerarquía XML correcta según especificación
+✅ Validaciones de campos según reglas de negocio
+✅ Límites y rangos según documentación oficial
+
+GRUPOS PRINCIPALES IMPLEMENTADOS:
+- rDE: Elemento raíz con versión formato
+- gOpeDE: Datos operación documento electrónico
+- gTimb: Datos timbrado
+- gDatGralOpe: Datos generales operación  
+- gDatEm: Datos emisor
+- gDatRec: Datos receptor
+- gDtipDE: Datos específicos por tipo documento
+- gTotSub: Totales y subtotales
+- gCamGen: Campos generales
+- gCamDEAsoc: Documentos asociados (opcional)
+- gCamFuFD: Campos fuera de firma (QR)
+
+REFERENCIAS:
+- Manual Técnico SIFEN v150
+- Ejemplos XML oficiales SET
+- Códigos oficiales Paraguay (departamentos, ciudades)
+- Validaciones de negocio SIFEN
+-->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns="http://ekuatia.set.gov.py/sifen/xsd"
            targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
            elementFormDefault="qualified"
-           attributeFormDefault="unqualified">
+           attributeFormDefault="unqualified"
+           version="1.5.0">
 
-    <!-- Elemento raíz para Documento Electrónico -->
+    <!-- ============================================= -->
+    <!-- ELEMENTO RAÍZ: rDE (Raíz Documento Electrónico) -->
+    <!-- ============================================= -->
     <xs:element name="rDE">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="DE" type="tipoDE"/>
+                <!-- Versión del formato (OBLIGATORIO según Manual v150) -->
+                <xs:element name="dVerFor" type="tipoVersionFormato"/>
+                
+                <!-- Documento electrónico principal -->
+                <xs:element name="DE" type="tipoDocumentoElectronico"/>
+                
+                <!-- Firma digital (manejada por módulo de firma) -->
+                <xs:element name="Signature" minOccurs="0" maxOccurs="1">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:any namespace="http://www.w3.org/2000/09/xmldsig#" processContents="lax"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                
+                <!-- Campos fuera de firma (QR) -->
+                <xs:element name="gCamFuFD" type="tipoGCamFuFD" minOccurs="0"/>
             </xs:sequence>
+            
+            <!-- Atributos del elemento raíz -->
+            <xs:attribute name="xmlns" type="xs:string" fixed="http://ekuatia.set.gov.py/sifen/xsd"/>
             <xs:attribute name="version" type="xs:string" fixed="1.5.0"/>
         </xs:complexType>
     </xs:element>
 
-    <!-- Tipo para Documento Electrónico -->
-    <xs:complexType name="tipoDE">
+    <!-- ============================================= -->
+    <!-- TIPOS PRINCIPALES -->
+    <!-- ============================================= -->
+    
+    <!-- Versión del formato -->
+    <xs:simpleType name="tipoVersionFormato">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="150"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Documento Electrónico Principal -->
+    <xs:complexType name="tipoDocumentoElectronico">
         <xs:sequence>
-            <xs:element name="gDE" type="tipoGDE"/>
+            <!-- Grupo Operación DE (OBLIGATORIO) -->
+            <xs:element name="gOpeDE" type="tipoGOpeDE"/>
+            
+            <!-- Grupo Timbrado (OBLIGATORIO) -->
+            <xs:element name="gTimb" type="tipoGTimb"/>
+            
+            <!-- Grupo Datos Generales Operación (OBLIGATORIO) -->
+            <xs:element name="gDatGralOpe" type="tipoGDatGralOpe"/>
+            
+            <!-- Grupo Datos Específicos por Tipo DE (OBLIGATORIO) -->
+            <xs:element name="gDtipDE" type="tipoGDtipDE"/>
+            
+            <!-- Grupo Totales y Subtotales (OBLIGATORIO) -->
+            <xs:element name="gTotSub" type="tipoGTotSub"/>
+            
+            <!-- Grupo Campos Generales (OBLIGATORIO) -->
+            <xs:element name="gCamGen" type="tipoGCamGen"/>
+            
+            <!-- Grupo Documentos Asociados (OPCIONAL) -->
+            <xs:element name="gCamDEAsoc" type="tipoGCamDEAsoc" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
+        
+        <!-- Atributo ID con CDC (44 caracteres) -->
+        <xs:attribute name="Id" use="required">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:length value="44"/>
+                    <xs:pattern value="[0-9]{44}"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
     </xs:complexType>
 
-    <!-- Tipo para Grupo de Datos del Documento -->
-    <xs:complexType name="tipoGDE">
+    <!-- ============================================= -->
+    <!-- GRUPO OPERACIÓN DE (gOpeDE) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGOpeDE">
         <xs:sequence>
-            <xs:element name="dID" type="tipoID"/>
-            <xs:element name="dDatG" type="tipoDatG"/>
-            <xs:element name="dEmi" type="tipoEmi"/>
-            <xs:element name="dRec" type="tipoRec"/>
-            <xs:element name="gItem" type="tipoItem" maxOccurs="unbounded"/>
-            <xs:element name="dTot" type="tipoTot"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <!-- Tipo para Identificación del Documento -->
-    <xs:complexType name="tipoID">
-        <xs:sequence>
+            <!-- Tipo de Documento Electrónico -->
             <xs:element name="iTipDE">
                 <xs:simpleType>
-                    <xs:restriction base="xs:string">
+                    <xs:restriction base="xs:integer">
+                        <!-- CÓDIGOS OFICIALES según Manual SIFEN v150 -->
                         <xs:enumeration value="1"/> <!-- Factura Electrónica (FE) -->
                         <xs:enumeration value="4"/> <!-- Autofactura Electrónica (AFE) -->
                         <xs:enumeration value="5"/> <!-- Nota de Crédito Electrónica (NCE) -->
@@ -48,427 +136,1456 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dNumID">
+            
+            <!-- Descripción del Tipo DE -->
+            <xs:element name="dDesTipDE">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="10"/>
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número de Documento -->
+            <xs:element name="dNumDoc">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:pattern value="\d{3}-\d{3}-\d{7}"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
+            
+            <!-- Fecha de Emisión -->
             <xs:element name="dFeEmiDE">
                 <xs:simpleType>
                     <xs:restriction base="xs:dateTime">
                         <xs:minInclusive value="2020-01-01T00:00:00"/>
-                        <xs:maxInclusive value="2100-12-31T23:59:59"/>
+                        <xs:maxInclusive value="2030-12-31T23:59:59"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-        </xs:sequence>
-    </xs:complexType>
-
-    <!-- Tipo para Datos Generales -->
-    <xs:complexType name="tipoDatG">
-        <xs:sequence>
-            <xs:element name="dNumID">
+            
+            <!-- Tipo de Emisión -->
+            <xs:element name="iTipEmi">
                 <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{3}-\d{3}-\d{7}"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dEst">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{1,3}"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dPunExp">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{1,3}"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dTipoID">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="1"/> <!-- RUC -->
-                        <xs:enumeration value="2"/> <!-- Cédula -->
-                        <xs:enumeration value="3"/> <!-- Pasaporte -->
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dTipoEmi">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
+                    <xs:restriction base="xs:integer">
                         <xs:enumeration value="1"/> <!-- Normal -->
                         <xs:enumeration value="2"/> <!-- Contingencia -->
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
+            
+            <!-- Código de Seguridad -->
             <xs:element name="dCodSeg">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{1,3}"/>
+                        <xs:length value="9"/>
+                        <xs:pattern value="[0-9]{9}"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dCSC">
+            
+            <!-- CDC Completo -->
+            <xs:element name="dCDCDE">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="[A-Z0-9]{8}"/>
-                        <xs:length value="8"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dFecFirma">
-                <xs:simpleType>
-                    <xs:restriction base="xs:dateTime">
-                        <xs:minInclusive value="2020-01-01T00:00:00"/>
-                        <xs:maxInclusive value="2100-12-31T23:59:59"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="cConVen">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="1"/> <!-- Contado -->
-                        <xs:enumeration value="2"/> <!-- Crédito -->
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="cConOpe">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="1"/> <!-- Normal -->
-                        <xs:enumeration value="2"/> <!-- Contingencia -->
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="cModTra">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="1"/> <!-- Terrestre -->
-                        <xs:enumeration value="2"/> <!-- Marítimo -->
-                        <xs:enumeration value="3"/> <!-- Aéreo -->
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="cCatEmi">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="1"/> <!-- Normal -->
-                        <xs:enumeration value="2"/> <!-- Régimen Especial -->
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="cMon">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="PYG"/> <!-- Guaraní -->
-                        <xs:enumeration value="USD"/> <!-- Dólar Americano -->
-                        <xs:enumeration value="EUR"/> <!-- Euro -->
-                        <xs:enumeration value="BRL"/> <!-- Real Brasileño -->
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dTipCam">
-                <xs:simpleType>
-                    <xs:restriction base="xs:decimal">
-                        <xs:minInclusive value="0.01"/>
-                        <xs:maxInclusive value="999999.99"/>
-                        <xs:fractionDigits value="2"/>
+                        <xs:length value="44"/>
+                        <xs:pattern value="[0-9]{44}"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
         </xs:sequence>
     </xs:complexType>
 
-    <!-- Tipo para Emisor -->
-    <xs:complexType name="tipoEmi">
+    <!-- ============================================= -->
+    <!-- GRUPO TIMBRADO (gTimb) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGTimb">
         <xs:sequence>
-            <xs:element name="iTipID">
+            <!-- Tipo DE para Timbrado -->
+            <xs:element name="iTiDE">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Factura -->
+                        <xs:enumeration value="4"/> <!-- Autofactura -->
+                        <xs:enumeration value="5"/> <!-- Nota Crédito -->
+                        <xs:enumeration value="6"/> <!-- Nota Débito -->
+                        <xs:enumeration value="7"/> <!-- Nota Remisión -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número de Timbrado -->
+            <xs:element name="dNumTim">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
+                        <xs:length value="8"/>
+                        <xs:pattern value="[0-9]{8}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Establecimiento -->
+            <xs:element name="dEst">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="3"/>
+                        <xs:pattern value="[0-9]{3}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Punto de Expedición -->
+            <xs:element name="dPunExp">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="3"/>
+                        <xs:pattern value="[0-9]{3}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número de Documento en Timbrado -->
+            <xs:element name="dNumDoc">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="7"/>
+                        <xs:pattern value="[0-9]{7}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Serie Numérica (opcional) -->
+            <xs:element name="dSerieNum" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="2"/>
+                        <xs:pattern value="[A-Z]{1,2}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Fecha Inicio Timbrado -->
+            <xs:element name="dFeIniT">
+                <xs:simpleType>
+                    <xs:restriction base="xs:date">
+                        <xs:minInclusive value="2020-01-01"/>
+                        <xs:maxInclusive value="2030-12-31"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO DATOS GENERALES OPERACIÓN (gDatGralOpe) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGDatGralOpe">
+        <xs:sequence>
+            <!-- Fecha de Emisión -->
+            <xs:element name="dFeEmiDE">
+                <xs:simpleType>
+                    <xs:restriction base="xs:dateTime">
+                        <xs:minInclusive value="2020-01-01T00:00:00"/>
+                        <xs:maxInclusive value="2030-12-31T23:59:59"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Transacción -->
+            <xs:element name="iTipTra">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Venta de mercaderías -->
+                        <xs:enumeration value="2"/> <!-- Prestación de servicios -->
+                        <xs:enumeration value="3"/> <!-- Mixto -->
+                        <xs:enumeration value="4"/> <!-- Venta de activos fijos -->
+                        <xs:enumeration value="5"/> <!-- Consignación -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Impuesto -->
+            <xs:element name="iTImp">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- IVA -->
+                        <xs:enumeration value="2"/> <!-- ISC -->
+                        <xs:enumeration value="3"/> <!-- Ninguno -->
+                        <xs:enumeration value="4"/> <!-- IVA + ISC -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Moneda de Operación -->
+            <xs:element name="cMoneOpe">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:enumeration value="PYG"/> <!-- Guaraní paraguayo -->
+                        <xs:enumeration value="USD"/> <!-- Dólar estadounidense -->
+                        <xs:enumeration value="EUR"/> <!-- Euro -->
+                        <xs:enumeration value="BRL"/> <!-- Real brasileño -->
+                        <xs:enumeration value="ARS"/> <!-- Peso argentino -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Condición Tipo de Cambio -->
+            <xs:element name="dCondTiCam">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Fijo -->
+                        <xs:enumeration value="2"/> <!-- Variable -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Cambio -->
+            <xs:element name="dTiCam">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0.0001"/>
+                        <xs:maxInclusive value="999999999.9999"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Indicador Presencia -->
+            <xs:element name="iIndPres" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Operación presencial -->
+                        <xs:enumeration value="2"/> <!-- Operación electrónica -->
+                        <xs:enumeration value="3"/> <!-- Operación telefónica -->
+                        <xs:enumeration value="4"/> <!-- Operación a domicilio -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Datos del Emisor -->
+            <xs:element name="gDatEm" type="tipoGDatEm"/>
+            
+            <!-- Datos del Receptor -->
+            <xs:element name="gDatRec" type="tipoGDatRec"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO DATOS EMISOR (gDatEm) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGDatEm">
+        <xs:sequence>
+            <!-- RUC del Emisor -->
+            <xs:element name="dRucEm">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="8"/>
+                        <xs:pattern value="[0-9]{8}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Dígito Verificador -->
+            <xs:element name="dDVEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="1"/>
+                        <xs:pattern value="[0-9]"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Documento Identidad -->
+            <xs:element name="iTipIDEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
                         <xs:enumeration value="1"/> <!-- RUC -->
-                        <xs:enumeration value="2"/> <!-- Cédula -->
+                        <xs:enumeration value="2"/> <!-- Cédula de identidad -->
                         <xs:enumeration value="3"/> <!-- Pasaporte -->
+                        <xs:enumeration value="4"/> <!-- Otro -->
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dNumID">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{8,9}"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dDV">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
+            
+            <!-- Nombre/Razón Social del Emisor -->
             <xs:element name="dNomEmi">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:minLength value="3"/>
                         <xs:maxLength value="100"/>
-                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñ\s\.]+"/>
+                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñÃãẼẽĨĩÕõŨũỸỹ0-9\s\.\,\-\&amp;\(\)]+"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dDirEmi">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:minLength value="5"/>
-                        <xs:maxLength value="200"/>
-                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñ0-9\s\.,-]+"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dNumCas">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="[A-Za-z0-9\s-]+"/>
-                        <xs:maxLength value="20"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="cDepEmi">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{1,3}"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="cCiuEmi">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{1,3}"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dDesCiuEmi">
+            
+            <!-- Nombre Fantasía -->
+            <xs:element name="dNomFanEmi" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:minLength value="3"/>
                         <xs:maxLength value="100"/>
-                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñ\s\.]+"/>
+                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñÃãẼẽĨĩÕõŨũỸỹ0-9\s\.\,\-\&amp;\(\)]+"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dTelEmi">
+            
+            <!-- Dirección -->
+            <xs:element name="dDirEmi">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="(\+595|0)[0-9]{9}"/>
+                        <xs:minLength value="5"/>
+                        <xs:maxLength value="255"/>
+                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñÃãẼẽĨĩÕõŨũỸỹ0-9\s\.\,\-\#\/°]+"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número de Casa -->
+            <xs:element name="dNumCasEmi" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="10"/>
+                        <xs:pattern value="[A-Za-z0-9\-\s]+"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Código Departamento -->
+            <xs:element name="cDepEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="18"/> <!-- 17 departamentos + Asunción -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Departamento -->
+            <xs:element name="dDesDepEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="3"/>
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Código Distrito -->
+            <xs:element name="cDisEmi" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="9999"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Distrito -->
+            <xs:element name="dDesDisEmi" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="3"/>
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Código Ciudad -->
+            <xs:element name="cCiuEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="99999"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Ciudad -->
+            <xs:element name="dDesCiuEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="3"/>
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Teléfono -->
+            <xs:element name="dTelEmi" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
                         <xs:maxLength value="15"/>
+                        <xs:pattern value="(\+595|0)?[0-9]{9,12}"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dEmailE">
+            
+            <!-- Email -->
+            <xs:element name="dEmailEmi" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
                         <xs:maxLength value="100"/>
+                        <xs:pattern value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Actividad Económica -->
+            <xs:element name="dActEco" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="200"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
         </xs:sequence>
     </xs:complexType>
 
-    <!-- Tipo para Receptor -->
-    <xs:complexType name="tipoRec">
+    <!-- ============================================= -->
+    <!-- GRUPO DATOS RECEPTOR (gDatRec) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGDatRec">
         <xs:sequence>
-            <xs:element name="iTipID">
+            <!-- Naturaleza del Receptor -->
+            <xs:element name="iNatRec">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Contribuyente -->
+                        <xs:enumeration value="2"/> <!-- No contribuyente -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Operación -->
+            <xs:element name="iTiOpe">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- B2B -->
+                        <xs:enumeration value="2"/> <!-- B2C -->
+                        <xs:enumeration value="3"/> <!-- B2G -->
+                        <xs:enumeration value="4"/> <!-- B2F (extranjero) -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Código País -->
+            <xs:element name="cPaisRec">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
+                        <xs:length value="3"/>
+                        <xs:pattern value="[A-Z]{3}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Contribuyente -->
+            <xs:element name="iTiContRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Persona física -->
+                        <xs:enumeration value="2"/> <!-- Persona jurídica -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- RUC del Receptor -->
+            <xs:element name="dRucRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="8"/>
+                        <xs:pattern value="[0-9]{8}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Dígito Verificador -->
+            <xs:element name="dDVRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="1"/>
+                        <xs:pattern value="[0-9]"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Documento Identidad -->
+            <xs:element name="iTipIDRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
                         <xs:enumeration value="1"/> <!-- RUC -->
-                        <xs:enumeration value="2"/> <!-- Cédula -->
+                        <xs:enumeration value="2"/> <!-- Cédula de identidad -->
                         <xs:enumeration value="3"/> <!-- Pasaporte -->
+                        <xs:enumeration value="4"/> <!-- Otro -->
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dNumID">
+            
+            <!-- Número Documento -->
+            <xs:element name="dNumIDRec" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{8,9}"/>
+                        <xs:maxLength value="20"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dDV">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
+            
+            <!-- Nombre/Razón Social del Receptor -->
             <xs:element name="dNomRec">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:minLength value="3"/>
                         <xs:maxLength value="100"/>
-                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñ\s\.]+"/>
+                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñÃãẼẽĨĩÕõŨũỸỹ0-9\s\.\,\-\&amp;\(\)]+"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dDirRec">
+            
+            <!-- Nombre Fantasía -->
+            <xs:element name="dNomFanRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="3"/>
+                        <xs:maxLength value="100"/>
+                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñÃãẼẽĨĩÕõŨũỸỹ0-9\s\.\,\-\&amp;\(\)]+"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Dirección -->
+            <xs:element name="dDirRec" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:minLength value="5"/>
-                        <xs:maxLength value="200"/>
-                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñ0-9\s\.,-]+"/>
+                        <xs:maxLength value="255"/>
+                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñÃãẼẽĨĩÕõŨũỸỹ0-9\s\.\,\-\#\/°]+"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dNumCas">
+            
+            <!-- Número de Casa -->
+            <xs:element name="dNumCasRec" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="[A-Za-z0-9\s-]+"/>
-                        <xs:maxLength value="20"/>
+                        <xs:maxLength value="10"/>
+                        <xs:pattern value="[A-Za-z0-9\-\s]+"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="cDepRec">
+            
+            <!-- Código Departamento -->
+            <xs:element name="cDepRec" minOccurs="0">
                 <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{1,3}"/>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="18"/> <!-- 17 departamentos + Asunción -->
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="cCiuRec">
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:pattern value="\d{1,3}"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:element>
-            <xs:element name="dDesCiuRec">
+            
+            <!-- Descripción Departamento -->
+            <xs:element name="dDesDepRec" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:minLength value="3"/>
-                        <xs:maxLength value="100"/>
-                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñ\s\.]+"/>
+                        <xs:maxLength value="50"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dTelRec">
+            
+            <!-- Código Distrito -->
+            <xs:element name="cDisRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="9999"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Distrito -->
+            <xs:element name="dDesDisRec" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="(\+595|0)[0-9]{9}"/>
+                        <xs:minLength value="3"/>
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Código Ciudad -->
+            <xs:element name="cCiuRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="99999"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Ciudad -->
+            <xs:element name="dDesCiuRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="3"/>
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Teléfono -->
+            <xs:element name="dTelRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
                         <xs:maxLength value="15"/>
+                        <xs:pattern value="(\+595|0)?[0-9]{9,12}"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dEmailRec">
+            
+            <!-- Email -->
+            <xs:element name="dEmailRec" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:pattern value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
                         <xs:maxLength value="100"/>
+                        <xs:pattern value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
         </xs:sequence>
     </xs:complexType>
 
-    <!-- Tipo para Items/Detalles -->
-    <xs:complexType name="tipoItem">
+    <!-- ============================================= -->
+    <!-- GRUPO DATOS ESPECÍFICOS POR TIPO DE DOCUMENTO (gDtipDE) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGDtipDE">
         <xs:sequence>
-            <xs:element name="dCodPro">
+            <!-- Grupo específico para cada tipo de documento -->
+            <xs:choice>
+                <!-- Factura Electrónica -->
+                <xs:element name="gCamFE" type="tipoGCamFE" minOccurs="0"/>
+                
+                <!-- Autofactura Electrónica -->
+                <xs:element name="gCamAE" type="tipoGCamAE" minOccurs="0"/>
+                
+                <!-- Nota de Crédito Electrónica -->
+                <xs:element name="gCamNCE" type="tipoGCamNCE" minOccurs="0"/>
+                
+                <!-- Nota de Débito Electrónica -->
+                <xs:element name="gCamNDE" type="tipoGCamNDE" minOccurs="0"/>
+                
+                <!-- Nota de Remisión Electrónica -->
+                <xs:element name="gCamNRE" type="tipoGCamNRE" minOccurs="0"/>
+            </xs:choice>
+            
+            <!-- Items/Productos (OBLIGATORIO) -->
+            <xs:element name="gCamItem" type="tipoGCamItem" maxOccurs="999"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS FACTURA ELECTRÓNICA (gCamFE) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamFE">
+        <xs:sequence>
+            <!-- Indicador de Presencia -->
+            <xs:element name="iIndPres">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Presencial -->
+                        <xs:enumeration value="2"/> <!-- Electrónica -->
+                        <xs:enumeration value="3"/> <!-- Telefónica -->
+                        <xs:enumeration value="4"/> <!-- A domicilio -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Presencia -->
+            <xs:element name="dDesIndPres">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Indicador de Recibo -->
+            <xs:element name="iIndRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Contado -->
+                        <xs:enumeration value="2"/> <!-- Crédito -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Recibo -->
+            <xs:element name="dDesIndRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Información de Pago -->
+            <xs:element name="gGrupTiDE" type="tipoGGrupTiDE" minOccurs="0" maxOccurs="10"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS AUTOFACTURA (gCamAE) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamAE">
+        <xs:sequence>
+            <!-- Información específica de autofactura -->
+            <xs:element name="iNatVen">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Comercialización -->
+                        <xs:enumeration value="2"/> <!-- Industrialización -->
+                        <xs:enumeration value="3"/> <!-- Prestación servicios -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Naturaleza -->
+            <xs:element name="dDesNatVen">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS NOTA DE CRÉDITO (gCamNCE) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamNCE">
+        <xs:sequence>
+            <!-- Motivo de Emisión -->
+            <xs:element name="iMotEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Devolución -->
+                        <xs:enumeration value="2"/> <!-- Descuento -->
+                        <xs:enumeration value="3"/> <!-- Bonificación -->
+                        <xs:enumeration value="4"/> <!-- Anulación factura -->
+                        <xs:enumeration value="5"/> <!-- Ajuste precio -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Motivo -->
+            <xs:element name="dDesMotEmi">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="200"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS NOTA DE DÉBITO (gCamNDE) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamNDE">
+        <xs:sequence>
+            <!-- Motivo de Emisión -->
+            <xs:element name="iMotEmiNDE">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Intereses -->
+                        <xs:enumeration value="2"/> <!-- Gastos -->
+                        <xs:enumeration value="3"/> <!-- Penalidades -->
+                        <xs:enumeration value="4"/> <!-- Ajuste precio -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Motivo -->
+            <xs:element name="dDesMotEmiNDE">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="200"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS NOTA DE REMISIÓN (gCamNRE) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamNRE">
+        <xs:sequence>
+            <!-- Motivo de Traslado -->
+            <xs:element name="iMotTras">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Venta -->
+                        <xs:enumeration value="2"/> <!-- Traslado entre establecimientos -->
+                        <xs:enumeration value="3"/> <!-- Traslado a terceros -->
+                        <xs:enumeration value="4"/> <!-- Devolución -->
+                        <xs:enumeration value="5"/> <!-- Consignación -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Motivo -->
+            <xs:element name="dDesMotTras">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="200"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Indicador de Transporte -->
+            <xs:element name="iRespFlete">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Emisor -->
+                        <xs:enumeration value="2"/> <!-- Receptor -->
+                        <xs:enumeration value="3"/> <!-- Tercero -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Condición de Transporte -->
+            <xs:element name="cCondTras">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Por cuenta propia -->
+                        <xs:enumeration value="2"/> <!-- Por cuenta de terceros -->
+                        <xs:enumeration value="3"/> <!-- Mixto -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Datos del transporte -->
+            <xs:element name="gCamTrans" type="tipoGCamTrans" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS ITEMS (gCamItem) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamItem">
+        <xs:sequence>
+            <!-- Código Interno -->
+            <xs:element name="dCodInt">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:minLength value="1"/>
-                        <xs:maxLength value="20"/>
-                        <xs:pattern value="[A-Za-z0-9-]+"/>
+                        <xs:maxLength value="30"/>
+                        <xs:pattern value="[A-Za-z0-9\-_]+"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dDesPro">
+            
+            <!-- Descripción del Producto/Servicio -->
+            <xs:element name="dDesProSer">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
                         <xs:minLength value="3"/>
-                        <xs:maxLength value="200"/>
-                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñ0-9\s\.,-]+"/>
+                        <xs:maxLength value="500"/>
+                        <xs:pattern value="[A-Za-zÁáÉéÍíÓóÚúÑñÃãẼẽĨĩÕõŨũỸỹ0-9\s\.\,\-\(\)\[\]\/\%\&amp;]+"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dCantPro">
+            
+            <!-- Código Unidad de Medida -->
+            <xs:element name="cUniMed">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="99"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Unidad de Medida -->
+            <xs:element name="dDesUniMed">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Cantidad del Producto/Servicio -->
+            <xs:element name="dCantProSer">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
-                        <xs:minInclusive value="0.01"/>
-                        <xs:maxInclusive value="999999999.99"/>
+                        <xs:minInclusive value="0.0001"/>
+                        <xs:maxInclusive value="999999999.9999"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Precio Unitario -->
+            <xs:element name="dPUniProSer">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999.99999999"/>
+                        <xs:fractionDigits value="8"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Cambio del Item -->
+            <xs:element name="dTiCamIt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0.0001"/>
+                        <xs:maxInclusive value="999999999.9999"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Bruto del Item -->
+            <xs:element name="dTotBruOpeItem">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
                         <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dPreUniPro">
+            
+            <!-- Grupo Descuentos y Anticipos -->
+            <xs:element name="gValorItem" type="tipoGValorItem" minOccurs="0"/>
+            
+            <!-- Grupo IVA del Item -->
+            <xs:element name="gCamIVA" type="tipoGCamIVA"/>
+            
+            <!-- Grupo Rastreabilidad -->
+            <xs:element name="gRasMerc" type="tipoGRasMerc" minOccurs="0" maxOccurs="100"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO VALOR ITEM (gValorItem) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGValorItem">
+        <xs:sequence>
+            <!-- Precio Unitario -->
+            <xs:element name="dPUniProSer">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
-                        <xs:minInclusive value="0.01"/>
-                        <xs:maxInclusive value="999999999.99"/>
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999.99999999"/>
+                        <xs:fractionDigits value="8"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Cambio -->
+            <xs:element name="dTiCamIt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0.0001"/>
+                        <xs:maxInclusive value="999999999.9999"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Bruto -->
+            <xs:element name="dTotBruOpeItem">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
                         <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dTotPro">
+            
+            <!-- Grupo Descuentos -->
+            <xs:element name="gValorRestaItem" type="tipoGValorRestaItem" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO VALOR RESTA ITEM (gValorRestaItem) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGValorRestaItem">
+        <xs:sequence>
+            <!-- Descuento Particular del Item -->
+            <xs:element name="dDescItem" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
-                        <xs:minInclusive value="0.01"/>
-                        <xs:maxInclusive value="999999999.99"/>
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
                         <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dPorIVA">
+            
+            <!-- Porcentaje Descuento -->
+            <xs:element name="dPorcDesIt" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
-                        <xs:enumeration value="0"/>
-                        <xs:enumeration value="5"/>
-                        <xs:enumeration value="10"/>
-                        <xs:fractionDigits value="0"/>
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="100"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descuento Global del Item -->
+            <xs:element name="dDescGloItem" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Anticipos -->
+            <xs:element name="dAntPreUniIt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999.99999999"/>
+                        <xs:fractionDigits value="8"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Anticipo Global -->
+            <xs:element name="dAntGloPreUniIt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Anticipo -->
+            <xs:element name="dTotAnt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total de la Operación -->
+            <xs:element name="dTotOpe">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
         </xs:sequence>
     </xs:complexType>
 
-    <!-- Tipo para Totales -->
-    <xs:complexType name="tipoTot">
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS IVA (gCamIVA) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamIVA">
         <xs:sequence>
-            <xs:element name="dTotGrav">
+            <!-- Afectación del IVA -->
+            <xs:element name="iAfecIVA">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Gravado -->
+                        <xs:enumeration value="2"/> <!-- Exonerado -->
+                        <xs:enumeration value="3"/> <!-- Exento -->
+                        <xs:enumeration value="4"/> <!-- No sujeto -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Afectación -->
+            <xs:element name="dDesAfecIVA">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Proporción IVA -->
+            <xs:element name="dPropIVA" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
                         <xs:minInclusive value="0"/>
-                        <xs:maxInclusive value="999999999.99"/>
+                        <xs:maxInclusive value="100"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tasa de IVA -->
+            <xs:element name="dTasaIVA" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:enumeration value="0"/>   <!-- Exento -->
+                        <xs:enumeration value="5"/>   <!-- 5% -->
+                        <xs:enumeration value="10"/>  <!-- 10% -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Base Gravada IVA -->
+            <xs:element name="dBasGravIVA" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
                         <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dTotExe">
+            
+            <!-- Liquidación IVA Item -->
+            <xs:element name="dLiqIVAItem" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
                         <xs:minInclusive value="0"/>
-                        <xs:maxInclusive value="999999999.99"/>
+                        <xs:maxInclusive value="999999999999.99"/>
                         <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
+            
+            <!-- Base Exenta -->
+            <xs:element name="dBasExe" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO TOTALES Y SUBTOTALES (gTotSub) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGTotSub">
+        <xs:sequence>
+            <!-- Subtotal Exento -->
+            <xs:element name="dSubExe" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Subtotal Exonerado -->
+            <xs:element name="dSubExo" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Subtotal IVA 5% -->
+            <xs:element name="dSub5" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Subtotal IVA 10% -->
+            <xs:element name="dSub10" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total de la Operación -->
+            <xs:element name="dTotOpe">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Descuentos -->
+            <xs:element name="dTotDesc" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Descuento Global por Item -->
+            <xs:element name="dTotDescGloItem" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Anticipos por Item -->
+            <xs:element name="dTotAntItem" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Anticipos -->
+            <xs:element name="dTotAnt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Porcentaje Descuento Total -->
+            <xs:element name="dPorcDescTotal" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="100"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descuento Total -->
+            <xs:element name="dDescTotal" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Anticipo Total -->
+            <xs:element name="dAnticipo" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Redondeo -->
+            <xs:element name="dRedon" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="-999.99"/>
+                        <xs:maxInclusive value="999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total General de la Operación -->
+            <xs:element name="dTotGralOpe">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- IVA 5% -->
+            <xs:element name="dIVA5" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- IVA 10% -->
+            <xs:element name="dIVA10" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total IVA -->
             <xs:element name="dTotIVA">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
                         <xs:minInclusive value="0"/>
-                        <xs:maxInclusive value="999999999.99"/>
+                        <xs:maxInclusive value="999999999999.99"/>
                         <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
-            <xs:element name="dTotGralOpe">
+            
+            <!-- Base Gravada 5% -->
+            <xs:element name="dBaseGrav5" minOccurs="0">
                 <xs:simpleType>
                     <xs:restriction base="xs:decimal">
-                        <xs:minInclusive value="0.01"/>
-                        <xs:maxInclusive value="999999999.99"/>
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Base Gravada 10% -->
+            <xs:element name="dBaseGrav10" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total Base Gravada IVA -->
+            <xs:element name="dTBasGraIVA">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Total en Letras -->
+            <xs:element name="dTotalGs" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="255"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS GENERALES (gCamGen) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamGen">
+        <xs:sequence>
+            <!-- Grupo Condiciones de la Operación -->
+            <xs:element name="gCamCond" type="tipoGCamCond"/>
+            
+            <!-- Grupo Pago -->
+            <xs:element name="gCamPago" type="tipoGCamPago" minOccurs="0" maxOccurs="10"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CONDICIONES (gCamCond) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamCond">
+        <xs:sequence>
+            <!-- Condición de la Operación -->
+            <xs:element name="iCondOpe">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Contado -->
+                        <xs:enumeration value="2"/> <!-- Crédito -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Condición -->
+            <xs:element name="dDCondOpe">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Plazo de Crédito -->
+            <xs:element name="dPlazoCre" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="100"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Cuotas de Crédito -->
+            <xs:element name="dCuotas" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:minInclusive value="1"/>
+                        <xs:maxInclusive value="999"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Monto Entrega -->
+            <xs:element name="dMonEnt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0"/>
+                        <xs:maxInclusive value="999999999999.99"/>
                         <xs:fractionDigits value="2"/>
                     </xs:restriction>
                 </xs:simpleType>
@@ -476,4 +1593,475 @@
         </xs:sequence>
     </xs:complexType>
 
-</xs:schema> 
+    <!-- ============================================= -->
+    <!-- GRUPO PAGO (gCamPago) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamPago">
+        <xs:sequence>
+            <!-- Condición de Pago -->
+            <xs:element name="iCondPag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Efectivo -->
+                        <xs:enumeration value="2"/> <!-- Cheque -->
+                        <xs:enumeration value="3"/> <!-- Tarjeta de Crédito -->
+                        <xs:enumeration value="4"/> <!-- Tarjeta de Débito -->
+                        <xs:enumeration value="5"/> <!-- Transferencia -->
+                        <xs:enumeration value="6"/> <!-- Giro -->
+                        <xs:enumeration value="7"/> <!-- Billetera Electrónica -->
+                        <xs:enumeration value="8"/> <!-- Tarjeta Corporativa -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Condición Pago -->
+            <xs:element name="dDesPag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Monto Pago -->
+            <xs:element name="dMonPag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0.01"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Moneda Pago -->
+            <xs:element name="cMonePag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:enumeration value="PYG"/>
+                        <xs:enumeration value="USD"/>
+                        <xs:enumeration value="EUR"/>
+                        <xs:enumeration value="BRL"/>
+                        <xs:enumeration value="ARS"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Moneda -->
+            <xs:element name="dDMonePag">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo de Cambio Pago -->
+            <xs:element name="dTiCamPag" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0.0001"/>
+                        <xs:maxInclusive value="999999999.9999"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO DOCUMENTOS ELECTRÓNICOS ASOCIADOS (gCamDEAsoc) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamDEAsoc">
+        <xs:sequence>
+            <!-- Tipo de Documento Asociado -->
+            <xs:element name="iTipDocAso">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Factura -->
+                        <xs:enumeration value="4"/> <!-- Autofactura -->
+                        <xs:enumeration value="5"/> <!-- Nota Crédito -->
+                        <xs:enumeration value="6"/> <!-- Nota Débito -->
+                        <xs:enumeration value="7"/> <!-- Nota Remisión -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Tipo Documento -->
+            <xs:element name="dDesTipDocAso">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- CDC del Documento Referenciado -->
+            <xs:element name="dCdCDERef">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="44"/>
+                        <xs:pattern value="[0-9]{44}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número Timbrado -->
+            <xs:element name="dNTimDI">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="8"/>
+                        <xs:pattern value="[0-9]{8}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Establecimiento -->
+            <xs:element name="dEstDI">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="3"/>
+                        <xs:pattern value="[0-9]{3}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Punto de Expedición -->
+            <xs:element name="dPExpDI">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="3"/>
+                        <xs:pattern value="[0-9]{3}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número de Documento -->
+            <xs:element name="dNumDI">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:length value="7"/>
+                        <xs:pattern value="[0-9]{7}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Serie Numérica -->
+            <xs:element name="dSerieNum" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="2"/>
+                        <xs:pattern value="[A-Z]{1,2}"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Fecha Emisión -->
+            <xs:element name="dFecEmiDI">
+                <xs:simpleType>
+                    <xs:restriction base="xs:date">
+                        <xs:minInclusive value="2020-01-01"/>
+                        <xs:maxInclusive value="2030-12-31"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- GRUPO CAMPOS FUERA DE FIRMA (gCamFuFD) -->
+    <!-- ============================================= -->
+    <xs:complexType name="tipoGCamFuFD">
+        <xs:sequence>
+            <!-- Código QR -->
+            <xs:element name="dCarQR">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="100"/>
+                        <xs:maxLength value="1000"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ============================================= -->
+    <!-- TIPOS AUXILIARES -->
+    <!-- ============================================= -->
+    
+    <!-- Grupo Información de Pago -->
+    <xs:complexType name="tipoGGrupTiDE">
+        <xs:sequence>
+            <!-- Tipo de Recibo -->
+            <xs:element name="iTipRec">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Efectivo -->
+                        <xs:enumeration value="2"/> <!-- Cheque -->
+                        <xs:enumeration value="3"/> <!-- Tarjeta -->
+                        <xs:enumeration value="4"/> <!-- Transferencia -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Tipo Recibo -->
+            <xs:element name="dDesTipRec">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Valor Total Recibido -->
+            <xs:element name="dVTotRec">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0.01"/>
+                        <xs:maxInclusive value="999999999999.99"/>
+                        <xs:fractionDigits value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Moneda Tipo Recibo -->
+            <xs:element name="iMoneTipRec">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- PYG -->
+                        <xs:enumeration value="2"/> <!-- USD -->
+                        <xs:enumeration value="3"/> <!-- EUR -->
+                        <xs:enumeration value="4"/> <!-- BRL -->
+                        <xs:enumeration value="5"/> <!-- ARS -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Moneda -->
+            <xs:element name="dDMoneTipRec">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo Cambio Recibo -->
+            <xs:element name="dTiCamTipRec" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:decimal">
+                        <xs:minInclusive value="0.0001"/>
+                        <xs:maxInclusive value="999999999.9999"/>
+                        <xs:fractionDigits value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo Campos Transporte -->
+    <xs:complexType name="tipoGCamTrans">
+        <xs:sequence>
+            <!-- Tipo de Transporte -->
+            <xs:element name="iTipTrans">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Terrestre -->
+                        <xs:enumeration value="2"/> <!-- Aéreo -->
+                        <xs:enumeration value="3"/> <!-- Acuático -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Transporte -->
+            <xs:element name="dDesTipTrans">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Modalidad de Transporte -->
+            <xs:element name="iModTrans">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Propio -->
+                        <xs:enumeration value="2"/> <!-- Tercerizado -->
+                        <xs:enumeration value="3"/> <!-- Mixto -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Descripción Modalidad -->
+            <xs:element name="dDesModTrans">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Información del Transportista -->
+            <xs:element name="gCamSal" type="tipoGCamSal" minOccurs="0"/>
+            <xs:element name="gCamEnt" type="tipoGCamEnt" minOccurs="0"/>
+            <xs:element name="gVehTras" type="tipoGVehTras" minOccurs="0" maxOccurs="10"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo Salida -->
+    <xs:complexType name="tipoGCamSal">
+        <xs:sequence>
+            <!-- Dirección Salida -->
+            <xs:element name="dDirSal">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="255"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Fecha Salida -->
+            <xs:element name="dFecSal" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:dateTime">
+                        <xs:minInclusive value="2020-01-01T00:00:00"/>
+                        <xs:maxInclusive value="2030-12-31T23:59:59"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo Entrega -->
+    <xs:complexType name="tipoGCamEnt">
+        <xs:sequence>
+            <!-- Dirección Entrega -->
+            <xs:element name="dDirEnt">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="255"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Fecha Entrega -->
+            <xs:element name="dFecEnt" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:dateTime">
+                        <xs:minInclusive value="2020-01-01T00:00:00"/>
+                        <xs:maxInclusive value="2030-12-31T23:59:59"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo Vehículo Transporte -->
+    <xs:complexType name="tipoGVehTras">
+        <xs:sequence>
+            <!-- Tipo Vehículo -->
+            <xs:element name="iTiVeh">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                        <xs:enumeration value="1"/> <!-- Automóvil -->
+                        <xs:enumeration value="2"/> <!-- Camión -->
+                        <xs:enumeration value="3"/> <!-- Camioneta -->
+                        <xs:enumeration value="4"/> <!-- Motocicleta -->
+                        <xs:enumeration value="9"/> <!-- Otro -->
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Marca -->
+            <xs:element name="dMarVeh" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="30"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Tipo Vehículo ID -->
+            <xs:element name="dTipIDVeh" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="10"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número Chapa -->
+            <xs:element name="dNroIDVeh" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Adicional ID Vehículo -->
+            <xs:element name="dAdicIDVeh" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número Registro -->
+            <xs:element name="dNroMatVeh" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número SENACSA -->
+            <xs:element name="dNroSENACSA" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo Rastreabilidad Mercadería -->
+    <xs:complexType name="tipoGRasMerc">
+        <xs:sequence>
+            <!-- Número Lote -->
+            <xs:element name="dNumLote" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Fecha Vencimiento -->
+            <xs:element name="dVencMerc" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:date">
+                        <xs:minInclusive value="2020-01-01"/>
+                        <xs:maxInclusive value="2050-12-31"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Número Serie -->
+            <xs:element name="dNSerie" minOccurs="0">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:maxLength value="50"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
