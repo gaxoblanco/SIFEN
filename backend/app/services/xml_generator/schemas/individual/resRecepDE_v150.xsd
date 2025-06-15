@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           version="1.5.0">
+
+    <!-- ================================================================= -->
+    <!-- ESQUEMA XSD: resRecepDE_v150.xsd                                 -->
+    <!-- Sistema: SIFEN (Sistema Integrado de Facturación Electrónica)    -->
+    <!-- Versión: 1.5.0                                                   -->
+    <!-- Propósito: Response del Web Service siRecepDE                    -->
+    <!-- Función: Respuesta de recepción de documento electrónico         -->
+    <!-- Proceso: Síncrono                                                 -->
+    <!-- ================================================================= -->
+
+    <!-- =============================================== -->
+    <!-- TIPOS DE DATOS BÁSICOS Y RESTRICCIONES         -->
+    <!-- =============================================== -->
+
+    <!-- Tipo para códigos SIFEN de 4 dígitos -->
+    <xs:simpleType name="tCodRes">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{4}"/>
+            <xs:annotation>
+                <xs:documentation>Código de resultado SIFEN de 4 dígitos numéricos</xs:documentation>
+            </xs:annotation>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para mensajes de respuesta -->
+    <xs:simpleType name="tMsgRes">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="255"/>
+            <xs:annotation>
+                <xs:documentation>Mensaje descriptivo del resultado de procesamiento</xs:documentation>
+            </xs:annotation>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para fecha y hora de procesamiento -->
+    <xs:simpleType name="tFecProc">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"/>
+            <xs:annotation>
+                <xs:documentation>Fecha y hora de procesamiento en formato ISO: AAAA-MM-DDTHH:mm:ss</xs:documentation>
+            </xs:annotation>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para número de transacción -->
+    <xs:simpleType name="tProtAut">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{10}"/>
+            <xs:annotation>
+                <xs:documentation>Número de transacción de 10 dígitos generado por SIFEN</xs:documentation>
+            </xs:annotation>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para CDC (Código de Control) -->
+    <xs:simpleType name="tCDC">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{44}"/>
+            <xs:annotation>
+                <xs:documentation>Código de Control del Documento (CDC) de 44 dígitos</xs:documentation>
+            </xs:annotation>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- =============================================== -->
+    <!-- ELEMENTO RAÍZ: RESPUESTA RECEPCIÓN DE          -->
+    <!-- =============================================== -->
+
+    <xs:element name="rRetEnviDe">
+        <xs:annotation>
+            <xs:documentation>
+                Elemento raíz para la respuesta del Web Service siRecepDE.
+                Contiene el resultado del procesamiento de un documento electrónico individual.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                
+                <!-- Fecha y hora de procesamiento (obligatorio) -->
+                <xs:element name="dFecProc" type="tFecProc" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Fecha y hora del procesamiento del documento electrónico.
+                            Formato: AAAA-MM-DDTHH:mm:ss
+                            Ejemplo: 2019-09-10T14:30:00
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Código de resultado (obligatorio) -->
+                <xs:element name="dCodRes" type="tCodRes" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Código de resultado del procesamiento SIFEN.
+                            Principales códigos:
+                            - 0260: Autorización del DE satisfactoria (Aprobado)
+                            - 1005: Transmisión extemporánea del DE (Aprobado con observación)
+                            - 1000: CDC no correspondiente con XML (Rechazado)
+                            - 1001: CDC duplicado (Rechazado)
+                            - 0200: Mensaje superior a 1000 KB (Rechazado)
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Mensaje de resultado (obligatorio) -->
+                <xs:element name="dMsgRes" type="tMsgRes" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Mensaje descriptivo del resultado de procesamiento.
+                            Ejemplos:
+                            - "Autorización del DE satisfactoria"
+                            - "Transmisión extemporánea del DE"
+                            - "CDC no correspondiente con XML"
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Número de transacción (opcional - solo si aprobado) -->
+                <xs:element name="dProtAut" type="tProtAut" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Número de transacción generado por SIFEN.
+                            Presente únicamente cuando el documento es aprobado (dCodRes = 0260).
+                            Utilizado como referencia del documento autorizado.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- CDC del documento (opcional) -->
+                <xs:element name="Id" type="tCDC" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Código de Control del Documento (CDC) de 44 dígitos.
+                            Presente cuando el procesamiento es exitoso.
+                            Identifica únicamente al documento electrónico.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- =============================================== -->
+    <!-- VALIDACIONES ADICIONALES Y REGLAS DE NEGOCIO   -->
+    <!-- =============================================== -->
+
+    <!--
+        REGLAS DE NEGOCIO IMPLEMENTADAS:
+        
+        1. dFecProc: Obligatorio, formato ISO de fecha/hora
+        2. dCodRes: Obligatorio, 4 dígitos numéricos según catálogo SIFEN
+        3. dMsgRes: Obligatorio, 1-255 caracteres descriptivos
+        4. dProtAut: Opcional, presente solo si documento aprobado
+        5. Id (CDC): Opcional, 44 dígitos, presente en respuestas exitosas
+        
+        CÓDIGOS DE ESTADO:
+        - 0260: Aprobado -> Incluye dProtAut e Id
+        - 1005: Aprobado con observación -> Incluye dProtAut e Id  
+        - 1000-4999: Rechazado -> Solo incluye elementos obligatorios
+        
+        NAMESPACE: http://ekuatia.set.gov.py/sifen/xsd
+        ENCODING: UTF-8
+        VERSION: 1.5.0
+    -->
+
+</xs:schema>

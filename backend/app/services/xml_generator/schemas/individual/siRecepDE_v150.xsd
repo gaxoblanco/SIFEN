@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Esquema XSD: siRecepDE_v150.xsd
+    Sistema: SIFEN Paraguay v1.5.0
+    Servicio: Recepción de Documentos Electrónicos
+    Propósito: Validar requests de envío de documentos electrónicos al sistema SIFEN
+    
+    Autor: Sistema de Facturación Electrónica Paraguay
+    Versión: 1.5.0
+    Fecha: 2025
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           version="1.5.0">
+
+    <!-- IMPORTACIONES -->
+    <!-- Importación del esquema principal de Documento Electrónico -->
+    <xs:import namespace="http://ekuatia.set.gov.py/sifen/xsd" 
+               schemaLocation="DE_v150.xsd"/>
+
+    <!-- TIPOS DE DATOS COMUNES -->
+    
+    <!-- Tipo para fechas en formato ISO 8601 -->
+    <xs:simpleType name="TipoFechaHora">
+        <xs:annotation>
+            <xs:documentation>Formato de fecha y hora ISO 8601 (YYYY-MM-DDTHH:mm:ss)</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"/>
+            <xs:minLength value="19"/>
+            <xs:maxLength value="19"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para identificador único de transacción -->
+    <xs:simpleType name="TipoIdentificador">
+        <xs:annotation>
+            <xs:documentation>Identificador único alfanumérico para la transacción</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="50"/>
+            <xs:pattern value="[A-Za-z0-9\-_]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para sistema de facturación -->
+    <xs:simpleType name="TipoSistemaFacturacion">
+        <xs:annotation>
+            <xs:documentation>Identificador del sistema de facturación utilizado</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="20"/>
+            <xs:pattern value="[A-Za-z0-9\-_\.]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ELEMENTO RAÍZ: siRecepDE -->
+    <xs:element name="siRecepDE">
+        <xs:annotation>
+            <xs:documentation>
+                Servicio de Recepción de Documentos Electrónicos SIFEN v1.5.0
+                
+                Este servicio permite el envío de documentos electrónicos al sistema SIFEN
+                para su procesamiento y validación. Incluye todos los tipos de documentos:
+                - Facturas Electrónicas (FE)
+                - Autofacturas Electrónicas (AFE) 
+                - Notas de Crédito Electrónicas (NCE)
+                - Notas de Débito Electrónicas (NDE)
+                - Notas de Remisión Electrónicas (NRE)
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:complexType>
+            <xs:sequence>
+                
+                <!-- Identificador único de la transacción -->
+                <xs:element name="dId" type="TipoIdentificador" minOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Identificador único de la transacción de envío.
+                            Debe ser único por cada request enviado al sistema SIFEN.
+                            Formato: Alfanumérico, máximo 50 caracteres.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Fecha y hora de firma digital -->
+                <xs:element name="dFecFirma" type="TipoFechaHora" minOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Fecha y hora de la firma digital del documento.
+                            Formato: ISO 8601 (YYYY-MM-DDTHH:mm:ss)
+                            Ejemplo: 2025-06-15T10:30:45
+                            
+                            Esta fecha debe corresponder al momento en que se generó
+                            la firma digital del documento electrónico.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Sistema de facturación -->
+                <xs:element name="dSisFact" type="TipoSistemaFacturacion" minOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Identificador del sistema de facturación que genera el documento.
+                            
+                            Debe identificar de manera única el software o sistema
+                            utilizado para generar el documento electrónico.
+                            Ejemplos: "SISTEMA_FACT_V1.0", "ERP_EMPRESARIAL", etc.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Documento Electrónico -->
+                <xs:element name="DE" minOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Documento Electrónico completo que se envía para procesamiento.
+                            
+                            Este elemento contiene la estructura completa del documento
+                            según se define en el esquema DE_v150.xsd. Puede ser:
+                            - Factura Electrónica (iTipDE = 1)
+                            - Autofactura Electrónica (iTipDE = 4) 
+                            - Nota de Crédito Electrónica (iTipDE = 5)
+                            - Nota de Débito Electrónica (iTipDE = 6)
+                            - Nota de Remisión Electrónica (iTipDE = 7)
+                        </xs:documentation>
+                    </xs:annotation>
+                    
+                    <!-- Referencia al tipo DE definido en DE_v150.xsd -->
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:any namespace="http://ekuatia.set.gov.py/sifen/xsd" 
+                                    processContents="strict" 
+                                    minOccurs="1" 
+                                    maxOccurs="1"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+
+            <!-- Atributos del elemento raíz -->
+            <xs:attribute name="version" type="xs:string" fixed="1.5.0">
+                <xs:annotation>
+                    <xs:documentation>Versión del esquema SIFEN utilizado</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- VALIDACIONES ADICIONALES -->
+    
+    <!-- Grupo de elementos obligatorios para cabecera -->
+    <xs:group name="CabeceraObligatoria">
+        <xs:annotation>
+            <xs:documentation>Elementos obligatorios en la cabecera de cualquier request SIFEN</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dId" type="TipoIdentificador"/>
+            <xs:element name="dFecFirma" type="TipoFechaHora"/>
+            <xs:element name="dSisFact" type="TipoSistemaFacturacion"/>
+        </xs:sequence>
+    </xs:group>
+
+    <!-- Tipo complejo reutilizable para requests SIFEN -->
+    <xs:complexType name="TipoRequestSIFEN">
+        <xs:annotation>
+            <xs:documentation>Tipo base para todos los requests del sistema SIFEN</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:group ref="CabeceraObligatoria"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
