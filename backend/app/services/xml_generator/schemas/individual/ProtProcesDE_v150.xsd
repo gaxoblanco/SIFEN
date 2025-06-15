@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           version="1.5.0">
+
+    <!-- 
+    =========================================================
+    ESQUEMA: ProtProcesDE_v150.xsd
+    SISTEMA: SIFEN - Paraguay
+    VERSIÓN: 1.5.0
+    PROPÓSITO: Protocolo de procesamiento de documentos electrónicos
+    AUTOR: Sistema Integrado de Facturación Electrónica Nacional
+    FECHA: Septiembre 2019
+    =========================================================
+    
+    DESCRIPCIÓN:
+    Este esquema define la estructura del protocolo de respuesta
+    que contiene el resultado del procesamiento de un documento
+    electrónico (DE) en el sistema SIFEN.
+    
+    VALIDACIONES PRINCIPALES:
+    - CDC: 44 dígitos numéricos
+    - Fecha: Formato ISO 8601 (AAAA-MM-DDTHH:mm:ss)
+    - Códigos de resultado: 4 dígitos numéricos
+    - DigestValue: Exactamente 28 caracteres base64
+    ========================================================= 
+    -->
+
+    <!-- ========================================= -->
+    <!--            TIPOS SIMPLES                 -->
+    <!-- ========================================= -->
+
+    <!-- Tipo para CDC (Código de Control del Documento) -->
+    <xs:simpleType name="tCDC">
+        <xs:annotation>
+            <xs:documentation>
+                Código de Control del Documento (CDC).
+                Identificador único de 44 dígitos numéricos generado por el contribuyente.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{44}"/>
+            <xs:length value="44"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para fecha y hora de procesamiento -->
+    <xs:simpleType name="tFechaProcesamiento">
+        <xs:annotation>
+            <xs:documentation>
+                Fecha y hora del procesamiento en formato ISO 8601.
+                Formato: AAAA-MM-DDTHH:mm:ss
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:dateTime">
+            <!-- Patrón específico para formato SIFEN -->
+            <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para DigestValue -->
+    <xs:simpleType name="tDigestValue">
+        <xs:annotation>
+            <xs:documentation>
+                DigestValue del documento electrónico procesado.
+                Permite verificar la correspondencia con el DE transmitido por el contribuyente.
+                Codificado en Base64, longitud exacta de 28 caracteres.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:length value="28"/>
+            <!-- Patrón para caracteres Base64 -->
+            <xs:pattern value="[A-Za-z0-9+/]{28}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de resultado SIFEN -->
+    <xs:simpleType name="tCodigoResultado">
+        <xs:annotation>
+            <xs:documentation>
+                Código del resultado de procesamiento SIFEN.
+                4 dígitos numéricos según códigos oficiales:
+                - 0260: Aprobado
+                - 1005: Aprobado con observaciones
+                - 1000-4999: Rechazado
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}"/>
+            <xs:length value="4"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para número de transacción/protocolo de autorización -->
+    <xs:simpleType name="tNumeroTransaccion">
+        <xs:annotation>
+            <xs:documentation>
+                Número de transacción generado por SIFEN.
+                Máximo 10 dígitos numéricos.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{1,10}"/>
+            <xs:minLength value="1"/>
+            <xs:maxLength value="10"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para estado del resultado -->
+    <xs:simpleType name="tEstadoResultado">
+        <xs:annotation>
+            <xs:documentation>
+                Estado descriptivo del resultado de procesamiento.
+                Valores posibles:
+                - "Aprobado"
+                - "Aprobado con observación" 
+                - "Rechazado"
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="8"/>
+            <xs:maxLength value="30"/>
+            <xs:enumeration value="Aprobado"/>
+            <xs:enumeration value="Aprobado con observación"/>
+            <xs:enumeration value="Aprobado con observaciones"/>
+            <xs:enumeration value="Rechazado"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para mensaje de resultado -->
+    <xs:simpleType name="tMensajeResultado">
+        <xs:annotation>
+            <xs:documentation>
+                Mensaje descriptivo del resultado de procesamiento.
+                Texto libre de 1 a 255 caracteres.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="255"/>
+            <!-- Evitar caracteres de control excepto espacios -->
+            <xs:pattern value="[\x20-\x7E\x80-\xFF]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ========================================= -->
+    <!--            TIPOS COMPLEJOS               -->
+    <!-- ========================================= -->
+
+    <!-- Grupo de resultado de procesamiento -->
+    <xs:complexType name="tGrupoResultadoProcesamiento">
+        <xs:annotation>
+            <xs:documentation>
+                Grupo que contiene el resultado de procesamiento de un documento.
+                Puede repetirse de 1 a 100 veces (máximo 5 en producción).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Estado del resultado -->
+            <xs:element name="dEstRes" type="tEstadoResultado" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Estado descriptivo del resultado:
+                        - Aprobado: Documento procesado exitosamente
+                        - Aprobado con observación: Procesado con advertencias
+                        - Rechazado: No procesado por errores
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de protocolo de autorización (opcional) -->
+            <xs:element name="dProtAut" type="tNumeroTransaccion" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Número de transacción generado por SIFEN.
+                        Solo presente cuando el documento es aprobado.
+                        Requerido para documentos fiscales aprobados.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código del resultado -->
+            <xs:element name="dCodRes" type="tCodigoResultado" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Código numérico del resultado según tabla SIFEN:
+                        - 0260: Autorización satisfactoria
+                        - 1005: Autorización con observaciones
+                        - 1000-4999: Códigos de rechazo específicos
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Mensaje del resultado -->
+            <xs:element name="dMsgRes" type="tMensajeResultado" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Mensaje descriptivo del resultado de procesamiento.
+                        Proporciona detalles específicos sobre el resultado,
+                        errores encontrados o observaciones relevantes.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ========================================= -->
+    <!--         ELEMENTO PRINCIPAL               -->
+    <!-- ========================================= -->
+
+    <!-- Protocolo de procesamiento de documento electrónico -->
+    <xs:element name="rProtDe">
+        <xs:annotation>
+            <xs:documentation>
+                Protocolo de procesamiento de documento electrónico.
+                
+                Contiene el resultado completo del procesamiento de un DE 
+                por parte del sistema SIFEN, incluyendo:
+                - Identificación del documento procesado
+                - Información de trazabilidad del procesamiento
+                - Resultado(s) del procesamiento con códigos y mensajes
+                
+                Este protocolo es retornado como respuesta a la recepción
+                de documentos electrónicos individuales.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- CDC del documento procesado -->
+                <xs:element name="Id" type="tCDC" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Código de Control del Documento (CDC) procesado.
+                            Identificador único de 44 dígitos que permite
+                            correlacionar este protocolo con el DE original.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Fecha y hora del procesamiento -->
+                <xs:element name="dFecProc" type="tFechaProcesamiento" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Fecha y hora exacta en que SIFEN procesó el documento.
+                            Formato ISO 8601: AAAA-MM-DDTHH:mm:ss
+                            Utiliza zona horaria de Paraguay (UTC-3).
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- DigestValue del documento -->
+                <xs:element name="dDigVal" type="tDigestValue" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            DigestValue (hash) del documento electrónico procesado.
+                            Permite al contribuyente verificar que el documento
+                            procesado por SIFEN corresponde exactamente al
+                            documento enviado originalmente.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Grupo de resultados de procesamiento -->
+                <xs:element name="gResProc" type="tGrupoResultadoProcesamiento" 
+                           minOccurs="1" maxOccurs="100">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Grupo que contiene los resultados del procesamiento.
+                            
+                            Puede contener múltiples resultados en caso de:
+                            - Validaciones en diferentes etapas
+                            - Múltiples errores o observaciones
+                            - Procesos de validación complejos
+                            
+                            En producción se limita a máximo 5 mensajes
+                            para optimizar performance.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+
+            <!-- Atributos del protocolo -->
+            <xs:attribute name="version" type="xs:string" fixed="1.5.0" use="optional">
+                <xs:annotation>
+                    <xs:documentation>
+                        Versión del esquema del protocolo de procesamiento.
+                        Fijo en "1.5.0" para esta versión de SIFEN.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+        </xs:complexType>
+
+        <!-- Restricciones adicionales a nivel de elemento -->
+        <xs:key name="keyResultadoSecuencia">
+            <xs:annotation>
+                <xs:documentation>
+                    Asegura que cada resultado tenga una secuencia única
+                    dentro del protocolo de procesamiento.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:selector xpath="gResProc"/>
+            <xs:field xpath="position()"/>
+        </xs:key>
+    </xs:element>
+
+    <!-- ========================================= -->
+    <!--        VALIDACIONES ADICIONALES          -->
+    <!-- ========================================= -->
+
+    <!-- Grupo para validaciones cross-field (futuras extensiones) -->
+    <xs:group name="gValidacionesProtocolo">
+        <xs:annotation>
+            <xs:documentation>
+                Grupo reservado para validaciones adicionales
+                entre campos del protocolo en futuras versiones.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Reservado para futuras validaciones -->
+        </xs:sequence>
+    </xs:group>
+
+</xs:schema>
