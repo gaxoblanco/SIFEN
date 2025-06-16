@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Módulo: Tipos Geográficos SIFEN v150
+  Archivo: shared/schemas/v150/common/geographic_types.xsd
+  
+  Propósito:
+  Define todos los tipos de datos relacionados con ubicaciones geográficas
+  de Paraguay utilizados en documentos electrónicos SIFEN.
+  
+  Este módulo incluye:
+  - Tipos básicos para códigos de departamento, distrito y ciudad
+  - Restricciones de longitud y formato para códigos geográficos
+  - Tipos para descripciones de ubicaciones geográficas
+  - Validaciones específicas según Manual Técnico SIFEN v150
+  
+  Usado por:
+  - Emisor (D030-D032, D214-D216)
+  - Receptor (D120-D122, D320-D322)
+  - Local de salida (E925-E930)
+  - Local de entrega (E945-E950)
+  - Transporte y logística
+  
+  Validaciones implementadas:
+  - Códigos deben tener relación jerárquica (Departamento→Distrito→Ciudad)
+  - Longitudes específicas para cada nivel geográfico
+  - Caracteres permitidos según especificación SIFEN
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS BÁSICOS PARA CÓDIGOS GEOGRÁFICOS                               -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para código de departamento -->
+    <xs:simpleType name="tipoCodigoDepartamento">
+        <xs:annotation>
+            <xs:documentation>
+                Código numérico del departamento según división política
+                de Paraguay. Rango de valores: 1-17 + Capital.
+                
+                Ejemplos:
+                - 1: Central
+                - 10: Alto Paraná
+                - 16: Presidente Hayes
+                
+                Referencia: Tabla de Códigos Geográficos SIFEN
+                Fuente: https://ekuatia.set.gov.py/portal/ekuatia/documentacion
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:minInclusive value="1"/>
+            <xs:maxInclusive value="99"/>
+            <xs:pattern value="[1-9][0-9]?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de distrito -->
+    <xs:simpleType name="tipoCodigoDistrito">
+        <xs:annotation>
+            <xs:documentation>
+                Código numérico del distrito dentro de un departamento.
+                Los distritos están organizados jerárquicamente bajo
+                los departamentos.
+                
+                Validación:
+                - Debe corresponder al departamento seleccionado
+                - Códigos varían según cada departamento
+                
+                Usado en validaciones:
+                - E925/E947/E927: Local de salida/entrega
+                - D031/D121: Emisor/Receptor
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:minInclusive value="1"/>
+            <xs:maxInclusive value="999"/>
+            <xs:pattern value="[1-9][0-9]{0,2}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de ciudad -->
+    <xs:simpleType name="tipoCodigoCiudad">
+        <xs:annotation>
+            <xs:documentation>
+                Código numérico de la ciudad dentro de un distrito.
+                Las ciudades están organizadas jerárquicamente bajo
+                los distritos y departamentos.
+                
+                Validación crítica:
+                - Debe corresponder al distrito seleccionado
+                - Debe corresponder al departamento seleccionado
+                - Relación jerárquica: Departamento → Distrito → Ciudad
+                
+                Reglas de validación SIFEN:
+                - E949: Ciudad debe corresponder a departamento (E945)
+                - E949a: Ciudad debe corresponder a distrito (E947)
+                - E929: Misma validación para local de salida
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:minInclusive value="1"/>
+            <xs:maxInclusive value="999"/>
+            <xs:pattern value="[1-9][0-9]{0,2}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA DESCRIPCIONES GEOGRÁFICAS                                 -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para descripción de departamento -->
+    <xs:simpleType name="tipoDescripcionDepartamento">
+        <xs:annotation>
+            <xs:documentation>
+                Descripción textual del nombre del departamento.
+                Debe corresponder exactamente al código de departamento.
+                
+                Ejemplos válidos:
+                - "Central" para código 1
+                - "Alto Paraná" para código 10
+                - "Presidente Hayes" para código 16
+                
+                Validaciones SIFEN:
+                - E926: Descripción debe corresponder al código (E925)
+                - E946: Descripción debe corresponder al código (E945)
+                - D215: Para emisor
+                - D321: Para receptor
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="16"/>
+            <xs:pattern value="[A-Za-zÀ-ÿ0-9\s\.\-]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para descripción de distrito -->
+    <xs:simpleType name="tipoDescripcionDistrito">
+        <xs:annotation>
+            <xs:documentation>
+                Descripción textual del nombre del distrito.
+                Debe corresponder exactamente al código de distrito.
+                
+                Validación obligatoria según Manual SIFEN:
+                - Si se informa código de distrito, descripción es obligatoria
+                - La descripción debe coincidir con el código informado
+                
+                Reglas específicas:
+                - E928: Descripción obligatoria si se informa E927
+                - E948: Descripción obligatoria si se informa E947
+                - Longitud máxima 60 caracteres
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="60"/>
+            <xs:pattern value="[A-Za-zÀ-ÿ0-9\s\.\-]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para descripción de ciudad -->
+    <xs:simpleType name="tipoDescripcionCiudad">
+        <xs:annotation>
+            <xs:documentation>
+                Descripción textual del nombre de la ciudad.
+                Debe corresponder exactamente al código de ciudad.
+                
+                Validaciones críticas:
+                - E950: Descripción debe corresponder al código (E949)
+                - E930: Descripción debe corresponder al código (E929)
+                - D216/D322: Para emisor/receptor
+                
+                Caracteres permitidos:
+                - Letras (incluye acentos)
+                - Números
+                - Espacios, puntos, guiones
+                - Longitud máxima 30 caracteres
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="30"/>
+            <xs:pattern value="[A-Za-zÀ-ÿ0-9\s\.\-]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS COMPLEJOS PARA UBICACIONES GEOGRÁFICAS                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo complejo para ubicación geográfica completa -->
+    <xs:complexType name="tipoUbicacionGeografica">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo complejo que agrupa toda la información geográfica
+                de una ubicación específica en Paraguay.
+                
+                Incluye códigos y descripciones para:
+                - Departamento (obligatorio)
+                - Distrito (opcional en algunos contextos)
+                - Ciudad (obligatorio)
+                
+                Validación jerárquica automática:
+                - El distrito debe pertenecer al departamento
+                - La ciudad debe pertenecer al distrito/departamento
+                
+                Usado en:
+                - Datos del emisor y receptor
+                - Locales de salida y entrega
+                - Información de transporte
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Departamento -->
+            <xs:element name="cDep" type="tipoCodigoDepartamento">
+                <xs:annotation>
+                    <xs:documentation>Código del departamento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDesDep" type="tipoDescripcionDepartamento">
+                <xs:annotation>
+                    <xs:documentation>Descripción del departamento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Distrito (opcional en algunos contextos) -->
+            <xs:element name="cDis" type="tipoCodigoDistrito" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Código del distrito (opcional)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDesDis" type="tipoDescripcionDistrito" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Descripción del distrito.
+                        Obligatorio cuando se informa código de distrito.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Ciudad -->
+            <xs:element name="cCiu" type="tipoCodigoCiudad">
+                <xs:annotation>
+                    <xs:documentation>Código de la ciudad</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDesCiu" type="tipoDescripcionCiudad">
+                <xs:annotation>
+                    <xs:documentation>Descripción de la ciudad</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA DIFERENTES CONTEXTOS                          -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para ubicación de emisor -->
+    <xs:complexType name="tipoUbicacionEmisor">
+        <xs:annotation>
+            <xs:documentation>
+                Ubicación geográfica específica para el emisor del documento.
+                
+                Campos SIFEN:
+                - D030 (cDepEmi): Código departamento emisor
+                - D214 (dDesDepEmi): Descripción departamento emisor  
+                - D031 (cDisEmi): Código distrito emisor
+                - D215 (dDesDisEmi): Descripción distrito emisor
+                - D032 (cCiuEmi): Código ciudad emisor
+                - D216 (dDesCiuEmi): Descripción ciudad emisor
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="cDepEmi" type="tipoCodigoDepartamento"/>
+            <xs:element name="dDesDepEmi" type="tipoDescripcionDepartamento"/>
+            <xs:element name="cDisEmi" type="tipoCodigoDistrito" minOccurs="0"/>
+            <xs:element name="dDesDisEmi" type="tipoDescripcionDistrito" minOccurs="0"/>
+            <xs:element name="cCiuEmi" type="tipoCodigoCiudad"/>
+            <xs:element name="dDesCiuEmi" type="tipoDescripcionCiudad"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipo para ubicación de receptor -->
+    <xs:complexType name="tipoUbicacionReceptor">
+        <xs:annotation>
+            <xs:documentation>
+                Ubicación geográfica específica para el receptor del documento.
+                
+                Campos SIFEN:
+                - D120 (cDepRec): Código departamento receptor
+                - D320 (dDesDepRec): Descripción departamento receptor
+                - D121 (cDisRec): Código distrito receptor  
+                - D321 (dDesDisRec): Descripción distrito receptor
+                - D122 (cCiuRec): Código ciudad receptor
+                - D322 (dDesCiuRec): Descripción ciudad receptor
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="cDepRec" type="tipoCodigoDepartamento"/>
+            <xs:element name="dDesDepRec" type="tipoDescripcionDepartamento"/>
+            <xs:element name="cDisRec" type="tipoCodigoDistrito" minOccurs="0"/>
+            <xs:element name="dDesDisRec" type="tipoDescripcionDistrito" minOccurs="0"/>
+            <xs:element name="cCiuRec" type="tipoCodigoCiudad"/>
+            <xs:element name="dDesCiuRec" type="tipoDescripcionCiudad"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipo para local de salida de mercaderías -->
+    <xs:complexType name="tipoLocalSalida">
+        <xs:annotation>
+            <xs:documentation>
+                Ubicación del local de salida de mercaderías.
+                Obligatorio para Factura de Exportación y Nota de Remisión.
+                
+                Campos SIFEN:
+                - E925: Código departamento local salida
+                - E926: Descripción departamento local salida
+                - E927: Código distrito local salida
+                - E928: Descripción distrito local salida  
+                - E929: Código ciudad local salida
+                - E930: Descripción ciudad local salida
+                
+                Validaciones especiales:
+                - Relación jerárquica obligatoria Dep→Dis→Ciu
+                - Descripción obligatoria cuando se informa código
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="cDepSal" type="tipoCodigoDepartamento"/>
+            <xs:element name="dDesDepSal" type="tipoDescripcionDepartamento"/>
+            <xs:element name="cDisSal" type="tipoCodigoDistrito" minOccurs="0"/>
+            <xs:element name="dDesDisSal" type="tipoDescripcionDistrito" minOccurs="0"/>
+            <xs:element name="cCiuSal" type="tipoCodigoCiudad"/>
+            <xs:element name="dDesCiuSal" type="tipoDescripcionCiudad"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipo para local de entrega de mercaderías -->
+    <xs:complexType name="tipoLocalEntrega">
+        <xs:annotation>
+            <xs:documentation>
+                Ubicación del local de entrega de mercaderías.
+                Obligatorio para Nota de Remisión Electrónica.
+                
+                Campos SIFEN:
+                - E945: Código departamento local entrega
+                - E946: Descripción departamento local entrega
+                - E947: Código distrito local entrega
+                - E948: Descripción distrito local entrega
+                - E949: Código ciudad local entrega  
+                - E950: Descripción ciudad local entrega
+                
+                Validaciones críticas:
+                - E949: Ciudad debe corresponder a departamento (E945)
+                - E949a: Ciudad debe corresponder a distrito (E947)
+                - Relación jerárquica estricta
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="cDepEnt" type="tipoCodigoDepartamento"/>
+            <xs:element name="dDesDepEnt" type="tipoDescripcionDepartamento"/>
+            <xs:element name="cDisEnt" type="tipoCodigoDistrito" minOccurs="0"/>
+            <xs:element name="dDesDisEnt" type="tipoDescripcionDistrito" minOccurs="0"/>
+            <xs:element name="cCiuEnt" type="tipoCodigoCiudad"/>
+            <xs:element name="dDesCiuEnt" type="tipoDescripcionCiudad"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA REFERENCIAS CRUZADAS                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Elementos globales para códigos de departamentos más comunes -->
+    <xs:element name="codigoDepartamentoCentral" type="tipoCodigoDepartamento" 
+            fixed="1">
+        <xs:annotation>
+            <xs:documentation>
+                Código fijo para Departamento Central (1).
+                Incluye Asunción y área metropolitana.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="codigoDepartamentoAltoParana" type="tipoCodigoDepartamento" 
+                fixed="10">
+        <xs:annotation>
+            <xs:documentation>
+                Código fijo para Departamento Alto Paraná (10).
+                Incluye Ciudad del Este y región fronteriza.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN                                              -->
+    <!-- ===================================================================== -->
+    
+    <!--
+        NOTAS IMPORTANTES PARA DESARROLLADORES:
+        
+        1. VALIDACIÓN JERÁRQUICA:
+           - Los códigos de ciudad DEBEN corresponder al distrito
+           - Los códigos de distrito DEBEN corresponder al departamento
+           - Esta validación debe implementarse en la lógica de negocio
+        
+        2. FUENTE DE DATOS:
+           - Tabla oficial: "CODIGO DE REFERENCIA GEOGRAFICA.xlsx"
+           - URL: https://ekuatia.set.gov.py/portal/ekuatia/documentacion
+           - Actualización: Consultar periódicamente cambios
+        
+        3. CASOS ESPECIALES:
+           - Distrito es opcional en algunos contextos
+           - Cuando se informa distrito, descripción es obligatoria
+           - Validar caracteres especiales en nombres (acentos, etc.)
+        
+        4. PERFORMANCE:
+           - Cachear tabla de códigos geográficos en aplicación
+           - Validar códigos contra tabla local antes de envío
+           - Implementar validación offline para mejor UX
+        
+        5. TESTING:
+           - Crear tests con códigos válidos de cada departamento
+           - Probar relaciones jerárquicas incorrectas
+           - Validar caracteres especiales en descripciones
+           - Test de longitudes máximas y mínimas
+        
+        6. REGLAS DE NEGOCIO:
+           - Algunos tipos de documento requieren locales específicos
+           - FE Exportación: Obligatorio local de salida
+           - NRE: Obligatorio local de entrega
+           - AFE: No permite locales de salida/entrega
+        
+        7. INTEGRACIÓN:
+           - Este módulo se importa en múltiples schemas
+           - Usar tipos específicos según contexto (emisor/receptor/local)
+           - Mantener consistencia en nombres de elementos
+    -->
+
+</xs:schema>

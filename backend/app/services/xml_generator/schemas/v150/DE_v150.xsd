@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Schema Principal SIFEN v150 - Documento Electrónico
+  Archivo: shared/schemas/v150/DE_v150.xsd
+  
+  Este es el schema orquestador principal que importa todos los módulos
+  y define solo el elemento raíz del documento electrónico.
+  
+  Sistema: SIFEN (Sistema Integrado de Facturación Electrónica Nacional)
+  País: Paraguay
+  Versión: 150 (septiembre 2019)
+  Namespace: http://ekuatia.set.gov.py/sifen/xsd
+  
+  Tipos de documentos soportados:
+  - Factura Electrónica (FE) - Tipo 1
+  - Autofactura Electrónica (AFE) - Tipo 4  
+  - Nota de Crédito Electrónica (NCE) - Tipo 5
+  - Nota de Débito Electrónica (NDE) - Tipo 6
+  - Nota de Remisión Electrónica (NRE) - Tipo 7
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS - TIPOS BÁSICOS Y COMUNES                     -->
+    <!-- ===================================================================== -->
+    
+    <!-- Tipos básicos reutilizables -->
+    <xs:include schemaLocation="common/basic_types.xsd"/>
+    <xs:include schemaLocation="common/geographic_types.xsd"/>
+    <xs:include schemaLocation="common/contact_types.xsd"/>
+    <xs:include schemaLocation="common/currency_types.xsd"/>
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS - ESTRUCTURA NÚCLEO DEL DOCUMENTO             -->
+    <!-- ===================================================================== -->
+    
+    <!-- Estructura principal del documento -->
+    <xs:include schemaLocation="document_core/root_elements.xsd"/>
+    <xs:include schemaLocation="document_core/operation_data.xsd"/>
+    <xs:include schemaLocation="document_core/stamping_data.xsd"/>
+    <xs:include schemaLocation="document_core/totals_subtotals.xsd"/>
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS - EMISORES Y RECEPTORES                       -->
+    <!-- ===================================================================== -->
+    
+    <!-- Datos de las partes involucradas -->
+    <xs:include schemaLocation="parties/issuer_types.xsd"/>
+    <xs:include schemaLocation="parties/receiver_types.xsd"/>
+    <xs:include schemaLocation="parties/economic_activities.xsd"/>
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS - TIPOS ESPECÍFICOS DE DOCUMENTOS             -->
+    <!-- ===================================================================== -->
+    
+    <!-- Campos específicos por tipo de documento -->
+    <xs:include schemaLocation="document_types/invoice_types.xsd"/>
+    <xs:include schemaLocation="document_types/autoinvoice_types.xsd"/>
+    <xs:include schemaLocation="document_types/credit_note_types.xsd"/>
+    <xs:include schemaLocation="document_types/delivery_note_types.xsd"/>
+    <xs:include schemaLocation="document_types/public_procurement.xsd"/>
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS - OPERACIONES Y CONDICIONES                   -->
+    <!-- ===================================================================== -->
+    
+    <!-- Condiciones de pago y operación -->
+    <xs:include schemaLocation="operations/payment_conditions.xsd"/>
+    <xs:include schemaLocation="operations/payment_methods.xsd"/>
+    <xs:include schemaLocation="operations/credit_operations.xsd"/>
+    <xs:include schemaLocation="operations/items.xsd"/>
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS - TRANSPORTE Y LOGÍSTICA                      -->
+    <!-- ===================================================================== -->
+    
+    <!-- Información de transporte -->
+    <xs:include schemaLocation="transport/transport_core.xsd"/>
+    <xs:include schemaLocation="transport/locations.xsd"/>
+    <xs:include schemaLocation="transport/vehicles.xsd"/>
+    <xs:include schemaLocation="transport/carriers.xsd"/>
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS - EXTENSIONES SECTORIALES                     -->
+    <!-- ===================================================================== -->
+    
+    <!-- Campos específicos por sector -->
+    <xs:include schemaLocation="extensions/tracking.xsd"/>
+    <xs:include schemaLocation="extensions/automotive.xsd"/>
+    <xs:include schemaLocation="extensions/energy.xsd"/>
+    <xs:include schemaLocation="extensions/insurance.xsd"/>
+    <xs:include schemaLocation="extensions/retail.xsd"/>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO RAÍZ DEL DOCUMENTO ELECTRÓNICO                              -->
+    <!-- ===================================================================== -->
+    
+    <!-- 
+        Este es el ÚNICO elemento definido en el schema principal.
+        Todos los tipos complejos están definidos en los módulos importados.
+    -->
+    <xs:element name="rDE">
+        <xs:annotation>
+            <xs:documentation>
+                Elemento raíz del Documento Electrónico SIFEN v150.
+                
+                Contiene:
+                - dVerFor: Versión del formato (AA001)
+                - DE: Documento electrónico completo (A001)
+                
+                El atributo "version" es fijo en "1.5.0" y es obligatorio
+                para identificar la versión del schema utilizada.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- AA001: Versión del formato -->
+                <xs:element name="dVerFor" type="tipoVersionFormato">
+                    <xs:annotation>
+                        <xs:documentation>
+                            AA001 - dVerFor: Versión del formato del documento.
+                            Valor fijo: "150" para esta versión del schema.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                
+                <!-- A001: Campos firmados del DE -->
+                <xs:element name="DE" type="tipoDocumentoElectronico">
+                    <xs:annotation>
+                        <xs:documentation>
+                            A001 - DE: Documento Electrónico completo.
+                            Contiene todos los campos que forman parte 
+                            de la firma digital del documento.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+            
+            <!-- Atributo de versión fijo para el elemento raíz -->
+            <xs:attribute name="version" type="xs:string" fixed="1.5.0" use="required">
+                <xs:annotation>
+                    <xs:documentation>
+                        Versión del schema XSD utilizada.
+                        Valor fijo: "1.5.0" para esta versión.
+                        
+                        Este atributo es obligatorio y permite a los 
+                        sistemas identificar qué versión del schema
+                        se utilizó para generar el documento.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN                                              -->
+    <!-- ===================================================================== -->
+    
+    <!--
+        NOTA IMPORTANTE PARA DESARROLLADORES:
+        
+        1. ESTRUCTURA MODULAR:
+           - Este archivo solo contiene imports y el elemento raíz
+           - Todos los tipos están definidos en módulos específicos
+           - Cada módulo tiene una responsabilidad clara y delimitada
+        
+        2. DEPENDENCIAS:
+           - Los módulos common/ no dependen de otros módulos
+           - Los módulos específicos pueden depender de common/
+           - Evitar dependencias circulares entre módulos
+        
+        3. VALIDACIÓN:
+           - Validar cada módulo independientemente durante desarrollo
+           - Validar el schema completo antes de usar en producción
+           - Usar herramientas como xmllint para validación
+        
+        4. VERSIONADO:
+           - Cambios en módulos common/ afectan todo el schema
+           - Cambios en módulos específicos solo afectan esas funcionalidades
+           - Mantener compatibilidad hacia atrás cuando sea posible
+        
+        5. TESTING:
+           - Crear tests unitarios para cada módulo
+           - Crear tests de integración para el schema completo
+           - Incluir casos de prueba para todos los tipos de documentos
+        
+        6. DOCUMENTACIÓN:
+           - Cada módulo debe tener su propio README.md
+           - Documentar cambios en CHANGELOG.md
+           - Mantener ejemplos actualizados en docs/examples/
+        
+        7. PERFORMANCE:
+           - Los imports se resuelven en tiempo de compilación
+           - No hay impacto en performance de validación
+           - El schema compilado es equivalente al monolítico
+    -->
+
+</xs:schema>

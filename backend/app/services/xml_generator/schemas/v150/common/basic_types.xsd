@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Módulo de Tipos Básicos SIFEN v150
+  Archivo: shared/schemas/v150/common/basic_types.xsd
+  
+  Este módulo contiene todas las definiciones de tipos básicos fundamentales
+  que son reutilizados a lo largo del schema SIFEN v150.
+  
+  RESPONSABILIDADES:
+  - Tipos de identificación (RUC, CDC, códigos)
+  - Tipos de documentos electrónicos
+  - Tipos primitivos con validación
+  - Patrones de formato estándar
+  - Enumeraciones de valores oficiales
+  
+  DEPENDENCIAS: Ninguna (módulo base)
+  IMPORTADO POR: Todos los demás módulos del schema
+  
+  Sistema: SIFEN (Sistema Integrado de Facturación Electrónica Nacional)
+  País: Paraguay
+  Versión: 150 (septiembre 2019)
+  Namespace: http://ekuatia.set.gov.py/sifen/xsd
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- SECCIÓN 1: TIPOS DE IDENTIFICACIÓN FUNDAMENTALES                     -->
+    <!-- ===================================================================== -->
+    
+    <!-- 
+        Esta sección define los tipos básicos para identificación en SIFEN:
+        - Versión del formato
+        - RUC (Registro Único del Contribuyente)
+        - CDC (Código de Control del Documento)
+        - Códigos de seguridad y verificación
+    -->
+    
+    <!-- AA001: Versión del formato -->
+    <xs:simpleType name="tipoVersionFormato">
+        <xs:annotation>
+            <xs:documentation>
+                AA001 - dVerFor: Versión del formato del documento electrónico.
+                
+                Para la versión 150 del schema, este valor es siempre "150".
+                Este campo identifica la versión específica del Manual Técnico
+                SIFEN utilizada para generar el documento.
+                
+                Uso: Campo obligatorio en el elemento raíz rDE
+                Validación: Valor fijo "150"
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="150">
+                <xs:annotation>
+                    <xs:documentation>
+                        Versión 150 del Manual Técnico SIFEN (septiembre 2019)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo base para RUC (Registro Único del Contribuyente) -->
+    <xs:simpleType name="tipoRUC">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo base para RUC (Registro Único del Contribuyente).
+                
+                El RUC en Paraguay tiene las siguientes características:
+                - 8 dígitos numéricos seguidos de un dígito verificador
+                - Formato: 12345678-9 (sin guiones en XML)
+                - Total: 9 caracteres numéricos
+                
+                Validación:
+                - Solo dígitos numéricos
+                - Longitud exacta de 8 dígitos (sin DV) o 9 dígitos (con DV)
+                - El DV se calcula según algoritmo oficial SET
+                
+                Uso: Emisor, receptor, terceros autorizados
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{8,9}"/>
+            <xs:minLength value="8"/>
+            <xs:maxLength value="9"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- RUC específico para emisor (8 dígitos sin DV) -->
+    <xs:simpleType name="tipoRUCEmisor">
+        <xs:annotation>
+            <xs:documentation>
+                RUC específico para el emisor del documento.
+                
+                En el CDC, el RUC del emisor se representa con 8 dígitos
+                sin incluir el dígito verificador.
+                
+                Validación:
+                - Exactamente 8 dígitos numéricos
+                - Debe existir en la base de datos de la SET
+                - Debe estar habilitado para facturación electrónica
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoRUC">
+            <xs:pattern value="[0-9]{8}"/>
+            <xs:length value="8"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- RUC completo con dígito verificador -->
+    <xs:simpleType name="tipoRUCCompleto">
+        <xs:annotation>
+            <xs:documentation>
+                RUC completo incluyendo dígito verificador.
+                
+                Utilizado en campos de datos del emisor y receptor
+                donde se requiere el RUC completo con validación.
+                
+                Formato: 9 dígitos (8 + 1 DV)
+                Ejemplo: 123456789
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoRUC">
+            <xs:pattern value="[0-9]{9}"/>
+            <xs:length value="9"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- CDC - Código de Control del Documento -->
+    <xs:simpleType name="tipoCDC">
+        <xs:annotation>
+            <xs:documentation>
+                CDC - Código de Control del Documento (44 dígitos).
+                
+                Estructura del CDC:
+                [RUC_8][DV_1][TIPO_2][EST_3][PE_3][NUM_7][FECHA_8][EMISION_1][SEG_9][DV_1]
+                
+                Donde:
+                - RUC_8: RUC del emisor (8 dígitos)
+                - DV_1: Dígito verificador del RUC (1 dígito)  
+                - TIPO_2: Tipo de documento (01,04,05,06,07)
+                - EST_3: Establecimiento (3 dígitos)
+                - PE_3: Punto de expedición (3 dígitos)
+                - NUM_7: Número de documento (7 dígitos)
+                - FECHA_8: Fecha emisión YYYYMMDD (8 dígitos)
+                - EMISION_1: Tipo emisión (1=Normal, 2=Contingencia)
+                - SEG_9: Código de seguridad aleatorio (9 dígitos)
+                - DV_1: Dígito verificador del CDC (1 dígito)
+                
+                Total: 44 dígitos numéricos
+                Ejemplo: 01234567890123456789012345678901234567890123
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{44}"/>
+            <xs:length value="44"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Código de seguridad (9 dígitos aleatorios) -->
+    <xs:simpleType name="tipoCodigoSeguridad">
+        <xs:annotation>
+            <xs:documentation>
+                Código de seguridad del documento electrónico.
+                
+                Código aleatorio de 9 dígitos generado para cada documento.
+                Este código forma parte del CDC y proporciona seguridad
+                adicional al documento electrónico.
+                
+                Características:
+                - 9 dígitos numéricos
+                - Generado aleatoriamente
+                - Único por documento
+                - No debe repetirse
+                
+                Algoritmo: Generación pseudoaleatoria con semilla basada en timestamp
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{9}"/>
+            <xs:length value="9"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- SECCIÓN 2: TIPOS DE DOCUMENTOS ELECTRÓNICOS                          -->
+    <!-- ===================================================================== -->
+    
+    <!-- 
+        Esta sección define los tipos relacionados con la clasificación
+        y características de los documentos electrónicos soportados por SIFEN.
+    -->
+
+    <!-- Tipos de documentos electrónicos oficiales -->
+    <xs:simpleType name="tipoDocumento">
+        <xs:annotation>
+            <xs:documentation>
+                Tipos de documentos electrónicos soportados por SIFEN v150.
+                
+                Códigos oficiales definidos por la SET:
+                - 1: Factura Electrónica (FE)
+                - 4: Autofactura Electrónica (AFE)
+                - 5: Nota de Crédito Electrónica (NCE)
+                - 6: Nota de Débito Electrónica (NDE)  
+                - 7: Nota de Remisión Electrónica (NRE)
+                
+                Nota: Los códigos 2 y 3 están reservados para uso futuro.
+                
+                Uso: Campo iTiDE en la estructura del documento
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Factura Electrónica (FE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Autofactura Electrónica (AFE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Nota de Crédito Electrónica (NCE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="6">
+                <xs:annotation>
+                    <xs:documentation>Nota de Débito Electrónica (NDE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="7">
+                <xs:annotation>
+                    <xs:documentation>Nota de Remisión Electrónica (NRE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de emisión del documento -->
+    <xs:simpleType name="tipoEmision">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo de emisión del documento electrónico.
+                
+                Define las condiciones bajo las cuales se emite el documento:
+                
+                - 1 (Normal): Emisión en condiciones normales con conectividad
+                  a los servicios de la SET. El documento se envía inmediatamente.
+                  
+                - 2 (Contingencia): Emisión en condiciones de contingencia cuando
+                  no hay conectividad con los servicios de la SET. El documento
+                  se envía posteriormente cuando se restablezca la conexión.
+                
+                Uso: Campo iTipEmi en la estructura del documento
+                Regulación: Resolución SET que define condiciones de contingencia
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Emisión Normal</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Emisión de Contingencia</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Código de establecimiento -->
+    <xs:simpleType name="tipoEstablecimiento">
+        <xs:annotation>
+            <xs:documentation>
+                Código de establecimiento del contribuyente.
+                
+                Identifica la sucursal o establecimiento específico desde
+                donde se emite el documento electrónico.
+                
+                Características:
+                - 3 dígitos numéricos (001-999)
+                - 001 = Casa matriz
+                - 002-999 = Sucursales
+                - Debe estar registrado en la SET
+                
+                Uso: Campo dEst en la estructura del documento
+                Validación: Debe existir en el registro de establecimientos del RUC
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{3}"/>
+            <xs:length value="3"/>
+            <xs:minInclusive value="001"/>
+            <xs:maxInclusive value="999"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Punto de expedición -->
+    <xs:simpleType name="tipoPuntoExpedicion">
+        <xs:annotation>
+            <xs:documentation>
+                Punto de expedición dentro del establecimiento.
+                
+                Identifica el punto específico (caja, terminal, etc.) desde
+                donde se expide el documento dentro del establecimiento.
+                
+                Características:
+                - 3 dígitos numéricos (001-999)
+                - 001 = Punto principal
+                - 002-999 = Puntos adicionales
+                - Debe estar registrado para el establecimiento
+                
+                Uso: Campo dPunExp en la estructura del documento
+                Validación: Debe estar asociado al establecimiento correspondiente
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{3}"/>
+            <xs:length value="3"/>
+            <xs:minInclusive value="001"/>
+            <xs:maxInclusive value="999"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- SECCIÓN 3: TIPOS PRIMITIVOS CON VALIDACIÓN                           -->
+    <!-- ===================================================================== -->
+    
+    <!-- 
+        Esta sección define tipos básicos para texto, números, fechas y otros
+        datos primitivos con las validaciones específicas de SIFEN.
+    -->
+
+    <!-- Tipo base para números de documento -->
+    <xs:simpleType name="tipoNumeroDocumento">
+        <xs:annotation>
+            <xs:documentation>
+                Número secuencial del documento electrónico.
+                
+                Características:
+                - Hasta 7 dígitos numéricos (1-9999999)
+                - Secuencial por punto de expedición
+                - Reinicia en 1 al comenzar nuevo año fiscal
+                - No pueden existir gaps en la secuencia
+                
+                Uso: Campo dNumDoc en la estructura del documento
+                Validación: Debe ser consecutivo según el último emitido
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{1,7}"/>
+            <xs:minLength value="1"/>
+            <xs:maxLength value="7"/>
+            <xs:minInclusive value="1"/>
+            <xs:maxInclusive value="9999999"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Dígito verificador -->
+    <xs:simpleType name="tipoDigitoVerificador">
+        <xs:annotation>
+            <xs:documentation>
+                Dígito verificador calculado según algoritmo módulo 11.
+                
+                Se utiliza para:
+                - Dígito verificador del RUC
+                - Dígito verificador del CDC
+                - Validación de integridad de códigos
+                
+                Valores: 0-9 (cuando el resto es 10, se usa 0)
+                Algoritmo: Módulo 11 con peso 2-9 cíclico
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]"/>
+            <xs:length value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo base para fechas -->
+    <xs:simpleType name="tipoFecha">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo base para fechas en formato YYYY-MM-DD.
+                
+                Características:
+                - Formato ISO 8601 (YYYY-MM-DD)
+                - Fechas válidas según calendario gregoriano
+                - Rango: 2010-01-01 hasta 2099-12-31
+                
+                Uso: Fechas de emisión, vencimiento, etc.
+                Validación: Debe ser una fecha válida
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:date">
+            <xs:minInclusive value="2010-01-01"/>
+            <xs:maxInclusive value="2099-12-31"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo base para fechas con hora -->
+    <xs:simpleType name="tipoFechaHora">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo base para timestamps con fecha y hora.
+                
+                Características:
+                - Formato ISO 8601 (YYYY-MM-DDTHH:MM:SS)
+                - Timezone: UTC-3 (Paraguay)
+                - Precisión: Segundos
+                
+                Uso: Timestamp de eventos, procesamiento, etc.
+                Ejemplo: 2019-09-15T10:30:45-03:00
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:dateTime"/>
+    </xs:simpleType>
+
+    <!-- Tipo base para texto general -->
+    <xs:simpleType name="tipoTexto">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo base para campos de texto general.
+                
+                Características:
+                - Codificación UTF-8
+                - Sin caracteres de control excepto espacios
+                - Trimming de espacios inicial y final
+                
+                Restricciones:
+                - No HTML o XML embebido
+                - No caracteres especiales que afecten parsing
+                - Solo caracteres imprimibles
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:whiteSpace value="collapse"/>
+            <xs:pattern value="[^\s].*[^\s]|[^\s]"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Texto corto (hasta 50 caracteres) -->
+    <xs:simpleType name="tipoTextoCorto">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para texto corto hasta 50 caracteres.
+                Uso: Nombres cortos, códigos descriptivos, etc.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTexto">
+            <xs:maxLength value="50"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Texto medio (hasta 255 caracteres) -->
+    <xs:simpleType name="tipoTextoMedio">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para texto medio hasta 255 caracteres.
+                Uso: Descripciones, direcciones, observaciones breves.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTexto">
+            <xs:maxLength value="255"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Texto largo (hasta 2000 caracteres) -->
+    <xs:simpleType name="tipoTextoLargo">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para texto largo hasta 2000 caracteres.
+                Uso: Observaciones extensas, términos y condiciones.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTexto">
+            <xs:maxLength value="2000"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- SECCIÓN 4: TIPOS NUMÉRICOS ESPECIALIZADOS                            -->
+    <!-- ===================================================================== -->
+    
+    <!-- 
+        Esta sección define tipos numéricos con validaciones específicas
+        para montos, cantidades, porcentajes y otros valores numéricos.
+    -->
+
+    <!-- Tipo base para números enteros positivos -->
+    <xs:simpleType name="tipoEnteroPositivo">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo base para números enteros positivos.
+                Rango: 1 hasta 999999999999999 (15 dígitos)
+                Uso: Cantidades, números de secuencia, etc.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:maxInclusive value="999999999999999"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para números de timbrado -->
+    <xs:simpleType name="tipoTimbrado">
+        <xs:annotation>
+            <xs:documentation>
+                Número de timbrado otorgado por la SET.
+                
+                Características:
+                - Número único por contribuyente
+                - Hasta 8 dígitos numéricos
+                - Vigencia limitada en el tiempo
+                - Debe estar activo al momento de emisión
+                
+                Uso: Campo dNumTim en la estructura del documento
+                Validación: Debe estar vigente según fecha de emisión
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{1,8}"/>
+            <xs:minLength value="1"/>
+            <xs:maxLength value="8"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- SECCIÓN 5: PATRONES DE VALIDACIÓN AVANZADOS                          -->
+    <!-- ===================================================================== -->
+    
+    <!-- 
+        Esta sección define patrones regex y validaciones complejas
+        para formatos específicos utilizados en SIFEN.
+    -->
+
+    <!-- Patrón para email -->
+    <xs:simpleType name="tipoEmail">
+        <xs:annotation>
+            <xs:documentation>
+                Dirección de correo electrónico válida.
+                Patrón simplificado pero robusto para validación.
+                Uso: Contactos de emisor y receptor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
+            <xs:maxLength value="100"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Patrón para números de teléfono -->
+    <xs:simpleType name="tipoTelefono">
+        <xs:annotation>
+            <xs:documentation>
+                Número de teléfono en formato paraguayo.
+                Acepta: +595xxxxxxxxx, 0xxxxxxxxx, xxxxxxxxx
+                Uso: Contactos de emisor y receptor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(\+595|0)?[2-9][0-9]{7,8}"/>
+            <xs:maxLength value="15"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN Y USO                                        -->
+    <!-- ===================================================================== -->
+    
+    <!--
+        GUÍAS PARA DESARROLLADORES:
+        
+        1. REUTILIZACIÓN DE TIPOS:
+           - Todos estos tipos están diseñados para ser reutilizados
+           - Importar este módulo en todos los demás módulos especializados
+           - No duplicar definiciones en otros archivos
+        
+        2. VALIDACIÓN:
+           - Los patrones regex están optimizados para performance
+           - Las restricciones de longitud previenen ataques DoS
+           - Los rangos numéricos reflejan límites reales de SIFEN
+        
+        3. EXTENSIBILIDAD:
+           - Usar tipos base para crear tipos más específicos
+           - Mantener compatibilidad hacia atrás en cambios
+           - Documentar cualquier cambio en types_changelog.md
+        
+        4. TESTING:
+           - Cada tipo debe tener tests unitarios
+           - Incluir casos edge y validaciones negativas
+           - Verificar performance con datos grandes
+        
+        5. DOCUMENTACIÓN:
+           - Mantener sincronizados los comentarios con Manual Técnico
+           - Actualizar ejemplos cuando cambien especificaciones
+           - Referenciar artículos específicos del Manual cuando aplique
+    -->
+
+</xs:schema>
