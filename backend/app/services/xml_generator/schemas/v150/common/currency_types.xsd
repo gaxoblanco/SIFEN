@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Módulo de Tipos Monetarios SIFEN v150
+  Archivo: common/currency_types.xsd
+  
+  PROPÓSITO:
+  Define todos los tipos de datos relacionados con monedas, montos y 
+  validaciones monetarias del sistema SIFEN Paraguay.
+  
+  RESPONSABILIDADES:
+  ✅ Enumeraciones de monedas soportadas
+  ✅ Tipos de datos para montos (enteros y decimales)
+  ✅ Validaciones de formato según moneda
+  ✅ Restricciones de decimales por moneda
+  ✅ Tipos para tasas de cambio
+  
+  COMPATIBILIDAD:
+  - SIFEN v150 (Manual Técnico SET Paraguay)
+  - Resolución General BCP sobre monedas autorizadas
+  - Normas de formato monetario Paraguay
+  
+  MONEDAS SOPORTADAS:
+  - PYG: Guaraníes paraguayos (sin decimales)
+  - USD: Dólares estadounidenses (2 decimales)
+  - EUR: Euros (2 decimales)  
+  - BRL: Reales brasileños (2 decimales)
+  - ARS: Pesos argentinos (2 decimales)
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- ENUMERACIONES DE MONEDAS                                             -->
+    <!-- ===================================================================== -->
+    
+    <xs:simpleType name="tipoMonedaOperacion">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para código de moneda de operación.
+                
+                Valores permitidos según resolución BCP Paraguay:
+                - PYG: Guaraní paraguayo (moneda local)
+                - USD: Dólar estadounidense
+                - EUR: Euro
+                - BRL: Real brasileño  
+                - ARS: Peso argentino
+                
+                Restricciones:
+                - Solo se permiten las monedas autorizadas por BCP
+                - Cada moneda tiene reglas específicas de formato
+                - PYG no admite decimales
+                - Monedas extranjeras requieren 2 decimales exactos
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PYG">
+                <xs:annotation>
+                    <xs:documentation>
+                        Guaraní paraguayo - Moneda nacional.
+                        Formato: Entero sin decimales.
+                        Ejemplo: 150000 (no 150000.00)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="USD">
+                <xs:annotation>
+                    <xs:documentation>
+                        Dólar estadounidense.
+                        Formato: 2 decimales obligatorios.
+                        Ejemplo: 150.00
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="EUR">
+                <xs:annotation>
+                    <xs:documentation>
+                        Euro.
+                        Formato: 2 decimales obligatorios.
+                        Ejemplo: 125.50
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="BRL">
+                <xs:annotation>
+                    <xs:documentation>
+                        Real brasileño.
+                        Formato: 2 decimales obligatorios.
+                        Ejemplo: 800.75
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="ARS">
+                <xs:annotation>
+                    <xs:documentation>
+                        Peso argentino.
+                        Formato: 2 decimales obligatorios.
+                        Ejemplo: 12500.00
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS DE MONTOS SEGÚN MONEDA                                         -->
+    <!-- ===================================================================== -->
+    
+    <xs:simpleType name="tipoMontoGuarani">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para montos en Guaraníes (PYG).
+                
+                Características:
+                - Solo números enteros (sin decimales)
+                - Rango: 0 a 999,999,999,999,999 (15 dígitos)
+                - No se permiten centavos
+                - Separador de miles no se incluye en XML
+                
+                Ejemplos válidos:
+                - 150000 (ciento cincuenta mil guaraníes)
+                - 25000000 (veinticinco millones de guaraníes)
+                
+                Ejemplos inválidos:
+                - 150000.00 (no se permiten decimales)
+                - 150,000 (no se permiten separadores)
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:nonNegativeInteger">
+            <xs:totalDigits value="15"/>
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="999999999999999"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoMontoMonedaExtranjera">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para montos en monedas extranjeras (USD, EUR, BRL, ARS).
+                
+                Características:
+                - Exactamente 2 decimales obligatorios
+                - Rango: 0.00 a 999,999,999,999.99 (12 dígitos enteros + 2 decimales)
+                - Separador decimal: punto (.)
+                - No se permiten separadores de miles
+                
+                Ejemplos válidos:
+                - 150.00 (ciento cincuenta dólares/euros/etc.)
+                - 25000.50 (veinticinco mil con cincuenta centavos)
+                - 0.01 (un centavo)
+                
+                Ejemplos inválidos:
+                - 150 (falta especificar decimales)
+                - 150.5 (falta segundo decimal)
+                - 150.123 (excede 2 decimales)
+                - 150,50 (separador decimal incorrecto)
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:totalDigits value="14"/>
+            <xs:fractionDigits value="2"/>
+            <xs:minInclusive value="0.00"/>
+            <xs:maxInclusive value="999999999999.99"/>
+            <xs:pattern value="[0-9]{1,12}\.[0-9]{2}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS MONETARIOS UNIFICADOS                                          -->
+    <!-- ===================================================================== -->
+    
+    <xs:simpleType name="tipoMonto">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo unificado para montos monetarios.
+                
+                Este tipo acepta tanto enteros (para PYG) como decimales 
+                (para monedas extranjeras). La validación específica del 
+                formato debe realizarse en contexto según el campo cMoneOpe.
+                
+                Reglas de validación contextuales:
+                - Si cMoneOpe = "PYG" → validar como tipoMontoGuarani
+                - Si cMoneOpe = "USD|EUR|BRL|ARS" → validar como tipoMontoMonedaExtranjera
+                
+                Nota: Los sistemas validadores deben implementar lógica
+                de negocio adicional para verificar consistencia entre
+                moneda declarada y formato de monto.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:union memberTypes="tipoMontoGuarani tipoMontoMonedaExtranjera"/>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA TASAS DE CAMBIO                                           -->
+    <!-- ===================================================================== -->
+    
+    <xs:simpleType name="tipoTasaCambio">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para tasa de cambio entre monedas.
+                
+                Características:
+                - Máximo 6 decimales de precisión
+                - Rango: 0.000001 a 999999.999999
+                - Usado para convertir entre PYG y monedas extranjeras
+                - Debe corresponder a cotización oficial BCP del día
+                
+                Ejemplos:
+                - 7350.00 (USD a PYG)
+                - 8125.50 (EUR a PYG)
+                - 1.235678 (para cálculos de alta precisión)
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:totalDigits value="12"/>
+            <xs:fractionDigits value="6"/>
+            <xs:minExclusive value="0"/>
+            <xs:maxInclusive value="999999.999999"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoTipoCambio">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo de cambio aplicado en la operación.
+                
+                Valores:
+                - 1: Tipo de cambio fijo (establecido previamente)
+                - 2: Tipo de cambio variable (cotización del día)
+                
+                Para operaciones en PYG, este campo puede omitirse.
+                Para monedas extranjeras, es obligatorio especificar el tipo.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Tipo de cambio fijo</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Tipo de cambio variable</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA VALIDACIONES ESPECÍFICAS                                  -->
+    <!-- ===================================================================== -->
+    
+    <xs:simpleType name="tipoMontoPositivo">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para montos que deben ser estrictamente positivos.
+                
+                Usado en campos donde el monto cero no es válido:
+                - Precio unitario de productos
+                - Monto de impuestos (cuando aplica)
+                - Totales de documentos con items
+                
+                Hereda las reglas de tipoMonto pero excluye el valor 0.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoMonto">
+            <xs:minExclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoMontoCero">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para montos que pueden ser cero.
+                
+                Usado en campos donde el monto cero es válido:
+                - Descuentos (puede ser 0)
+                - Anticipos (puede ser 0)
+                - Algunos tipos de documentos especiales
+                
+                Idéntico a tipoMonto pero documentado específicamente
+                para casos donde cero es explícitamente permitido.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoMonto">
+            <xs:minInclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA PORCENTAJES MONETARIOS                                    -->
+    <!-- ===================================================================== -->
+    
+    <xs:simpleType name="tipoPorcentaje">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para porcentajes en operaciones monetarias.
+                
+                Características:
+                - Rango: 0.00% a 100.00%
+                - 2 decimales de precisión
+                - Usado para: descuentos, impuestos, comisiones
+                
+                Formato: número decimal donde 15.50 = 15.50%
+                
+                Ejemplos:
+                - 10.00 (IVA 10%)
+                - 5.00 (Impuesto 5%)
+                - 15.25 (Descuento 15.25%)
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:totalDigits value="5"/>
+            <xs:fractionDigits value="2"/>
+            <xs:minInclusive value="0.00"/>
+            <xs:maxInclusive value="100.00"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS COMPUESTOS PARA INFORMACIÓN MONETARIA                          -->
+    <!-- ===================================================================== -->
+    
+    <xs:complexType name="tipoInformacionMonetaria">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo compuesto para información monetaria completa.
+                
+                Agrupa toda la información necesaria para describir
+                completamente un monto en el contexto SIFEN:
+                - Moneda de la operación
+                - Monto en la moneda especificada
+                - Tasa de cambio (si aplica)
+                - Tipo de cambio (si aplica)
+                
+                Este tipo puede ser usado como base para campos
+                monetarios complejos en el documento.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="cMoneOpe" type="tipoMonedaOperacion">
+                <xs:annotation>
+                    <xs:documentation>
+                        Código de moneda de la operación.
+                        Determina el formato requerido para los montos.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMonto" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>
+                        Monto en la moneda especificada.
+                        Debe seguir el formato correspondiente a cMoneOpe.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dTiCam" type="tipoTasaCambio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Tasa de cambio aplicada.
+                        Obligatorio para monedas extranjeras, opcional para PYG.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="iTipCam" type="tipoTipoCambio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Tipo de cambio (fijo o variable).
+                        Obligatorio cuando se especifica dTiCam.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- PATRONES DE VALIDACIÓN                                               -->
+    <!-- ===================================================================== -->
+    
+    <xs:simpleType name="tipoPatronMontoGuarani">
+        <xs:annotation>
+            <xs:documentation>
+                Patrón estricto para validar formato de guaraníes.
+                Asegura que el valor sea un entero sin decimales.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]+"/>
+            <xs:maxLength value="15"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoPatronMontoExtranjero">
+        <xs:annotation>
+            <xs:documentation>
+                Patrón estricto para validar formato de monedas extranjeras.
+                Asegura exactamente 2 decimales con punto como separador.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{1,12}\.[0-9]{2}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN                                              -->
+    <!-- ===================================================================== -->
+    
+    <!--
+        GUÍA DE IMPLEMENTACIÓN PARA DESARROLLADORES:
+        
+        1. VALIDACIÓN CONTEXTUAL:
+           - Los tipos base permiten cualquier formato válido
+           - La validación específica debe hacerse en contexto
+           - Verificar consistencia entre cMoneOpe y formato de monto
+        
+        2. REGLAS DE NEGOCIO:
+           - PYG: Solo enteros, no decimales, rango hasta 15 dígitos
+           - USD/EUR/BRL/ARS: Exactamente 2 decimales, rango hasta 12+2 dígitos
+           - Cero puede o no ser válido según el campo específico
+        
+        3. VALIDACIONES ADICIONALES:
+           - Verificar que la moneda esté autorizada por BCP
+           - Validar tasas de cambio contra cotización oficial
+           - Aplicar límites específicos según tipo de documento
+        
+        4. ERRORES COMUNES A EVITAR:
+           - No usar separadores de miles en XML (usar 150000, no 150,000)
+           - No omitir decimales en monedas extranjeras (usar 150.00, no 150)
+           - No usar coma como separador decimal (usar 150.50, no 150,50)
+           - No mezclar formatos en un mismo documento
+        
+        5. TESTING:
+           - Probar cada moneda con montos válidos e inválidos
+           - Verificar límites máximos y mínimos
+           - Validar casos edge (0, 0.01, máximos)
+           - Probar inconsistencias entre moneda y formato
+        
+        6. PERFORMANCE:
+           - Los patrones regex se compilan una vez
+           - Usar validación por etapas (sintaxis → semántica → negocio)
+           - Cachear validaciones de monedas autorizadas
+        
+        7. MANTENIMIENTO:
+           - Actualizar monedas autorizadas según resoluciones BCP
+           - Revisar límites máximos según inflación
+           - Mantener compatibilidad hacia atrás en cambios menores
+        
+        8. INTEGRACIÓN:
+           - Este módulo es independiente (solo tipos básicos)
+           - Puede ser incluido en cualquier schema SIFEN
+           - Compatible con validadores XSD estándar
+           - No requiere librerías externas
+    -->
+
+</xs:schema>

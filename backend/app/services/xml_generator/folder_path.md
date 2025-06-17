@@ -48,7 +48,31 @@ backend/app/services/xml_generator/
         │   │       └── wrong_types.xml
         │   └── utils/                  # Utilidades para testing de schemas
         │       ├── schema_validator.py # Validador específico para tests
-        │       ├── xml_generator.py    # Generador de XMLs de prueba
+        │       ├── xml_generator/
+        │       │   ├── __init__.py                    # API principal (facade)
+        │       │   ├── base_generator.py              # SOLO funcionalidad común
+        │       │   ├── validators.py                  # Validación básica
+        │       │   │   ├── __init__.py                    # 🔌 API principal consolidada
+        │       │   │   ├── core_validator.py              # 🏗️ Validador principal contra XSD
+        │       │   │   ├── structure_validator.py         # 📐 Validación estructura básica XML
+        │       │   │   ├── format_validator.py            # 🎯 Validación formatos SIFEN específicos
+        │       │   │   ├── error_handler.py               # 🚨 Manejo y formateo de errores
+        │       │   │   └── constants.py                   # 📊 Constantes y patrones SIFEN
+        │       │   ├── sample_data/                    # 📂 Módulo de datos de muestra
+        │       │   │   ├── __init__.py                # Exportaciones principales
+        │       │   │   ├── empresas_data.py           # 🏢 Datos de empresas paraguayas
+        │       │   │   ├── clientes_data.py           # 👥 Datos de clientes típicos
+        │       │   │   ├── productos_data.py          # 📦 Catálogo de productos/servicios
+        │       │   │   ├── ubicaciones_data.py        # 📍 Ciudades y direcciones Paraguay
+        │       │   │   ├── escenarios_testing.py      # 🎭 Escenarios predefinidos
+        │       │   │   ├── validadores_data.py        # ✅ RUCs, teléfonos válidos
+        │       │   │   └── sample_data_api.py         # 🔌 API principal (SampleData class)
+        │       │   └── document_types_generator.py    # Los 5 tipos específicos
+        │       │           ├── Factura Electrónica (FE) - Tipo "01"
+        │       │           ├── Autofactura Electrónica (AFE) - Tipo "04"
+        │       │           ├── Nota de Crédito (NCE) - Tipo "05"
+        │       │           ├── Nota de Débito (NDE) - Tipo "06"
+        │       │           └── Nota de Remisión (NRE) - Tipo "07"
         │       └── test_helpers.py     # Helpers para tests
         ├── DE_v150.xsd                # Schema principal
         ├── common/                    # Tipos básicos
