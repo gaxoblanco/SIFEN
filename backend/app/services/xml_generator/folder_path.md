@@ -73,7 +73,15 @@ backend/app/services/xml_generator/
         │       │           ├── Nota de Crédito (NCE) - Tipo "05"
         │       │           ├── Nota de Débito (NDE) - Tipo "06"
         │       │           └── Nota de Remisión (NRE) - Tipo "07"
-        │       └── test_helpers.py     # Helpers para tests
+        │       └── test_helpers/     # Helpers para tests
+        │           ├── __init__.py                 # 🔌 API principal (facade)
+        │           ├── xml_helpers.py              # 1️⃣ Utilidades XML
+        │           ├── data_factory.py             # 2️⃣ Generador de datos SIFEN
+        │           ├── schema_helpers.py           # 3️⃣ Helpers específicos de schemas
+        │           ├── performance_helpers.py      # 4️⃣ Medición de performance pending
+        │           ├── assertion_helpers.py        # 5️⃣ Assertions customizadas pending
+        │           ├── constants.py                # 📊 Constantes compartidas
+        │           └── README.md                   # 📚 Documentación del módulo
         ├── DE_v150.xsd                # Schema principal
         ├── common/                    # Tipos básicos
         ├── document_core/             # Estructura núcleo

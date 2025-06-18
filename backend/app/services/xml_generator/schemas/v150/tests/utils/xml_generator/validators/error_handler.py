@@ -578,6 +578,31 @@ class ErrorHandler:
 
         return "\n".join(report_lines)
 
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from app.services.xml_generator.schemas.v150.tests.utils.schema_validator import ValidationResult
+
+    # En el método, usar string annotation:
+    def handle_unexpected_validation_error(self, exception: Exception) -> 'ValidationResult':
+        """
+        Maneja errores inesperados durante validación XSD
+        """
+        # Importar solo cuando se ejecuta (no en tiempo de definición)
+        from app.services.xml_generator.schemas.v150.tests.utils.schema_validator import ValidationResult
+
+        error_message = f"Error inesperado en validación: {str(exception)}"
+        formatted_errors = self.format_errors([error_message])
+
+        return ValidationResult(
+            is_valid=False,
+            errors=formatted_errors,
+            warnings=[],
+            schema_version="v150",
+            validation_time_ms=None,
+            element_count=None
+        )
+
 
 # =====================================
 # UTILIDADES ADICIONALES

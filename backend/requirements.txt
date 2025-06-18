@@ -25,6 +25,7 @@ pytest>=7.4.3
 pytest-cov>=4.1.0
 httpx>=0.25.2
 requirements
+faker
 
 # Seguridad y autenticación
 python-jose[cryptography]>=3.3.0
@@ -87,6 +88,7 @@ mypy>=1.5.0
 # Documentación
 mkdocs>=1.5.0
 mkdocs-material>=9.0.0
+
 
 # ================================================
 # NOTAS DE INSTALACIÓN
