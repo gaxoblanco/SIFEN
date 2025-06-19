@@ -60,10 +60,22 @@ class XMLValidationError(Exception):
     """Excepción personalizada para errores de validación XML"""
     pass
 
+# ================================
+# CONSTANTES SIFEN
+# ================================
+
+
+SIFEN_NAMESPACES = {
+    'sifen': 'http://ekuatia.set.gov.py/sifen/xsd',
+    'xsi': 'http://www.w3.org/2001/XMLSchema-instance'
+}
+
+DEFAULT_XML_ENCODING = 'utf-8'
 
 # ================================
 # CLASE PRINCIPAL: XMLTestHelpers
 # ================================
+
 
 class XMLTestHelpers:
     """
@@ -110,7 +122,7 @@ class XMLTestHelpers:
                 errors.append("Contenido XML vacío o None")
                 return False, None, errors
 
-            if not isinstance(xml_content, str):
+            if not isinstance(xml_content, (str, bytes)):
                 errors.append(
                     f"Contenido debe ser string, recibido: {type(xml_content)}")
                 return False, None, errors
@@ -173,7 +185,7 @@ class XMLTestHelpers:
             return False, None, errors
 
     @staticmethod
-    def extract_element_text(xml_tree: etree._Element, xpath: str, default: Optional[str] = None) -> Optional[str]:
+    def extract_element_text(xml_tree: etree._Element, xpath: str, default: Optional[str] = None, namespaces: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
         Extrae texto de un elemento usando expresión XPath
 
@@ -206,7 +218,7 @@ class XMLTestHelpers:
 
         try:
             # Ejecutar XPath
-            elements = xml_tree.xpath(xpath)
+            elements = xml_tree.xpath(xpath, namespaces=namespaces)
 
             if not elements:
                 logger.debug(
@@ -245,7 +257,7 @@ class XMLTestHelpers:
             return default
 
     @staticmethod
-    def extract_multiple_elements(xml_tree: etree._Element, xpath: str) -> List[str]:
+    def extract_multiple_elements(xml_tree: etree._Element, xpath: str, namespaces: Optional[Dict[str, str]] = None) -> List[str]:
         """
         Extrae texto de múltiples elementos que coincidan con el XPath
 
@@ -266,7 +278,7 @@ class XMLTestHelpers:
             return []
 
         try:
-            elements = xml_tree.xpath(xpath)
+            elements = xml_tree.xpath(xpath, namespaces=namespaces)
             results = []
 
             for element in elements:
@@ -358,7 +370,27 @@ class XMLTestHelpers:
             return False
 
     @staticmethod
-    def format_xml_pretty(xml_content: str, encoding: str = 'unicode') -> str:
+    def format_xml_pretty(xml_content: str, encoding: str = 'unicode', indent: str = "  ") -> str:
+        """
+        Formatea XML con indentación para mejor legibilidad
+
+        Args:
+            xml_content (str): Contenido XML a formatear
+            encoding (str): Codificación de salida ('unicode' o 'utf-8')
+            indent (str): String de indentación (por defecto 2 espacios)
+
+        Returns:
+            str: XML formateado con indentación
+
+        Examples:
+            >>> xml = "<root><child>valor</child></root>"
+            >>> formatted = XMLTestHelpers.format_xml_pretty(xml)
+            >>> assert "  <child>" in formatted
+        """
+        if not xml_content:
+            logger.warning("Contenido XML vacío para formatear")
+            return xml_content or ""
+
         try:
             success, tree, errors = XMLTestHelpers.parse_xml_safely(
                 xml_content)
@@ -368,13 +400,13 @@ class XMLTestHelpers:
                 return xml_content
 
             # Aplicar indentación
-            etree.indent(tree, space="  ")
+            etree.indent(tree, space=indent)
 
-            # Convertir a string
+            # Convertir a string con encoding apropiado
             if encoding == 'unicode':
-                return etree.tostring(tree).decode('utf-8')
+                return etree.tostring(tree)
             else:
-                return etree.tostring(tree).decode('utf-8')
+                return etree.tostring(tree).decode(encoding)
 
         except Exception as e:
             logger.warning(f"Error formateando XML: {str(e)}")
@@ -457,7 +489,7 @@ class XMLTestHelpers:
         return errors
 
     @staticmethod
-    def element_exists(xml_tree: etree._Element, xpath: str) -> bool:
+    def element_exists(xml_tree: etree._Element, xpath: str, namespaces: Optional[Dict[str, str]] = None) -> bool:
         """
         Verifica si existe al menos un elemento que coincida con el XPath
 
@@ -477,7 +509,7 @@ class XMLTestHelpers:
             return False
 
         try:
-            elements = xml_tree.xpath(xpath)
+            elements = xml_tree.xpath(xpath, namespaces=namespaces)
             return len(elements) > 0
         except Exception as e:
             logger.warning(
@@ -485,7 +517,7 @@ class XMLTestHelpers:
             return False
 
     @staticmethod
-    def count_elements(xml_tree: etree._Element, xpath: str) -> int:
+    def count_elements(xml_tree: etree._Element, xpath: str, namespaces: Optional[Dict[str, str]] = None) -> int:
         """
         Cuenta el número de elementos que coinciden con el XPath
 
@@ -505,17 +537,120 @@ class XMLTestHelpers:
             return 0
 
         try:
-            elements = xml_tree.xpath(xpath)
+            elements = xml_tree.xpath(xpath, namespaces=namespaces)
             return len(elements)
         except Exception as e:
             logger.warning(
                 f"Error contando elementos con XPath '{xpath}': {str(e)}")
             return 0
 
+    @staticmethod
+    def extract_element_attribute(xml_tree: etree._Element, xpath: str, attribute: str,
+                                  default: Optional[str] = None, namespaces: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        Extrae el valor de un atributo específico de un elemento
 
+        Args:
+            xml_tree (etree._Element): Árbol XML parseado
+            xpath (str): Expresión XPath para localizar el elemento
+            attribute (str): Nombre del atributo a extraer
+            default (Optional[str]): Valor por defecto si no se encuentra
+            namespaces (Optional[Dict[str, str]]): Diccionario de namespaces
+
+        Returns:
+            Optional[str]: Valor del atributo o default
+
+        Examples:
+            >>> xml = '<root><item id="123">valor</item></root>'
+            >>> tree = etree.fromstring(xml)
+            >>> attr = XMLTestHelpers.extract_element_attribute(tree, "//item", "id")
+            >>> assert attr == "123"
+        """
+        if xml_tree is None or not xpath or not attribute:
+            return default
+
+        try:
+            elements = xml_tree.xpath(xpath, namespaces=namespaces)
+
+            if not elements:
+                return default
+
+            element = elements[0]
+
+            if hasattr(element, 'get'):
+                return element.get(attribute, default)
+            else:
+                return default
+
+        except Exception as e:
+            logger.warning(
+                f"Error extrayendo atributo '{attribute}' con XPath '{xpath}': {str(e)}")
+            return default
+
+    @staticmethod
+    def validate_xml_against_xsd(xml_content: str, xsd_path: Union[str, Path]) -> Tuple[bool, List[str]]:
+        """
+        Valida XML contra un schema XSD específico
+
+        Args:
+            xml_content (str): Contenido XML a validar
+            xsd_path (Union[str, Path]): Ruta al archivo XSD
+
+        Returns:
+            Tuple[bool, List[str]]: (es_válido, lista_de_errores)
+
+        Examples:
+            >>> xml = "<root><valid>content</valid></root>"
+            >>> valid, errors = XMLTestHelpers.validate_xml_against_xsd(xml, "schema.xsd")
+            >>> assert isinstance(valid, bool)
+            >>> assert isinstance(errors, list)
+        """
+        try:
+            errors = XMLTestHelpers.get_xml_validation_errors(
+                xml_content, xsd_path)
+            is_valid = len(errors) == 0
+            return is_valid, errors
+        except Exception as e:
+            error_msg = f"Error validando XML contra XSD: {str(e)}"
+            logger.error(error_msg)
+            return False, [error_msg]
+
+    @staticmethod
+    def get_root_element_info(xml_tree: etree._Element) -> Dict[str, Any]:
+        """
+        Obtiene información del elemento raíz del XML
+
+        Args:
+            xml_tree (etree._Element): Árbol XML parseado
+
+        Returns:
+            Dict[str, Any]: Información del elemento raíz
+
+        Examples:
+            >>> xml = '<root xmlns="http://example.com" version="1.0"><child/></root>'
+            >>> tree = etree.fromstring(xml)
+            >>> info = XMLTestHelpers.get_root_element_info(tree)
+            >>> assert info['tag'] == '{http://example.com}root'
+        """
+        if xml_tree is None:
+            return {}
+
+        try:
+            return {
+                'tag': xml_tree.tag,
+                'attributes': dict(xml_tree.attrib),
+                'namespace': xml_tree.nsmap,
+                'children_count': len(xml_tree),
+                'text_content': xml_tree.text.strip() if xml_tree.text else None
+            }
+        except Exception as e:
+            logger.warning(
+                f"Error obteniendo información del elemento raíz: {str(e)}")
+            return {}
 # ================================
 # UTILIDADES ADICIONALES
 # ================================
+
 
 def validate_xml_basic_structure(xml_content: str, required_elements: List[str]) -> Tuple[bool, List[str]]:
     """
@@ -594,3 +729,70 @@ def compare_xml_values(xml1: str, xml2: str, value_xpaths: List[str]) -> Dict[st
         results[xpath] = value1 == value2
 
     return results
+
+
+def extract_sifen_document_info(xml_content: str) -> Dict[str, Optional[str]]:
+    """
+    Extrae información básica de un documento SIFEN
+
+    Args:
+        xml_content (str): Contenido XML del documento SIFEN
+
+    Returns:
+        Dict[str, Optional[str]]: Información extraída del documento
+
+    Examples:
+        >>> xml = '''<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+        ...     <DE><dTiDE>1</dTiDE><dRUCEmi>12345678</dRUCEmi></DE>
+        ... </rDE>'''
+        >>> info = extract_sifen_document_info(xml)
+        >>> assert info['tipo_documento'] == '1'
+        >>> assert info['ruc_emisor'] == '12345678'
+    """
+    success, tree, errors = XMLTestHelpers.parse_xml_safely(xml_content)
+
+    if not success or tree is None:
+        logger.warning(f"Error parseando documento SIFEN: {errors}")
+        return {}
+
+    # Información básica del documento SIFEN
+    info = {
+        'tipo_documento': XMLTestHelpers.extract_element_text(tree, "//dTiDE", namespaces=SIFEN_NAMESPACES),
+        'ruc_emisor': XMLTestHelpers.extract_element_text(tree, "//dRUCEmi", namespaces=SIFEN_NAMESPACES),
+        'numero_documento': XMLTestHelpers.extract_element_text(tree, "//dNumDoc", namespaces=SIFEN_NAMESPACES),
+        'serie_documento': XMLTestHelpers.extract_element_text(tree, "//dSerie", namespaces=SIFEN_NAMESPACES),
+        'fecha_emision': XMLTestHelpers.extract_element_text(tree, "//dFeEmiDE", namespaces=SIFEN_NAMESPACES),
+        'condicion_operacion': XMLTestHelpers.extract_element_text(tree, "//iTiOpe", namespaces=SIFEN_NAMESPACES),
+        'moneda': XMLTestHelpers.extract_element_text(tree, "//cMoneOpe", namespaces=SIFEN_NAMESPACES)
+    }
+
+    return info
+
+
+def validate_sifen_structure(xml_content: str) -> Tuple[bool, List[str]]:
+    """
+    Validación básica de estructura para documentos SIFEN
+
+    Args:
+        xml_content (str): Contenido XML del documento SIFEN
+
+    Returns:
+        Tuple[bool, List[str]]: (es_válido, lista_de_errores)
+
+    Examples:
+        >>> xml = '''<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+        ...     <DE><dTiDE>1</dTiDE><dRUCEmi>12345678</dRUCEmi></DE>
+        ... </rDE>'''
+        >>> valid, errors = validate_sifen_structure(xml)
+        >>> assert isinstance(valid, bool)
+    """
+    errors = []
+
+    # Elementos requeridos básicos para cualquier documento SIFEN
+    required_elements = [
+        "//dTiDE",      # Tipo de documento
+        "//dRUCEmi",    # RUC del emisor
+        "//dFeEmiDE"    # Fecha de emisión
+    ]
+
+    return validate_xml_basic_structure(xml_content, required_elements)

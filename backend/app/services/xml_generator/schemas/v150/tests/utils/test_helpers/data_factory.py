@@ -61,12 +61,14 @@ from faker.providers import BaseProvider
 # ================================
 
 logger = logging.getLogger(__name__)
-faker = Faker('es_PY')  # Locale Paraguay para datos realistas
+# faker = Faker('es_PY')  # Locale Paraguay para datos realistas
+faker = Faker(['es_ES', 'es'])  # Using Spanish locale as fallback
 
 
 # ================================
 # CONSTANTES SIFEN
 # ================================
+
 
 class TipoDocumento(Enum):
     """Tipos de documentos SIFEN válidos"""
@@ -1437,10 +1439,122 @@ def extraer_datos_para_xml(datos_factura: Dict[str, Any]) -> Dict[str, Any]:
         "cdc_preliminar": metadatos["cdc"]
     }
 
+# Basic data generators
+
+
+def generate_fake_string(min_length: int = 1, max_length: int = 100) -> str:
+    return faker.pystr(min_chars=min_length, max_chars=max_length)
+
+
+def generate_fake_datetime(
+    start_datetime: Optional[Union[datetime, date, str]] = None,
+    end_datetime: Optional[Union[datetime, date, str]] = None
+) -> datetime:
+    return faker.date_time_between(
+        start_date='-30d' if start_datetime is None else start_datetime,
+        end_date='now' if end_datetime is None else end_datetime
+    )
+
+
+def generate_fake_date(
+    start_date: Optional[Union[date, datetime, str]] = None,
+    end_date: Optional[Union[date, datetime, str]] = None
+) -> date:
+    return faker.date_between(
+        start_date='-30d' if start_date is None else start_date,
+        end_date='now' if end_date is None else end_date
+    )
+
+
+def generate_fake_float(
+    min_value: float = 0.0,
+    max_value: float = 1000.0,
+    decimals: int = 2
+) -> float:
+    return round(random.uniform(min_value, max_value), decimals)
+
+
+def generate_fake_integer(min_value: int = 0, max_value: int = 1000) -> int:
+    return faker.pyint(min_value=min_value, max_value=max_value)
+
+# Contact/Location data generators
+
+
+def generate_fake_email() -> str:
+    return faker.email()
+
+
+def generate_fake_url() -> str:
+    return faker.url()
+
+
+def generate_fake_phone() -> str:
+    return faker.phone_number()
+
+
+def generate_fake_company() -> str:
+    return faker.company()
+
+
+def generate_fake_address() -> str:
+    return faker.address()
+
+
+def generate_fake_department() -> str:
+    departments = [
+        "Asunción", "Central", "Alto Paraguay", "Alto Paraná",
+        "Amambay", "Boquerón", "Caaguazú", "Caazapá",
+        "Canindeyú", "Concepción", "Cordillera", "Guairá",
+        "Itapúa", "Misiones", "Ñeembucú", "Paraguarí",
+        "Presidente Hayes", "San Pedro"
+    ]
+    return random.choice(departments)
+
+
+def generate_fake_district() -> str:
+    return faker.city()
+
+
+def generate_fake_coordinates() -> tuple:
+    return (faker.latitude(), faker.longitude())
+
+# Document related generators
+
+
+def generate_fake_person_name() -> str:
+    return faker.name()
+
+
+def generate_fake_ruc() -> str:
+    # Format: XXXXXXXXX-Y
+    base = str(faker.random_number(digits=8, fix_len=True))
+    check_digit = str(random.randint(0, 9))
+    return f"{base}-{check_digit}"
+
+
+def generate_fake_document_number(digits: int = 7) -> str:
+    return str(faker.random_number(digits=digits, fix_len=True))
+
+
+def generate_fake_establishment_number() -> str:
+    return str(faker.random_number(digits=3, fix_len=True)).zfill(3)
+
+
+def generate_fake_point_of_sale() -> str:
+    return str(faker.random_number(digits=3, fix_len=True)).zfill(3)
+
+
+def generate_fake_document_series() -> str:
+    return str(faker.random_number(digits=7, fix_len=True))
+
+
+def generate_fake_control_code() -> str:
+    return ''.join(random.choices('0123456789ABCDEF', k=16))
 
 # ================================
 # EXPORT API
 # ================================
+
 
 __all__ = [
     # Clases principales
@@ -1466,5 +1580,21 @@ __all__ = [
     # Constantes
     'DEPARTAMENTOS_PARAGUAY',
     'CIUDADES_PRINCIPALES',
-    'MONEDAS_VALIDAS'
+    'MONEDAS_VALIDAS',
+
+    'generate_fake_email',
+    'generate_fake_url',
+    'generate_fake_phone',
+    'generate_fake_company',
+    'generate_fake_address',
+    'generate_fake_department',
+    'generate_fake_district',
+    'generate_fake_coordinates',
+    'generate_fake_person_name',
+    'generate_fake_ruc',
+    'generate_fake_document_number',
+    'generate_fake_establishment_number',
+    'generate_fake_point_of_sale',
+    'generate_fake_document_series',
+    'generate_fake_control_code'
 ]

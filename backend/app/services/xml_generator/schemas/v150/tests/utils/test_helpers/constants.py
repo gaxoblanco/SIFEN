@@ -30,6 +30,9 @@ Versión: 1.0.0
 Fecha: 2025-06-17
 """
 
+from typing import Dict, Union
+from decimal import Decimal
+from typing import Final, TYPE_CHECKING
 from typing import Dict, List, Any, Pattern, Optional
 import re
 from enum import Enum
@@ -1204,6 +1207,45 @@ if _validation_errors:
     import warnings
     warnings.warn(f"Errores en constantes SIFEN: {_validation_errors}")
 
+# Document Types
+
+DOCUMENT_TYPE_INVOICE: str = "1"
+DOCUMENT_TYPE_CREDIT_NOTE: str = "2"
+DOCUMENT_TYPE_DEBIT_NOTE: str = "3"
+DOCUMENT_TYPE_REMISSION: str = "4"
+DOCUMENT_TYPE_SELF_INVOICE: str = "5"
+
+# Tax Types
+TAX_TYPE_IVA: str = "1"
+TAX_TYPE_ISC: str = "2"
+TAX_TYPE_RENTA: str = "3"
+
+# Common test values
+DEFAULT_STRING_LENGTH: int = 100
+MAX_DECIMAL_PLACES: int = 8
+DEFAULT_CURRENCY: str = "PYG"
+
+# Testing boundaries
+AMOUNT_LIMITS: Dict[str, Union[int, float]] = {
+    "min": 0,
+    "max": 999999999999.99999999,
+    "decimal_places": 8
+}
+
+STRING_LIMITS: Dict[str, int] = {
+    "min_length": 1,
+    "max_length": 100
+}
+
+DATE_LIMITS: Dict[str, int] = {
+    "min_year": 2000,
+    "max_year": 2100
+}
+
+# Document number formats
+ESTABLISHMENT_LENGTH: int = 3
+POINT_OF_SALE_LENGTH: int = 3
+DOCUMENT_NUMBER_LENGTH: int = 7
 
 # ================================
 # METADATA DEL MÓDULO
