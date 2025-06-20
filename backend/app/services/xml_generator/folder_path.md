@@ -22,66 +22,20 @@ backend/app/services/xml_generator/
 │       └── mock_validators.py
 └── schemas/
     └── v150/                        # 🆕 Schemas modulares organizados
-        ├── tests/                   # 🆕 Tests específicos de schemas
-        │   ├── test_schema_modules.py     # Tests modulares principales
-        │   ├── test_basic_types.py        # Tests de tipos básicos
-        │   ├── test_geographic_types.py   # Tests de tipos geográficos
-        │   ├── test_contact_types.py      # Tests de tipos de contacto
-        │   ├── test_currency_types.py     # Tests de tipos monetarios
-        │   ├── test_operation_data.py     # Tests de datos de operación
-        │   ├── test_stamping_data.py      # Tests de timbrado
-        │   ├── test_issuer_types.py       # Tests de tipos de emisor
-        │   ├── test_receiver_types.py     # Tests de tipos de receptor
-        │   ├── test_payment_methods.py    # Tests de métodos de pago
-        │   ├── test_items.py              # Tests de items
-        │   ├── test_transport.py          # Tests de transporte
-        │   ├── test_schema_integration.py # Tests de integración schemas
-        │   ├── fixtures/               # Fixtures específicos de schemas
-        │   │   ├── xml_samples/        # XMLs de muestra para validar
-        │   │   │   ├── factura_valida.xml
-        │   │   │   ├── autofactura_valida.xml
-        │   │   │   ├── nota_credito_valida.xml
-        │   │   │   └── casos_edge.xml
-        │   │   └── invalid_samples/    # XMLs inválidos para tests negativos
-        │   │       ├── missing_fields.xml
-        │   │       ├── invalid_formats.xml
-        │   │       └── wrong_types.xml
-        │   └── utils/                  # Utilidades para testing de schemas
-        │       ├── schema_validator.py # Validador específico para tests
-        │       ├── xml_generator/
-        │       │   ├── __init__.py                    # API principal (facade)
-        │       │   ├── base_generator.py              # SOLO funcionalidad común
-        │       │   ├── validators.py                  # Validación básica
-        │       │   │   ├── __init__.py                    # 🔌 API principal consolidada
-        │       │   │   ├── core_validator.py              # 🏗️ Validador principal contra XSD
-        │       │   │   ├── structure_validator.py         # 📐 Validación estructura básica XML
-        │       │   │   ├── format_validator.py            # 🎯 Validación formatos SIFEN específicos
-        │       │   │   ├── error_handler.py               # 🚨 Manejo y formateo de errores
-        │       │   │   └── constants.py                   # 📊 Constantes y patrones SIFEN
-        │       │   ├── sample_data/                    # 📂 Módulo de datos de muestra
-        │       │   │   ├── __init__.py                # Exportaciones principales
-        │       │   │   ├── empresas_data.py           # 🏢 Datos de empresas paraguayas
-        │       │   │   ├── clientes_data.py           # 👥 Datos de clientes típicos
-        │       │   │   ├── productos_data.py          # 📦 Catálogo de productos/servicios
-        │       │   │   ├── ubicaciones_data.py        # 📍 Ciudades y direcciones Paraguay
-        │       │   │   ├── escenarios_testing.py      # 🎭 Escenarios predefinidos
-        │       │   │   ├── validadores_data.py        # ✅ RUCs, teléfonos válidos
-        │       │   │   └── sample_data_api.py         # 🔌 API principal (SampleData class)
-        │       │   └── document_types_generator.py    # Los 5 tipos específicos
-        │       │           ├── Factura Electrónica (FE) - Tipo "01"
-        │       │           ├── Autofactura Electrónica (AFE) - Tipo "04"
-        │       │           ├── Nota de Crédito (NCE) - Tipo "05"
-        │       │           ├── Nota de Débito (NDE) - Tipo "06"
-        │       │           └── Nota de Remisión (NRE) - Tipo "07"
-        │       └── test_helpers/     # Helpers para tests
-        │           ├── __init__.py                 # 🔌 API principal (facade)
-        │           ├── xml_helpers.py              # 1️⃣ Utilidades XML
-        │           ├── data_factory.py             # 2️⃣ Generador de datos SIFEN
-        │           ├── schema_helpers.py           # 3️⃣ Helpers específicos de schemas
-        │           ├── performance_helpers.py      # 4️⃣ Medición de performance pending
-        │           ├── assertion_helpers.py        # 5️⃣ Assertions customizadas pending
-        │           ├── constants.py                # 📊 Constantes compartidas
-        │           └── README.md                   # 📚 Documentación del módulo
+│   │   └──/tests/
+│   │   │   ├── utils/                     # 🟢 MANTENER TODO - ya implementado
+│   │   │   │   ├── schema_validator.py
+│   │   │   │   ├── xml_generator/         # API facade completa
+│   │   │   │   └── test_helpers/          # Helpers especializados
+│   │   │   │
+│   │   │   ├── test_schemas_core.py       # 🆕 NUEVO - consolidación
+│   │   │   ├── test_schemas_business.py   # 🆕 NUEVO 
+│   │   │   ├── test_schemas_geographic.py # 🆕 NUEVO
+│   │   │   ├── test_schemas_currency.py   # 🆕 NUEVO
+│   │   │   ├── conftest.py               # 🆕 NUEVO - setup compartido
+│   │   │   │
+│   │   │   └── common/                   # 🔴 BORRAR - solo archivos de test
+│   │   │       └── test_basic_types.py   # 🔴 MIGRAR a test_schemas_core.py
         ├── DE_v150.xsd                # Schema principal
         ├── common/                    # Tipos básicos
         ├── document_core/             # Estructura núcleo

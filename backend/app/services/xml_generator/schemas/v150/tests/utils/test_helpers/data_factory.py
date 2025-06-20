@@ -62,7 +62,7 @@ from faker.providers import BaseProvider
 
 logger = logging.getLogger(__name__)
 # faker = Faker('es_PY')  # Locale Paraguay para datos realistas
-faker = Faker(['es_ES', 'es'])  # Using Spanish locale as fallback
+faker = Faker('es_ES')  # Using Spanish locale as fallback
 
 
 # ================================
@@ -324,12 +324,18 @@ class SifenProvider(BaseProvider):
 
 
 # Registrar provider personalizado
-faker.add_provider(SifenProvider)
-
+# ✅ POR ESTO:
+try:
+    faker.add_provider(SifenProvider)
+    logger.info("SifenProvider registrado exitosamente")
+except Exception as e:
+    logger.error(f"Error registrando SifenProvider: {e}")
+    # Continuar sin provider personalizado
 
 # ================================
 # CLASE PRINCIPAL: SifenDataFactory
 # ================================
+
 
 class SifenDataFactory:
     """
