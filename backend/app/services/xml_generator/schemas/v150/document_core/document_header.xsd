@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_core/document_header.xsd
+  Propósito: Definición de la cabecera y metadatos del documento electrónico SIFEN v150
+  
+  Este módulo define:
+  - Campos de identificación del formato XML (Grupo AA: AA001-AA009)
+  - Metadatos del documento electrónico
+  - Versión del formato
+  - Información de control y seguridad
+  
+  Campos principales:
+  - AA001 dVerFor: Versión del formato (valor fijo "150")
+  - Códigos de seguridad y control
+  - Información de procesamiento
+  
+  Dependencias:
+  - common/basic_types.xsd (para tipos básicos)
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-20
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+    
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd"/>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO AA: CAMPOS DE IDENTIFICACIÓN DEL FORMATO XML (AA001-AA009)  -->
+    <!-- ================================================================== -->
+    
+    <!-- AA001: Versión del formato del documento -->
+    <xs:element name="dVerFor" type="tipoVersionFormato">
+        <xs:annotation>
+            <xs:documentation>
+                AA001 - dVerFor: Versión del formato del documento electrónico.
+                
+                Valor fijo: "150" para esta versión del esquema SIFEN.
+                
+                Este campo identifica la versión específica del formato XML
+                utilizado para estructurar el documento electrónico.
+                Es fundamental para que el sistema receptor (SIFEN) pueda
+                interpretar correctamente la estructura del documento.
+                
+                Tipo: Numérico
+                Longitud: 3 caracteres exactos
+                Valor: 150 (fijo)
+                Ocurrencia: 1-1 (obligatorio, una sola vez)
+                
+                Ejemplo: 150
+            </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ================================================================== -->
+    <!-- TIPOS PARA CABECERA DEL DOCUMENTO                                 -->
+    <!-- ================================================================== -->
+    
+    <!-- Tipo para versión del formato -->
+    <xs:simpleType name="tipoVersionFormato">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo que define la versión del formato del documento electrónico.
+                
+                Para la versión actual del esquema SIFEN, el valor debe ser
+                exactamente "150", indicando que se trata de la versión 1.5.0
+                del formato de documentos electrónicos del SET.
+                
+                Restricciones:
+                - Valor fijo: "150"
+                - No se permiten otros valores
+                - Campo obligatorio en todos los documentos
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="150">
+                <xs:annotation>
+                    <xs:documentation>Versión 1.5.0 del formato SIFEN (septiembre 2019)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:pattern value="150"/>
+            <xs:length value="3"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO DE METADATOS DEL DOCUMENTO                                  -->
+    <!-- ================================================================== -->
+    
+    <xs:complexType name="tipoGrupoMetadatosDocumento">
+        <xs:annotation>
+            <xs:documentation>
+                Grupo que contiene todos los metadatos del documento electrónico.
+                
+                Este grupo incluye información que identifica y caracteriza
+                el documento, pero que no forma parte del contenido comercial
+                propiamente dicho.
+                
+                Incluye:
+                - Versión del formato
+                - Códigos de control y seguridad
+                - Información de procesamiento
+                - Metadatos técnicos
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:sequence>
+            
+            <!-- Versión del formato (obligatorio) -->
+            <xs:element name="dVerFor" type="tipoVersionFormato">
+                <xs:annotation>
+                    <xs:documentation>
+                        Versión del formato del documento electrónico.
+                        Campo obligatorio que debe estar presente en todos los documentos.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Información adicional de metadatos (reservado para futuras versiones) -->
+            <xs:element name="gMetadatosAdicionales" type="tipoMetadatosAdicionales" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Grupo opcional para metadatos adicionales.
+                        Reservado para futuras versiones del esquema que puedan
+                        requerir información adicional de metadatos.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- TIPO PARA METADATOS ADICIONALES (FUTURAS EXTENSIONES)            -->
+    <!-- ================================================================== -->
+    
+    <xs:complexType name="tipoMetadatosAdicionales">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo para metadatos adicionales del documento.
+                
+                Este tipo está definido para permitir futuras extensiones
+                del esquema sin romper la compatibilidad con documentos existentes.
+                
+                Actualmente no contiene elementos específicos, pero puede
+                ser extendido en futuras versiones del esquema para incluir
+                nuevos metadatos requeridos por el sistema SIFEN.
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:sequence>
+            <!-- Reservado para futuras extensiones -->
+            <xs:any namespace="##any" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <!-- Atributos para metadatos adicionales -->
+        <xs:anyAttribute namespace="##any" processContents="lax"/>
+        
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- ELEMENTOS UTILITARIOS PARA CABECERA                               -->
+    <!-- ================================================================== -->
+    
+    <!-- Elemento raíz para validación independiente de la cabecera -->
+    <xs:element name="cabeceraDocumento" type="tipoGrupoMetadatosDocumento">
+        <xs:annotation>
+            <xs:documentation>
+                Elemento raíz para validar independientemente los metadatos de cabecera.
+                
+                Este elemento puede utilizarse para validar únicamente la cabecera
+                del documento sin necesidad de validar todo el documento completo.
+                
+                Útil para:
+                - Validación previa de metadatos
+                - Tests unitarios de cabecera
+                - Verificación de versión del formato
+            </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ================================================================== -->
+    <!-- GRUPOS DE VALIDACIÓN                                              -->
+    <!-- ================================================================== -->
+    
+    <!-- Grupo para validar elementos obligatorios de cabecera -->
+    <xs:group name="grupoElementosObligatoriosCabecera">
+        <xs:annotation>
+            <xs:documentation>
+                Grupo que define los elementos obligatorios que deben estar
+                presentes en la cabecera de cualquier documento electrónico SIFEN.
+                
+                Este grupo puede ser referenciado por otros schemas para
+                asegurar consistencia en la validación de cabeceras.
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:sequence>
+            <xs:element ref="dVerFor"/>
+        </xs:sequence>
+    </xs:group>
+
+    <!-- ================================================================== -->
+    <!-- CONSTRAINST Y VALIDACIONES                                        -->
+    <!-- ================================================================== -->
+    
+    <!-- Assertion para validar consistencia de metadatos -->
+    <xs:complexType name="tipoValidacionCabecera">
+        <xs:annotation>
+            <xs:documentation>
+                Tipo que incluye validaciones adicionales para la cabecera del documento.
+                
+                Este tipo puede ser usado para aplicar validaciones complejas
+                que van más allá de las restricciones básicas de esquema.
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:complexContent>
+            <xs:extension base="tipoGrupoMetadatosDocumento">
+                
+                <!-- Futuras validaciones mediante assertions pueden agregarse aquí -->
+                
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+</xs:schema>

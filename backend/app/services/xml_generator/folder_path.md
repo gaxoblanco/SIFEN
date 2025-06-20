@@ -30,14 +30,14 @@ backend/app/services/xml_generator/
 │   │   │   │
 │   │   │   ├── conftest.py                 # Configuración compartida (si tiene ✅ usa conftest)
 │   │   │   ├── test_schemas_basic.py       # ✅ Tipos básicos
-│   │   │   ├── test_schemas_contact.py     # Tipos de contacto  
-│   │   │   ├── test_schemas_geographic.py  # Tipos geográficos
-│   │   │   ├── test_schemas_core.py        # Schema principal
+│   │   │   ├── test_schemas_contact.py     # 🟢 Tipos de contacto  
+│   │   │   ├── test_schemas_geographic.py  # 🟢 Tipos geográficos
+│   │   │   ├── test_schemas_core.py        # 🟢 Schema principal
 │   │   │   ├── test_schemas_business.py    # Lógica de negocio
 │   │   │   └── test_schemas_currency.py    # Tipos monetarios
 │   │   │
-        ├── DE_v150.xsd                # Schema principal
-        ├── common/                    # Tipos básicos
+        ├── DE_v150.xsd                # 🟢 Schema principal
+        ├── common/                    # 🟢 Tipos básicos
         ├── document_core/             # Estructura núcleo
         ├── parties/                   # Emisores y receptores
         ├── document_types/            # Tipos específicos

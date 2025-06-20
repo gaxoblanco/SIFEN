@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_core/operation_data.xsd
+  Propósito: Definición de datos de operación del documento electrónico SIFEN v150
+  
+  Este módulo define:
+  - Grupo B001-B099: Campos inherentes a la operación del documento electrónico
+  - Datos específicos de la operación de emisión del DE
+  - Información sobre el tipo de documento, fecha, condiciones
+  - Datos generales de la operación comercial
+  
+  Grupos principales:
+  - gOpeDE: Datos de la operación del documento electrónico
+  - gDatGralOpe: Datos generales de la operación comercial
+  
+  Dependencias:
+  - common/basic_types.xsd (para tipos básicos)
+  - common/geographic_types.xsd (para países y lugares)
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-20
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+    
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd"/>
+    <xs:include schemaLocation="../common/geographic_types.xsd"/>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO: DATOS DE LA OPERACIÓN DEL DOCUMENTO ELECTRÓNICO (gOpeDE)   -->
+    <!-- ================================================================== -->
+    
+    <xs:complexType name="tipoGrupoOperacionDocumento">
+        <xs:annotation>
+            <xs:documentation>
+                gOpeDE - Grupo de datos de la operación del documento electrónico.
+                
+                Este grupo contiene información específica sobre la operación
+                de emisión del documento electrónico en sí, diferente de los
+                datos de la operación comercial subyacente.
+                
+                Incluye:
+                - Tipo de documento electrónico (iTiDE)
+                - Fecha y hora de emisión del DE
+                - Condiciones de la operación del DE
+                - Naturaleza de la operación (venta, servicio, etc.)
+                - Tipo de transacción para efectos tributarios
+                
+                Rango de campos: B001-B099
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:sequence>
+            
+            <!-- B001: Tipo de documento electrónico -->
+            <xs:element name="iTiDE" type="tipoDocumentoElectronico">
+                <xs:annotation>
+                    <xs:documentation>
+                        B001 - iTiDE: Tipo de documento electrónico.
+                        
+                        Identifica el tipo específico de documento electrónico:
+                        - 1: Factura Electrónica
+                        - 4: Autofactura Electrónica
+                        - 5: Nota de Crédito Electrónica
+                        - 6: Nota de Débito Electrónica
+                        - 7: Nota de Remisión Electrónica
+                        
+                        Tipo: Numérico
+                        Longitud: 1 dígito
+                        Ocurrencia: 1-1 (obligatorio)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- B002: Descripción del tipo de documento -->
+            <xs:element name="dDesTiDE" type="tipoTextoDescripcion">
+                <xs:annotation>
+                    <xs:documentation>
+                        B002 - dDesTiDE: Descripción del tipo de documento electrónico.
+                        
+                        Descripción textual del tipo de documento según iTiDE:
+                        - "Factura Electrónica" (iTiDE=1)
+                        - "Autofactura Electrónica" (iTiDE=4)
+                        - "Nota de Crédito Electrónica" (iTiDE=5)
+                        - "Nota de Débito Electrónica" (iTiDE=6)
+                        - "Nota de Remisión Electrónica" (iTiDE=7)
+                        
+                        Tipo: Alfanumérico
+                        Longitud: 8-26 caracteres
+                        Ocurrencia: 1-1 (obligatorio)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- B003: Código de documento superior -->
+            <xs:element name="dCodSeg" type="tipoCodigoSeguridad" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        B003 - dCodSeg: Código de seguridad del documento.
+                        
+                        Código numérico de seguridad asignado por el sistema
+                        para validar la integridad del documento.
+                        
+                        Tipo: Numérico
+                        Longitud: 1-9 dígitos
+                        Ocurrencia: 0-1 (opcional)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- B004: Fecha de emisión del documento electrónico -->
+            <xs:element name="dFeEmiDE" type="tipoFecha">
+                <xs:annotation>
+                    <xs:documentation>
+                        B004 - dFeEmiDE: Fecha de emisión del documento electrónico.
+                        
+                        Fecha en que se emite el documento electrónico.
+                        Puede ser diferente de la fecha de la operación comercial.
+                        
+                        Formato: AAAA-MM-DD
+                        Tipo: Fecha
+                        Ocurrencia: 1-1 (obligatorio)
+                        
+                        Ejemplo: 2024-12-25
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- B005: Hora de emisión del documento electrónico -->
+            <xs:element name="dHorEmi" type="tipoHora" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        B005 - dHorEmi: Hora de emisión del documento electrónico.
+                        
+                        Hora en que se emite el documento electrónico.
+                        
+                        Formato: HH:MM:SS
+                        Tipo: Hora
+                        Ocurrencia: 0-1 (opcional)
+                        
+                        Ejemplo: 14:30:25
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO: DATOS GENERALES DE LA OPERACIÓN (gDatGralOpe)             -->
+    <!-- ================================================================== -->
+    
+    <xs:complexType name="tipoGrupoDatosGeneralesOperacion">
+        <xs:annotation>
+            <xs:documentation>
+                gDatGralOpe - Grupo de datos generales de la operación comercial.
+                
+                Este grupo contiene información sobre la operación comercial
+                subyacente, diferente de los datos técnicos del documento electrónico.
+                
+                Incluye:
+                - Fecha de la operación comercial
+                - Lugar donde se realiza la operación
+                - Condiciones comerciales
+                - Naturaleza de la transacción
+                - Moneda de la operación
+                
+                Diferencia con gOpeDE:
+                - gOpeDE: Datos técnicos del documento electrónico
+                - gDatGralOpe: Datos comerciales de la operación
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:sequence>
+            
+            <!-- Fecha de la operación comercial -->
+            <xs:element name="dFeEmiOpe" type="tipoFecha">
+                <xs:annotation>
+                    <xs:documentation>
+                        Fecha de la operación comercial.
+                        
+                        Fecha en que efectivamente se realiza la operación comercial
+                        (venta, prestación de servicio, etc.). Puede ser diferente
+                        de la fecha de emisión del documento electrónico.
+                        
+                        Formato: AAAA-MM-DD
+                        Ejemplo: 2024-12-24 (operación navideña emitida el 25/12)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Lugar de la operación -->
+            <xs:element name="gOpeCom" type="tipoGrupoOperacionComercial" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Grupo de datos específicos de la operación comercial.
+                        Incluye lugar, condiciones y naturaleza de la operación.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Condiciones de la operación -->
+            <xs:element name="gCondOpe" type="tipoGrupoCondicionesOperacion" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Grupo de condiciones de la operación.
+                        Incluye tipo de operación, presencia del comprador, etc.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO: OPERACIÓN COMERCIAL                                        -->
+    <!-- ================================================================== -->
+    
+    <xs:complexType name="tipoGrupoOperacionComercial">
+        <xs:annotation>
+            <xs:documentation>
+                gOpeCom - Grupo de datos de la operación comercial.
+                
+                Contiene información específica sobre las características
+                comerciales de la operación realizada.
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:sequence>
+            
+            <!-- Naturaleza de la operación -->
+            <xs:element name="iTipOpe" type="tipoNaturalezaOperacion">
+                <xs:annotation>
+                    <xs:documentation>
+                        Tipo/naturaleza de la operación:
+                        - 1: Venta de mercaderías
+                        - 2: Prestación de servicios  
+                        - 3: Mixta (mercaderías + servicios)
+                        - 4: Operaciones no gravadas
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Descripción de la naturaleza -->
+            <xs:element name="dDesTipOpe" type="tipoTextoDescripcion">
+                <xs:annotation>
+                    <xs:documentation>
+                        Descripción de la naturaleza de la operación según iTipOpe.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- País de la operación -->
+            <xs:element name="cPaisOpe" type="tipoCodigoPais" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        País donde se realiza la operación (código ISO 3166-1 alpha-3).
+                        Por defecto "PRY" para Paraguay.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Descripción del país -->
+            <xs:element name="dDesPaisOpe" type="tipoNombrePais" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Nombre del país donde se realiza la operación.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO: CONDICIONES DE LA OPERACIÓN                                -->
+    <!-- ================================================================== -->
+    
+    <xs:complexType name="tipoGrupoCondicionesOperacion">
+        <xs:annotation>
+            <xs:documentation>
+                gCondOpe - Grupo de condiciones de la operación.
+                
+                Define las condiciones bajo las cuales se realiza la operación
+                comercial, incluyendo aspectos tributarios y operativos.
+            </xs:documentation>
+        </xs:annotation>
+        
+        <xs:sequence>
+            
+            <!-- Presencia del comprador -->
+            <xs:element name="iPresComprador" type="tipoPresenciaComprador">
+                <xs:annotation>
+                    <xs:documentation>
+                        Indica la presencia del comprador en la operación:
+                        - 1: Operación presencial
+                        - 2: Operación electrónica/remota
+                        - 3: Operación telefónica
+                        - 4: Operación por correspondencia
+                        - 9: Otros
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Descripción presencia comprador -->
+            <xs:element name="dDesPresComprador" type="tipoTextoDescripcion">
+                <xs:annotation>
+                    <xs:documentation>
+                        Descripción de la modalidad de presencia del comprador.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Forma de pago -->
+            <xs:element name="iTipPago" type="tipoFormaPago" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Forma de pago de la operación:
+                        - 1: Contado
+                        - 2: Crédito
+                        - 3: Mixto (contado + crédito)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Descripción forma de pago -->
+            <xs:element name="dDesTipPago" type="tipoTextoDescripcion" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Descripción de la forma de pago según iTipPago.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Tipo de transacción -->
+            <xs:element name="iTipoTrans" type="tipoTransaccion" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Tipo de transacción para efectos tributarios:
+                        - 1: Venta
+                        - 2: Transferencia
+                        - 3: Consignación
+                        - 4: Otros
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Descripción tipo transacción -->
+            <xs:element name="dDesTipoTrans" type="tipoTextoDescripcion" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Descripción del tipo de transacción según iTipoTrans.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- TIPOS SIMPLES PARA OPERACIONES                                    -->
+    <!-- ================================================================== -->
+    
+    <!-- Tipo de documento electrónico -->
+    <xs:simpleType name="tipoDocumentoElectronico">
+        <xs:annotation>
+            <xs:documentation>
+                Enumeración de tipos de documentos electrónicos válidos en SIFEN v150.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation><xs:documentation>Factura Electrónica</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation><xs:documentation>Autofactura Electrónica</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation><xs:documentation>Nota de Crédito Electrónica</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="6">
+                <xs:annotation><xs:documentation>Nota de Débito Electrónica</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="7">
+                <xs:annotation><xs:documentation>Nota de Remisión Electrónica</xs:documentation></xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Naturaleza de la operación -->
+    <xs:simpleType name="tipoNaturalezaOperacion">
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation><xs:documentation>Venta de mercaderías</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation><xs:documentation>Prestación de servicios</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation><xs:documentation>Mixta (mercaderías + servicios)</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation><xs:documentation>Operaciones no gravadas</xs:documentation></xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Presencia del comprador -->
+    <xs:simpleType name="tipoPresenciaComprador">
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation><xs:documentation>Operación presencial</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation><xs:documentation>Operación electrónica/remota</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation><xs:documentation>Operación telefónica</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation><xs:documentation>Operación por correspondencia</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="9">
+                <xs:annotation><xs:documentation>Otros</xs:documentation></xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Forma de pago -->
+    <xs:simpleType name="tipoFormaPago">
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation><xs:documentation>Contado</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation><xs:documentation>Crédito</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation><xs:documentation>Mixto (contado + crédito)</xs:documentation></xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Tipo de transacción -->
+    <xs:simpleType name="tipoTransaccion">
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation><xs:documentation>Venta</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation><xs:documentation>Transferencia</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation><xs:documentation>Consignación</xs:documentation></xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation><xs:documentation>Otros</xs:documentation></xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>
