@@ -43,11 +43,6 @@ from app.services.xml_generator.schemas.v150.tests.utils.xml_generator import (
     quick_receptor,
 )
 
-from app.services.xml_generator.schemas.v150.tests.utils.test_helpers.constants import (
-    SIFEN_NAMESPACE_URI,
-    BASIC_FIELD_PATTERNS,
-    VALIDATION_ERROR_MESSAGES
-)
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
@@ -56,61 +51,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # CONFIGURACIÓN Y DATOS DE TEST
 # ============================================================================
-
-# Datos de prueba consolidados (tu plan original + más casos)
-BASIC_TYPES_TEST_DATA = {
-    "version_valida": "150",
-    "versiones_invalidas": ["140", "149", "151", "1.5.0", "V150"],
-
-    "ruc_validos": ["12345678", "80012345", "87654321", "123456789"],
-    "ruc_invalidos": ["1234567", "12345678901", "ABCDEFGH", ""],
-
-    "cdc_validos": [
-        "01234567890123456789012345678901234567890123",  # 44 dígitos
-        "80012345912345678901234567890123456789012345"     # Otro válido
-    ],
-    "cdc_invalidos": [
-        "0123456789012345678901234567890123456789012",   # 43 dígitos
-        "012345678901234567890123456789012345678901234",  # 45 dígitos
-        "01234567890123456789012345678901234567890X23"   # Con letra
-    ],
-
-    "texto_valido": "Texto de prueba válido",
-    "textos_invalidos": ["", "   ", "\t\n"]
-}
-
-# ============================================================================
-# FIXTURES GLOBALES REUTILIZABLES
-# ============================================================================
-
-
-@pytest.fixture(scope="class")
-def schema_validator():
-    """Fixture que proporciona SchemaValidator para basic_types.xsd"""
-    schema_path = Path(__file__).parent.parent / "common" / "basic_types.xsd"
-    if not schema_path.exists():
-        pytest.skip(f"Schema not found: {schema_path}")
-
-    logger.info(f"Inicializando SchemaValidator para: {schema_path}")
-    return SchemaValidator(str(schema_path))
-
-
-@pytest.fixture(scope="class")
-def sifen_validator():
-    """Fixture que proporciona SifenValidator unificado"""
-    return SifenValidator()
-
-
-@pytest.fixture(scope="class")
-def sample_data():
-    """Fixture que proporciona SampleData para datos de prueba"""
-    return SampleData()
-
-
-@pytest.fixture
-def test_data():
-    """Fixture con datos de prueba para basic_types"""
-    return BASIC_TYPES_TEST_DATA.copy()
 
 # ============================================================================
 # CLASE 1: TESTS DE TIPOS BÁSICOS FUNDAMENTALES
@@ -129,55 +69,50 @@ class TestBasicTypes:
     - Validaciones de patrones fundamentales
     """
 
-    def test_version_format_valid(self, schema_validator, test_data):
+    def test_version_format_valid(self, basic_types_validator, common_test_data, sifen_namespace):
         """Test validación de versión del formato (tu test original mejorado)"""
         # Usar el namespace correcto y SchemaValidator existente
-        xml_fragment = f'<dVerFor xmlns="{SIFEN_NAMESPACE_URI}">{test_data["version_valida"]}</dVerFor>'
+        xml_fragment = f'<dVerFor xmlns="{sifen_namespace}">{common_test_data["version_valida"]}</dVerFor>'
 
-        result = schema_validator.validate_xml(xml_fragment)
+        result = basic_types_validator.validate_xml(xml_fragment)
 
         assert result.is_valid, f"Versión válida debe pasar: {result.errors}"
         logger.info("✅ test_version_format_valid - PASSED")
 
-    def test_version_format_invalid(self, schema_validator, test_data):
+    def test_version_format_invalid(self, basic_types_validator, common_test_data, sifen_namespace):
         """Test validación con versión inválida (tu test original mejorado)"""
-        for version_invalida in test_data["versiones_invalidas"]:
-            xml_fragment = f'<dVerFor xmlns="{SIFEN_NAMESPACE_URI}">{version_invalida}</dVerFor>'
-
-            result = schema_validator.validate_xml(xml_fragment)
+        for version_invalida in common_test_data["versiones_invalidas"]:
+            xml_fragment = f'<dVerFor xmlns="{sifen_namespace}">{version_invalida}</dVerFor>'
+            result = basic_types_validator.validate_xml(xml_fragment)
 
             assert not result.is_valid, f"Versión inválida {version_invalida} debería fallar"
 
         logger.info("✅ test_version_format_invalid - PASSED")
 
-    def test_ruc_number_valid(self, schema_validator, test_data):
+    def test_ruc_number_valid(self, basic_types_validator, common_test_data, sifen_namespace):
         """Test validación de número RUC válido (tu test original mejorado)"""
-        for ruc_valido in test_data["ruc_validos"]:
-            xml_fragment = f'<dRUCEmi xmlns="{SIFEN_NAMESPACE_URI}">{ruc_valido}</dRUCEmi>'
+        for ruc_valido in common_test_data["ruc_validos"]:
+            xml_fragment = f'<dRUCEmi xmlns="{sifen_namespace}">{ruc_valido}</dRUCEmi>'
 
-            result = schema_validator.validate_xml(xml_fragment)
+            result = basic_types_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"RUC válido {ruc_valido} debe pasar: {result.errors}"
 
         logger.info("✅ test_ruc_number_valid - PASSED")
 
-    def test_ruc_number_invalid(self, schema_validator, test_data):
-        """Test validación de números RUC inválidos"""
-        for ruc_invalido in test_data["ruc_invalidos"]:
-            xml_fragment = f'<dRUCEmi xmlns="{SIFEN_NAMESPACE_URI}">{ruc_invalido}</dRUCEmi>'
-
-            result = schema_validator.validate_xml(xml_fragment)
+    def test_ruc_number_invalid(self, basic_types_validator, common_test_data, sifen_namespace):
+        for ruc_invalido in common_test_data["ruc_invalidos"]:
+            xml_fragment = f'<dRUCEmi xmlns="{sifen_namespace}">{ruc_invalido}</dRUCEmi>'
+            result = basic_types_validator.validate_xml(xml_fragment)
 
             assert not result.is_valid, f"RUC inválido {ruc_invalido} debería fallar"
 
         logger.info("✅ test_ruc_number_invalid - PASSED")
 
-    def test_cdc_format_valid(self, schema_validator, test_data):
-        """Test formato CDC válido (44 dígitos)"""
-        for cdc_valido in test_data["cdc_validos"]:
-            xml_fragment = f'<dCDC xmlns="{SIFEN_NAMESPACE_URI}">{cdc_valido}</dCDC>'
-
-            result = schema_validator.validate_xml(xml_fragment)
+    def test_cdc_format_valid(self, basic_types_validator, common_test_data, sifen_namespace):
+        for cdc_valido in common_test_data["cdc_validos"]:
+            xml_fragment = f'<dCDC xmlns="{sifen_namespace}">{cdc_valido}</dCDC>'
+            result = basic_types_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"CDC válido {cdc_valido} debe pasar: {result.errors}"
             assert len(
@@ -185,36 +120,32 @@ class TestBasicTypes:
 
         logger.info("✅ test_cdc_format_valid - PASSED")
 
-    def test_cdc_format_invalid(self, schema_validator, test_data):
-        """Test formato CDC inválido"""
-        for cdc_invalido in test_data["cdc_invalidos"]:
-            xml_fragment = f'<dCDC xmlns="{SIFEN_NAMESPACE_URI}">{cdc_invalido}</dCDC>'
-
-            result = schema_validator.validate_xml(xml_fragment)
+    def test_cdc_format_invalid(self, basic_types_validator, common_test_data, sifen_namespace):
+        for cdc_invalido in common_test_data["cdc_invalidos"]:
+            xml_fragment = f'<dCDC xmlns="{sifen_namespace}">{cdc_invalido}</dCDC>'
+            result = basic_types_validator.validate_xml(xml_fragment)
 
             assert not result.is_valid, f"CDC inválido {cdc_invalido} debería fallar"
 
         logger.info("✅ test_cdc_format_invalid - PASSED")
 
-    def test_codigo_seguridad_format(self, schema_validator):
+    def test_codigo_seguridad_format(self, basic_types_validator, common_test_data, sifen_namespace):
         """Test formato código de seguridad (tu test original mejorado)"""
         # Códigos de seguridad típicos (9 dígitos)
         codigos_validos = ["123456789", "987654321", "555666777"]
 
         for codigo in codigos_validos:
-            xml_fragment = f'<dCodSeg xmlns="{SIFEN_NAMESPACE_URI}">{codigo}</dCodSeg>'
+            xml_fragment = f'<dCodSeg xmlns="{sifen_namespace}">{codigo}</dCodSeg>'
 
-            result = schema_validator.validate_xml(xml_fragment)
+            result = basic_types_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"Código seguridad {codigo} debe ser válido: {result.errors}"
 
         logger.info("✅ test_codigo_seguridad_format - PASSED")
 
-    def test_texto_basico_validacion(self, schema_validator, test_data):
-        """Test validación de tipos de texto básicos"""
-        xml_fragment = f'<dTexto xmlns="{SIFEN_NAMESPACE_URI}">{test_data["texto_valido"]}</dTexto>'
-
-        result = schema_validator.validate_xml(xml_fragment)
+    def test_texto_basico_validacion(self, basic_types_validator, common_test_data, sifen_namespace):
+        xml_fragment = f'<dTexto xmlns="{sifen_namespace}">{common_test_data["texto_valido"]}</dTexto>'
+        result = basic_types_validator.validate_xml(xml_fragment)
 
         assert result.is_valid, f"Texto válido debe pasar: {result.errors}"
         logger.info("✅ test_texto_basico_validacion - PASSED")
@@ -230,23 +161,23 @@ class TestSchemaValidation:
     y contiene todos los tipos esperados.
     """
 
-    def test_schema_loads_correctly(self, schema_validator):
+    def test_schema_loads_correctly(self, basic_types_validator):
         """Test que el schema se carga correctamente"""
         # Si llegamos hasta aquí, el schema se cargó bien en el fixture
-        assert schema_validator is not None
+        assert basic_types_validator is not None
         logger.info("✅ test_schema_loads_correctly - PASSED")
 
-    def test_schema_namespace_correct(self, schema_validator):
+    def test_schema_namespace_correct(self, basic_types_validator, sifen_namespace):
         """Test que el schema tiene el namespace correcto"""
         # Validar un elemento simple para verificar namespace
-        xml_fragment = f'<dVerFor xmlns="{SIFEN_NAMESPACE_URI}">150</dVerFor>'
+        xml_fragment = f'<dVerFor xmlns="{sifen_namespace}">150</dVerFor>'
 
-        result = schema_validator.validate_xml(xml_fragment)
+        result = basic_types_validator.validate_xml(xml_fragment)
 
         assert result.is_valid, f"Namespace debe ser válido: {result.errors}"
         logger.info("✅ test_schema_namespace_correct - PASSED")
 
-    def test_basic_types_all_present(self, schema_validator):
+    def test_basic_types_all_present(self, basic_types_validator, sifen_namespace):
         """Test que todos los tipos básicos esperados están presentes"""
         # Lista de elementos básicos que deben validar
         elementos_basicos = [
@@ -256,9 +187,9 @@ class TestSchemaValidation:
         ]
 
         for elemento, valor in elementos_basicos:
-            xml_fragment = f'<{elemento} xmlns="{SIFEN_NAMESPACE_URI}">{valor}</{elemento}>'
+            xml_fragment = f'<{elemento} xmlns="{sifen_namespace}">{valor}</{elemento}>'
 
-            result = schema_validator.validate_xml(xml_fragment)
+            result = basic_types_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"Elemento básico {elemento} debe estar definido: {result.errors}"
 
@@ -275,11 +206,10 @@ class TestCoreIntegration:
     para verificar que funcionan correctamente en conjunto.
     """
 
-    def test_ruc_en_cdc_consistency(self, sifen_validator, sample_data):
+    def test_ruc_en_cdc_consistency(self, basic_types_validator, common_test_data):
         """Test consistencia entre RUC en emisor y RUC en CDC"""
-        # Usar SampleData para generar datos consistentes
-        emisor_data = sample_data.get_test_emisor("consultora_contable")
-        ruc_emisor = emisor_data.get('ruc', '12345678')
+        # Usar datos del conftest.py
+        ruc_emisor = common_test_data["ruc_validos"][0]  # Primer RUC válido
 
         # Generar CDC que contenga el RUC del emisor
         cdc_con_ruc = f"01{ruc_emisor}1001001000001202401011123456789045"
@@ -290,29 +220,31 @@ class TestCoreIntegration:
 
         logger.info("✅ test_ruc_en_cdc_consistency - PASSED")
 
-    def test_validacion_rapida_integracion(self, test_data):
+    def test_validacion_rapida_integracion(self, common_test_data):
         """Test de validación rápida usando funciones de utils"""
         # Usar las funciones quick_validate ya implementadas
-        for ruc in test_data["ruc_validos"]:
+        for ruc in common_test_data["ruc_validos"]:
             is_valid = quick_validate_ruc(ruc)
             assert is_valid, f"RUC {ruc} debe ser válido"
 
-        for cdc in test_data["cdc_validos"]:
+        for cdc in common_test_data["cdc_validos"]:
             is_valid = quick_validate_cdc(cdc)
             assert is_valid, f"CDC {cdc} debe ser válido"
 
         logger.info("✅ test_validacion_rapida_integracion - PASSED")
 
-    def test_tipos_basicos_en_documento_real(self, schema_validator, sample_data):
+    def test_tipos_basicos_en_documento_real(self, basic_types_validator, common_test_data, sifen_namespace):
         """Test tipos básicos funcionando en estructura de documento real"""
-        # Generar fragmento de documento con tipos básicos
-        emisor = sample_data.get_test_emisor("consultora_contable")
+        # Usar datos del conftest.py
+        emisor_ruc = common_test_data["ruc_validos"][0]
+        version = common_test_data["version_valida"]
+        cdc_valido = common_test_data["cdc_validos"][0]
 
         xml_documento = f'''
-        <gDatGral xmlns="{SIFEN_NAMESPACE_URI}">
-            <dVerFor>150</dVerFor>
-            <dRUCEmi>{emisor.get('ruc', '12345678')}</dRUCEmi>
-            <dCDC>01234567890123456789012345678901234567890123</dCDC>
+        <gDatGral xmlns="{sifen_namespace}">
+            <dVerFor>{version}</dVerFor>
+            <dRUCEmi>{emisor_ruc}</dRUCEmi>
+            <dCDC>{cdc_valido}</dCDC>
         </gDatGral>
         '''
 
@@ -324,11 +256,11 @@ class TestCoreIntegration:
 
             # Verificar que los elementos básicos están presentes
             assert doc.find(
-                f'.//{{{SIFEN_NAMESPACE_URI}}}dVerFor') is not None, "dVerFor debe estar presente"
+                f'.//{{{sifen_namespace}}}dVerFor') is not None, "dVerFor debe estar presente"
             assert doc.find(
-                f'.//{{{SIFEN_NAMESPACE_URI}}}dRUCEmi') is not None, "dRUCEmi debe estar presente"
+                f'.//{{{sifen_namespace}}}dRUCEmi') is not None, "dRUCEmi debe estar presente"
             assert doc.find(
-                f'.//{{{SIFEN_NAMESPACE_URI}}}dCDC') is not None, "dCDC debe estar presente"
+                f'.//{{{sifen_namespace}}}dCDC') is not None, "dCDC debe estar presente"
 
         except etree.XMLSyntaxError as e:
             pytest.fail(f"Error de sintaxis XML: {e}")

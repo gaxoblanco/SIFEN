@@ -28,12 +28,13 @@ backend/app/services/xml_generator/
 │   │   │   │   ├── xml_generator/         # API facade completa
 │   │   │   │   └── test_helpers/          # Helpers especializados
 │   │   │   │
-│   │   │   ├── test_schemas_core.py       # 🆕 NUEVO - consolidación
-│   │   │   ├── test_schemas_business.py   # 🆕 NUEVO 
-│   │   │   ├── test_schemas_geographic.py # ✅ NUEVO
-│   │   │   ├── test_schemas_currency.py   # 🆕 NUEVO
-│   │   │   ├── conftest.py               # 🆕 NUEVO - setup compartido
-│   │   │   └── test_basic_types.py       # ✅ tipos básicos
+│   │   │   ├── conftest.py                 # Configuración compartida (si tiene ✅ usa conftest)
+│   │   │   ├── test_schemas_basic.py       # ✅ Tipos básicos
+│   │   │   ├── test_schemas_contact.py     # Tipos de contacto  
+│   │   │   ├── test_schemas_geographic.py  # Tipos geográficos
+│   │   │   ├── test_schemas_core.py        # Schema principal
+│   │   │   ├── test_schemas_business.py    # Lógica de negocio
+│   │   │   └── test_schemas_currency.py    # Tipos monetarios
 │   │   │
         ├── DE_v150.xsd                # Schema principal
         ├── common/                    # Tipos básicos
