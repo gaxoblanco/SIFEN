@@ -30,12 +30,11 @@ backend/app/services/xml_generator/
 │   │   │   │
 │   │   │   ├── test_schemas_core.py       # 🆕 NUEVO - consolidación
 │   │   │   ├── test_schemas_business.py   # 🆕 NUEVO 
-│   │   │   ├── test_schemas_geographic.py # 🆕 NUEVO
+│   │   │   ├── test_schemas_geographic.py # ✅ NUEVO
 │   │   │   ├── test_schemas_currency.py   # 🆕 NUEVO
 │   │   │   ├── conftest.py               # 🆕 NUEVO - setup compartido
-│   │   │   │
-│   │   │   └── common/                   # 🔴 BORRAR - solo archivos de test
-│   │   │       └── test_basic_types.py   # 🔴 MIGRAR a test_schemas_core.py
+│   │   │   └── test_basic_types.py       # ✅ tipos básicos
+│   │   │
         ├── DE_v150.xsd                # Schema principal
         ├── common/                    # Tipos básicos
         ├── document_core/             # Estructura núcleo

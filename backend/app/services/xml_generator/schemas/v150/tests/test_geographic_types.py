@@ -16,11 +16,17 @@ Cobertura:
 - Casos edge y validaciones negativas
 
 Referencia: Manual Técnico SIFEN v150 - Tablas Geográficas
+
+CORRECCIÓN APLICADA:
+- Ruta del schema corregida de "../.." a ".." 
+- Validación de existencia de archivo antes de cargar
+- Manejo mejorado de errores de carga
 """
 
 import pytest
 from lxml import etree
 import os
+from pathlib import Path
 from typing import Tuple, List
 
 
@@ -30,15 +36,62 @@ class TestGeographicTypes:
     @classmethod
     def setup_class(cls):
         """Configuración inicial de la clase de tests"""
-        # Ruta al schema de tipos geográficos
-        cls.schema_path = os.path.join(os.path.dirname(
-            __file__), "..", "..", "common", "geographic_types.xsd")
+        # CORRECCIÓN: Ruta corregida - desde tests/ a common/ es solo un nivel arriba
+        cls.schema_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",  # CAMBIO: Removido uno de los ".."
+            "common",
+            "geographic_types.xsd"
+        )
 
-        # Cargar schema
+        # Validar que el archivo existe antes de intentar cargarlo
+        if not os.path.exists(cls.schema_path):
+            # Intentar rutas alternativas para debugging
+            alternative_paths = [
+                os.path.join(os.path.dirname(__file__), "..",
+                             "..", "common", "geographic_types.xsd"),
+                os.path.join(os.path.dirname(__file__),
+                             "common", "geographic_types.xsd"),
+                os.path.join(os.path.dirname(__file__),
+                             "..", "geographic_types.xsd"),
+            ]
+
+            existing_path = None
+            for alt_path in alternative_paths:
+                if os.path.exists(alt_path):
+                    existing_path = alt_path
+                    break
+
+            if existing_path:
+                cls.schema_path = existing_path
+                print(
+                    f"Schema encontrado en ruta alternativa: {existing_path}")
+            else:
+                # Mostrar información de debugging
+                current_dir = os.path.dirname(__file__)
+                print(f"Directorio actual del test: {current_dir}")
+                print(f"Ruta intentada: {cls.schema_path}")
+                print(f"Estructura de directorios:")
+
+                # Listar directorios padre para debugging
+                parent_dir = os.path.dirname(current_dir)
+                if os.path.exists(parent_dir):
+                    print(f"Contenido de {parent_dir}:")
+                    for item in os.listdir(parent_dir):
+                        print(f"  - {item}")
+
+                pytest.fail(
+                    f"Schema no encontrado en ninguna ruta. Última intentada: {cls.schema_path}")
+
+        # Cargar schema con manejo mejorado de errores
         try:
             cls.schema = etree.XMLSchema(file=cls.schema_path)
+            print(f"Schema cargado exitosamente desde: {cls.schema_path}")
+        except etree.XMLSchemaParseError as e:
+            pytest.fail(f"Error parseando schema {cls.schema_path}: {e}")
         except Exception as e:
-            pytest.fail(f"Error cargando schema {cls.schema_path}: {e}")
+            pytest.fail(
+                f"Error inesperado cargando schema {cls.schema_path}: {e}")
 
         # Namespace para validación
         cls.ns = {"sifen": "http://ekuatia.set.gov.py/sifen/xsd"}
@@ -598,6 +651,60 @@ class TestPerformanceGeografico(TestGeographicTypes):
         assert "distritos" in dep_central, "Departamento debe tener distritos"
 
 
+# ================================
+# UTILIDADES ADICIONALES
+# ================================
+
+def debug_schema_location():
+    """Función auxiliar para debugging de ubicación de schemas"""
+    import os
+
+    current_file = __file__
+    current_dir = os.path.dirname(current_file)
+
+    print(f"\n=== DEBUG SCHEMA LOCATION ===")
+    print(f"Archivo actual: {current_file}")
+    print(f"Directorio actual: {current_dir}")
+
+    # Listar estructura de directorios
+    for level in [".", "..", "../..", "../../.."]:
+        check_dir = os.path.join(current_dir, level)
+        if os.path.exists(check_dir):
+            abs_path = os.path.abspath(check_dir)
+            print(f"\nDirectorio {level} ({abs_path}):")
+
+            try:
+                for item in os.listdir(check_dir):
+                    item_path = os.path.join(check_dir, item)
+                    if os.path.isdir(item_path):
+                        print(f"  📁 {item}/")
+                    else:
+                        print(f"  📄 {item}")
+            except PermissionError:
+                print(f"  ❌ Sin permisos para listar")
+
+    # Buscar archivos geographic_types.xsd
+    print(f"\n=== BÚSQUEDA DE GEOGRAPHIC_TYPES.XSD ===")
+
+    search_paths = [
+        os.path.join(current_dir, "..", "common", "geographic_types.xsd"),
+        os.path.join(current_dir, "..", "..",
+                     "common", "geographic_types.xsd"),
+        os.path.join(current_dir, "common", "geographic_types.xsd"),
+        os.path.join(current_dir, "..", "geographic_types.xsd"),
+    ]
+
+    for path in search_paths:
+        abs_path = os.path.abspath(path)
+        exists = os.path.exists(path)
+        print(f"  {'✅' if exists else '❌'} {abs_path}")
+
+    print(f"=== FIN DEBUG ===\n")
+
+
 if __name__ == "__main__":
+    # Ejecutar función de debugging antes de los tests
+    debug_schema_location()
+
     # Ejecutar tests con pytest
     pytest.main([__file__, "-v", "--tb=short"])
