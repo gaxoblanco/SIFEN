@@ -60,7 +60,7 @@ VALIDATION_PATTERNS: Dict[str, Pattern[str]] = {
 
     # RUC (Registro Único del Contribuyente): 8 dígitos exactos
     # Ejemplo: 12345678
-    'ruc': re.compile(r'^\d{8}$'),
+    'ruc': re.compile(r'^\d{8,9}$'),
 
     # DV (Dígito Verificador): 1 dígito exacto
     # Ejemplo: 9

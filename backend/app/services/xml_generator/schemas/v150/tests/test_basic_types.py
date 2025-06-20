@@ -38,7 +38,9 @@ from app.services.xml_generator.schemas.v150.tests.utils.xml_generator import (
     SifenValidator,
     SampleData,
     quick_validate_ruc,
-    quick_validate_cdc
+    quick_validate_cdc,
+    quick_emisor,
+    quick_receptor,
 )
 
 from app.services.xml_generator.schemas.v150.tests.utils.test_helpers.constants import (
@@ -60,12 +62,12 @@ BASIC_TYPES_TEST_DATA = {
     "version_valida": "150",
     "versiones_invalidas": ["140", "149", "151", "1.5.0", "V150"],
 
-    "ruc_validos": ["12345678", "123456789", "80012345"],
+    "ruc_validos": ["12345678", "80012345", "87654321", "123456789"],
     "ruc_invalidos": ["1234567", "12345678901", "ABCDEFGH", ""],
 
     "cdc_validos": [
         "01234567890123456789012345678901234567890123",  # 44 dígitos
-        "80012345912345678901234567890123456789012"     # Otro válido
+        "80012345912345678901234567890123456789012345"     # Otro válido
     ],
     "cdc_invalidos": [
         "0123456789012345678901234567890123456789012",   # 43 dígitos
@@ -132,7 +134,7 @@ class TestBasicTypes:
         # Usar el namespace correcto y SchemaValidator existente
         xml_fragment = f'<dVerFor xmlns="{SIFEN_NAMESPACE_URI}">{test_data["version_valida"]}</dVerFor>'
 
-        result = schema_validator.validate_xml_fragment(xml_fragment)
+        result = schema_validator.validate_xml(xml_fragment)
 
         assert result.is_valid, f"Versión válida debe pasar: {result.errors}"
         logger.info("✅ test_version_format_valid - PASSED")
@@ -142,7 +144,7 @@ class TestBasicTypes:
         for version_invalida in test_data["versiones_invalidas"]:
             xml_fragment = f'<dVerFor xmlns="{SIFEN_NAMESPACE_URI}">{version_invalida}</dVerFor>'
 
-            result = schema_validator.validate_xml_fragment(xml_fragment)
+            result = schema_validator.validate_xml(xml_fragment)
 
             assert not result.is_valid, f"Versión inválida {version_invalida} debería fallar"
 
@@ -153,7 +155,7 @@ class TestBasicTypes:
         for ruc_valido in test_data["ruc_validos"]:
             xml_fragment = f'<dRUCEmi xmlns="{SIFEN_NAMESPACE_URI}">{ruc_valido}</dRUCEmi>'
 
-            result = schema_validator.validate_xml_fragment(xml_fragment)
+            result = schema_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"RUC válido {ruc_valido} debe pasar: {result.errors}"
 
@@ -164,7 +166,7 @@ class TestBasicTypes:
         for ruc_invalido in test_data["ruc_invalidos"]:
             xml_fragment = f'<dRUCEmi xmlns="{SIFEN_NAMESPACE_URI}">{ruc_invalido}</dRUCEmi>'
 
-            result = schema_validator.validate_xml_fragment(xml_fragment)
+            result = schema_validator.validate_xml(xml_fragment)
 
             assert not result.is_valid, f"RUC inválido {ruc_invalido} debería fallar"
 
@@ -175,7 +177,7 @@ class TestBasicTypes:
         for cdc_valido in test_data["cdc_validos"]:
             xml_fragment = f'<dCDC xmlns="{SIFEN_NAMESPACE_URI}">{cdc_valido}</dCDC>'
 
-            result = schema_validator.validate_xml_fragment(xml_fragment)
+            result = schema_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"CDC válido {cdc_valido} debe pasar: {result.errors}"
             assert len(
@@ -188,7 +190,7 @@ class TestBasicTypes:
         for cdc_invalido in test_data["cdc_invalidos"]:
             xml_fragment = f'<dCDC xmlns="{SIFEN_NAMESPACE_URI}">{cdc_invalido}</dCDC>'
 
-            result = schema_validator.validate_xml_fragment(xml_fragment)
+            result = schema_validator.validate_xml(xml_fragment)
 
             assert not result.is_valid, f"CDC inválido {cdc_invalido} debería fallar"
 
@@ -202,7 +204,7 @@ class TestBasicTypes:
         for codigo in codigos_validos:
             xml_fragment = f'<dCodSeg xmlns="{SIFEN_NAMESPACE_URI}">{codigo}</dCodSeg>'
 
-            result = schema_validator.validate_xml_fragment(xml_fragment)
+            result = schema_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"Código seguridad {codigo} debe ser válido: {result.errors}"
 
@@ -212,7 +214,7 @@ class TestBasicTypes:
         """Test validación de tipos de texto básicos"""
         xml_fragment = f'<dTexto xmlns="{SIFEN_NAMESPACE_URI}">{test_data["texto_valido"]}</dTexto>'
 
-        result = schema_validator.validate_xml_fragment(xml_fragment)
+        result = schema_validator.validate_xml(xml_fragment)
 
         assert result.is_valid, f"Texto válido debe pasar: {result.errors}"
         logger.info("✅ test_texto_basico_validacion - PASSED")
@@ -239,7 +241,7 @@ class TestSchemaValidation:
         # Validar un elemento simple para verificar namespace
         xml_fragment = f'<dVerFor xmlns="{SIFEN_NAMESPACE_URI}">150</dVerFor>'
 
-        result = schema_validator.validate_xml_fragment(xml_fragment)
+        result = schema_validator.validate_xml(xml_fragment)
 
         assert result.is_valid, f"Namespace debe ser válido: {result.errors}"
         logger.info("✅ test_schema_namespace_correct - PASSED")
@@ -256,7 +258,7 @@ class TestSchemaValidation:
         for elemento, valor in elementos_basicos:
             xml_fragment = f'<{elemento} xmlns="{SIFEN_NAMESPACE_URI}">{valor}</{elemento}>'
 
-            result = schema_validator.validate_xml_fragment(xml_fragment)
+            result = schema_validator.validate_xml(xml_fragment)
 
             assert result.is_valid, f"Elemento básico {elemento} debe estar definido: {result.errors}"
 
@@ -276,11 +278,11 @@ class TestCoreIntegration:
     def test_ruc_en_cdc_consistency(self, sifen_validator, sample_data):
         """Test consistencia entre RUC en emisor y RUC en CDC"""
         # Usar SampleData para generar datos consistentes
-        emisor_data = sample_data.quick_emisor()
+        emisor_data = sample_data.get_test_emisor("consultora_contable")
         ruc_emisor = emisor_data.get('ruc', '12345678')
 
         # Generar CDC que contenga el RUC del emisor
-        cdc_con_ruc = f"01{ruc_emisor}100100100000120240101112345678904"
+        cdc_con_ruc = f"01{ruc_emisor}1001001000001202401011123456789045"
 
         # Validar que el RUC en el CDC es consistente
         assert cdc_con_ruc[2:10] == ruc_emisor, "RUC en CDC debe coincidir con RUC emisor"
@@ -304,7 +306,7 @@ class TestCoreIntegration:
     def test_tipos_basicos_en_documento_real(self, schema_validator, sample_data):
         """Test tipos básicos funcionando en estructura de documento real"""
         # Generar fragmento de documento con tipos básicos
-        emisor = sample_data.quick_emisor()
+        emisor = sample_data.get_test_emisor("consultora_contable")
 
         xml_documento = f'''
         <gDatGral xmlns="{SIFEN_NAMESPACE_URI}">

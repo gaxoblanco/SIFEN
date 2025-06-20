@@ -299,8 +299,6 @@
         <xs:restriction base="xs:string">
             <xs:pattern value="[0-9]{3}"/>
             <xs:length value="3"/>
-            <xs:minInclusive value="001"/>
-            <xs:maxInclusive value="999"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -326,8 +324,6 @@
         <xs:restriction base="xs:string">
             <xs:pattern value="[0-9]{3}"/>
             <xs:length value="3"/>
-            <xs:minInclusive value="001"/>
-            <xs:maxInclusive value="999"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -360,8 +356,6 @@
             <xs:pattern value="[0-9]{1,7}"/>
             <xs:minLength value="1"/>
             <xs:maxLength value="7"/>
-            <xs:minInclusive value="1"/>
-            <xs:maxInclusive value="9999999"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -402,8 +396,6 @@
             </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:date">
-            <xs:minInclusive value="2010-01-01"/>
-            <xs:maxInclusive value="2099-12-31"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -571,6 +563,27 @@
             <xs:maxLength value="15"/>
         </xs:restriction>
     </xs:simpleType>
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS PARA TESTING - SOLO PARA VALIDACIÓN UNITARIA               -->
+    <!-- ===================================================================== -->
+    
+    <!-- Elementos concretos para testing de tipos básicos -->
+    <xs:element name="dVerFor" type="tipoVersionFormato"/>
+    <xs:element name="dRUCEmi" type="tipoRUC"/>
+    <xs:element name="dCDC" type="tipoCDC"/>
+    <xs:element name="dCodSeg" type="tipoCodigoSeguridad"/>
+    <xs:element name="dTexto" type="tipoTexto"/>
+    
+    <!-- Contenedor para tests de estructura -->
+    <xs:element name="gDatGral">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="dVerFor"/>
+                <xs:element ref="dRUCEmi"/>
+                <xs:element ref="dCDC"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
 
     <!-- ===================================================================== -->
     <!-- NOTAS DE IMPLEMENTACIÓN Y USO                                        -->
