@@ -202,28 +202,6 @@ class TestPerformanceModular:
         assert is_valid, f"XML inválido: {errors}"
 ```
 
-## 🚀 Plan de Migración de Tests
-
-### **Fase 1: Reorganización Inmediata**
-
-1. **Mantener tests existentes** en `backend/app/services/xml_generator/tests/`
-2. **Crear nueva estructura** en `shared/schemas/v150/tests/`
-3. **Mover tests específicos de schema** de `xml_generator/schemas/testing/` a nueva ubicación
-
-### **Fase 2: Tests Modulares**
-
-1. **Crear tests unitarios** para cada módulo de schema
-2. **Implementar utilidades de testing** específicas para schemas
-3. **Generar fixtures XML** para cada tipo de documento
-
-### **Fase 3: Integración**
-
-1. **Conectar tests de generador** con validación modular
-2. **Implementar tests de regresión** 
-3. **Automatizar ejecución** en CI/CD
-
-## 🎮 Comandos de Testing
-
 ### **Tests por Módulo**
 ```bash
 # Tests de tipos básicos

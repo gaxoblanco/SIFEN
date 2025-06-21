@@ -1,22 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-  Schema Principal SIFEN v150 - Documento Electrónico
-  Archivo: shared/schemas/v150/DE_v150.xsd
+  Schema Principal SIFEN v150 - Documento Electrónico MODULAR
+  Archivo: DE_v150.xsd
   
-  Este es el schema orquestador principal que importa todos los módulos
-  y define solo el elemento raíz del documento electrónico.
+  Este schema IMPORTA los módulos reales de common/ y document_core/
+  y define solo la estructura de orquestación.
   
-  Sistema: SIFEN (Sistema Integrado de Facturación Electrónica Nacional)
-  País: Paraguay
-  Versión: 150 (septiembre 2019)
-  Namespace: http://ekuatia.set.gov.py/sifen/xsd
+  Módulos importados:
+  - common/basic_types.xsd (tipos básicos)
+  - common/currency_types.xsd (tipos monetarios) 
+  - document_core/totals_subtotals.xsd (totales corregido)
   
-  Tipos de documentos soportados:
-  - Factura Electrónica (FE) - Tipo 1
-  - Autofactura Electrónica (AFE) - Tipo 4  
-  - Nota de Crédito Electrónica (NCE) - Tipo 5
-  - Nota de Débito Electrónica (NDE) - Tipo 6
-  - Nota de Remisión Electrónica (NRE) - Tipo 7
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0 Modular
+  Fecha: 2025-06-21
 -->
 
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -27,178 +24,278 @@
            version="1.5.0">
 
     <!-- ===================================================================== -->
-    <!-- IMPORTACIÓN DE MÓDULOS - TIPOS BÁSICOS Y COMUNES                     -->
+    <!-- IMPORTACIÓN DE MÓDULOS EXISTENTES                                    -->
     <!-- ===================================================================== -->
     
-    <!-- Tipos básicos reutilizables -->
+    <!-- Módulos common/ existentes -->
     <xs:include schemaLocation="common/basic_types.xsd"/>
-    <xs:include schemaLocation="common/geographic_types.xsd"/>
-    <xs:include schemaLocation="common/contact_types.xsd"/>
     <xs:include schemaLocation="common/currency_types.xsd"/>
-
-    <!-- ===================================================================== -->
-    <!-- IMPORTACIÓN DE MÓDULOS - ESTRUCTURA NÚCLEO DEL DOCUMENTO             -->
-    <!-- ===================================================================== -->
     
-    <!-- Estructura principal del documento -->
-    <xs:include schemaLocation="document_core/root_elements.xsd"/>
-    <xs:include schemaLocation="document_core/operation_data.xsd"/>
-    <xs:include schemaLocation="document_core/stamping_data.xsd"/>
+    <!-- Módulos document_core/ existentes -->
     <xs:include schemaLocation="document_core/totals_subtotals.xsd"/>
 
     <!-- ===================================================================== -->
-    <!-- IMPORTACIÓN DE MÓDULOS - EMISORES Y RECEPTORES                       -->
+    <!-- TIPOS ADICIONALES NECESARIOS (solo los que NO están en módulos)     -->
     <!-- ===================================================================== -->
     
-    <!-- Datos de las partes involucradas -->
-    <xs:include schemaLocation="parties/issuer_types.xsd"/>
-    <xs:include schemaLocation="parties/receiver_types.xsd"/>
-    <xs:include schemaLocation="parties/economic_activities.xsd"/>
+    <!-- Grupo de operación del documento (eventual → document_core/operation_data.xsd) -->
+    <xs:complexType name="tipoGrupoOperacionDocumento">
+        <xs:annotation>
+            <xs:documentation>
+                gOpeDE - Datos básicos de la operación del documento
+                
+                TODO: Mover a document_core/operation_data.xsd cuando se implemente
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="iTiDE" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Tipo de documento electrónico</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDesTiDE" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Descripción del tipo de documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dNumTimbr" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Número de timbrado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dEst" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Establecimiento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dPunExp" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Punto de expedición</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dNumDoc" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Número del documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dSerie" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Serie del documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dFeEmiDE" type="xs:dateTime">
+                <xs:annotation>
+                    <xs:documentation>Fecha de emisión del documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <!-- Grupo de timbrado (eventual → document_core/stamping_data.xsd) -->
+    <xs:complexType name="tipoGrupoTimbrado">
+        <xs:annotation>
+            <xs:documentation>
+                gTimb - Datos del timbrado fiscal
+                
+                TODO: Mover a document_core/stamping_data.xsd cuando se implemente
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="iTiDE" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Tipo de documento electrónico</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDesTiDE" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Descripción del tipo de documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dNumTimbr" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Número de timbrado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dEst" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Establecimiento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dPunExp" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Punto de expedición</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dNumDoc" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Número del documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dSerie" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Serie del documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dFeIniT" type="xs:date">
+                <xs:annotation>
+                    <xs:documentation>Fecha de inicio de vigencia del timbrado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dFeFinT" type="xs:date">
+                <xs:annotation>
+                    <xs:documentation>Fecha de fin de vigencia del timbrado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
 
     <!-- ===================================================================== -->
-    <!-- IMPORTACIÓN DE MÓDULOS - TIPOS ESPECÍFICOS DE DOCUMENTOS             -->
+    <!-- DOCUMENTO ELECTRÓNICO PRINCIPAL                                      -->
     <!-- ===================================================================== -->
     
-    <!-- Campos específicos por tipo de documento -->
-    <xs:include schemaLocation="document_types/invoice_types.xsd"/>
-    <xs:include schemaLocation="document_types/autoinvoice_types.xsd"/>
-    <xs:include schemaLocation="document_types/credit_note_types.xsd"/>
-    <xs:include schemaLocation="document_types/delivery_note_types.xsd"/>
-    <xs:include schemaLocation="document_types/public_procurement.xsd"/>
+    <!-- Tipo del documento electrónico completo -->
+    <xs:complexType name="tipoDocumentoElectronico">
+        <xs:annotation>
+            <xs:documentation>DE - Documento electrónico completo</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Grupos actuales -->
+            <xs:element name="gOpeDE" type="tipoGrupoOperacionDocumento" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Grupo de operación del documento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="gTimb" type="tipoGrupoTimbrado" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Grupo de timbrado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- 🎯 USAR TIPO DEL MÓDULO IMPORTADO -->
+            <xs:element name="gTotSub" type="tipoGrupoTotalesSubtotales" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Grupo de totales y subtotales - IMPORTADO desde document_core/totals_subtotals.xsd
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- 
+            FUTUROS GRUPOS (cuando se implementen los módulos):
+            
+            <xs:element name="gDatRec" type="tipoGrupoReceptor" minOccurs="0"/>        
+            <xs:element name="gEmisor" type="tipoGrupoEmisor" minOccurs="0"/>          
+            <xs:element name="gItems" type="tipoGrupoItems" minOccurs="0"/>           
+            <xs:element name="gCondPago" type="tipoGrupoCondicionesPago" minOccurs="0"/>  
+            <xs:element name="gTransp" type="tipoGrupoTransporte" minOccurs="0"/>     
+            <xs:element name="gCamEsp" type="tipoGrupoCamposEspecificos" minOccurs="0"/> 
+            -->
+        </xs:sequence>
+        
+        <!-- Atributo CDC (Código de Control del Documento) -->
+        <xs:attribute name="Id" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>CDC - Código de Control del Documento (44 dígitos)</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
 
     <!-- ===================================================================== -->
-    <!-- IMPORTACIÓN DE MÓDULOS - OPERACIONES Y CONDICIONES                   -->
+    <!-- ELEMENTOS GLOBALES PARA VALIDACIÓN INDEPENDIENTE                    -->
     <!-- ===================================================================== -->
     
-    <!-- Condiciones de pago y operación -->
-    <xs:include schemaLocation="operations/payment_conditions.xsd"/>
-    <xs:include schemaLocation="operations/payment_methods.xsd"/>
-    <xs:include schemaLocation="operations/credit_operations.xsd"/>
-    <xs:include schemaLocation="operations/items.xsd"/>
-
-    <!-- ===================================================================== -->
-    <!-- IMPORTACIÓN DE MÓDULOS - TRANSPORTE Y LOGÍSTICA                      -->
-    <!-- ===================================================================== -->
+    <xs:element name="gOpeDE" type="tipoGrupoOperacionDocumento">
+        <xs:annotation>
+            <xs:documentation>Elemento global para validar grupo de operación independientemente</xs:documentation>
+        </xs:annotation>
+    </xs:element>
     
-    <!-- Información de transporte -->
-    <xs:include schemaLocation="transport/transport_core.xsd"/>
-    <xs:include schemaLocation="transport/locations.xsd"/>
-    <xs:include schemaLocation="transport/vehicles.xsd"/>
-    <xs:include schemaLocation="transport/carriers.xsd"/>
-
-    <!-- ===================================================================== -->
-    <!-- IMPORTACIÓN DE MÓDULOS - EXTENSIONES SECTORIALES                     -->
-    <!-- ===================================================================== -->
+    <xs:element name="gTimb" type="tipoGrupoTimbrado">
+        <xs:annotation>
+            <xs:documentation>Elemento global para validar grupo de timbrado independientemente</xs:documentation>
+        </xs:annotation>
+    </xs:element>
     
-    <!-- Campos específicos por sector -->
-    <xs:include schemaLocation="extensions/tracking.xsd"/>
-    <xs:include schemaLocation="extensions/automotive.xsd"/>
-    <xs:include schemaLocation="extensions/energy.xsd"/>
-    <xs:include schemaLocation="extensions/insurance.xsd"/>
-    <xs:include schemaLocation="extensions/retail.xsd"/>
-
-    <!-- ===================================================================== -->
-    <!-- ELEMENTO RAÍZ DEL DOCUMENTO ELECTRÓNICO                              -->
-    <!-- ===================================================================== -->
-    
+    <!-- 🎯 ELEMENTO GLOBAL DEL MÓDULO IMPORTADO -->
     <!-- 
-        Este es el ÚNICO elemento definido en el schema principal.
-        Todos los tipos complejos están definidos en los módulos importados.
+    Este elemento YA está definido en document_core/totals_subtotals.xsd
+    No lo redefinimos aquí - lo usamos del módulo importado
     -->
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO RAÍZ                                                        -->
+    <!-- ===================================================================== -->
+    
     <xs:element name="rDE">
         <xs:annotation>
             <xs:documentation>
                 Elemento raíz del Documento Electrónico SIFEN v150.
                 
-                Contiene:
-                - dVerFor: Versión del formato (AA001)
-                - DE: Documento electrónico completo (A001)
-                
-                El atributo "version" es fijo en "1.5.0" y es obligatorio
-                para identificar la versión del schema utilizada.
+                Usa tipos de módulos importados donde están disponibles.
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
-                <!-- AA001: Versión del formato -->
-                <xs:element name="dVerFor" type="tipoVersionFormato">
+                <!-- 🎯 USAR TIPO DEL MÓDULO basic_types.xsd (si existe) -->
+                <xs:element name="dVerFor" type="xs:string">
                     <xs:annotation>
                         <xs:documentation>
-                            AA001 - dVerFor: Versión del formato del documento.
-                            Valor fijo: "150" para esta versión del schema.
+                            Versión del formato del documento.
+                            TODO: Cambiar a tipoVersionFormato cuando esté en basic_types.xsd
                         </xs:documentation>
                     </xs:annotation>
                 </xs:element>
-                
-                <!-- A001: Campos firmados del DE -->
                 <xs:element name="DE" type="tipoDocumentoElectronico">
                     <xs:annotation>
-                        <xs:documentation>
-                            A001 - DE: Documento Electrónico completo.
-                            Contiene todos los campos que forman parte 
-                            de la firma digital del documento.
-                        </xs:documentation>
+                        <xs:documentation>Documento Electrónico completo</xs:documentation>
                     </xs:annotation>
                 </xs:element>
             </xs:sequence>
             
-            <!-- Atributo de versión fijo para el elemento raíz -->
             <xs:attribute name="version" type="xs:string" fixed="1.5.0" use="required">
                 <xs:annotation>
-                    <xs:documentation>
-                        Versión del schema XSD utilizada.
-                        Valor fijo: "1.5.0" para esta versión.
-                        
-                        Este atributo es obligatorio y permite a los 
-                        sistemas identificar qué versión del schema
-                        se utilizó para generar el documento.
-                    </xs:documentation>
+                    <xs:documentation>Versión del schema XSD</xs:documentation>
                 </xs:annotation>
             </xs:attribute>
         </xs:complexType>
     </xs:element>
 
     <!-- ===================================================================== -->
-    <!-- NOTAS DE IMPLEMENTACIÓN                                              -->
+    <!-- PLAN DE MODULARIZACIÓN PROGRESIVA                                   -->
     <!-- ===================================================================== -->
     
     <!--
-        NOTA IMPORTANTE PARA DESARROLLADORES:
+        ESTADO ACTUAL:
+        ✅ Importa: common/basic_types.xsd, common/currency_types.xsd
+        ✅ Importa: document_core/totals_subtotals.xsd (corregido)
+        ⏳ Define temporalmente: tipoGrupoOperacionDocumento, tipoGrupoTimbrado
         
-        1. ESTRUCTURA MODULAR:
-           - Este archivo solo contiene imports y el elemento raíz
-           - Todos los tipos están definidos en módulos específicos
-           - Cada módulo tiene una responsabilidad clara y delimitada
+        PRÓXIMOS PASOS:
         
-        2. DEPENDENCIAS:
-           - Los módulos common/ no dependen de otros módulos
-           - Los módulos específicos pueden depender de common/
-           - Evitar dependencias circulares entre módulos
+        1. Crear document_core/operation_data.xsd
+           - Mover tipoGrupoOperacionDocumento → ahí
+           - Importar en DE_v150.xsd
         
-        3. VALIDACIÓN:
-           - Validar cada módulo independientemente durante desarrollo
-           - Validar el schema completo antes de usar en producción
-           - Usar herramientas como xmllint para validación
+        2. Crear document_core/stamping_data.xsd
+           - Mover tipoGrupoTimbrado → ahí
+           - Importar en DE_v150.xsd
         
-        4. VERSIONADO:
-           - Cambios en módulos common/ afectan todo el schema
-           - Cambios en módulos específicos solo afectan esas funcionalidades
-           - Mantener compatibilidad hacia atrás cuando sea posible
+        3. Mejorar common/basic_types.xsd
+           - Agregar tipoVersionFormato
+           - Agregar tipoTipoDocumento con enumeraciones
+           - Agregar tipoRUC, tipoCDC, etc.
         
-        5. TESTING:
-           - Crear tests unitarios para cada módulo
-           - Crear tests de integración para el schema completo
-           - Incluir casos de prueba para todos los tipos de documentos
+        4. Crear parties/issuer_types.xsd, parties/receiver_types.xsd
         
-        6. DOCUMENTACIÓN:
-           - Cada módulo debe tener su propio README.md
-           - Documentar cambios en CHANGELOG.md
-           - Mantener ejemplos actualizados en docs/examples/
+        5. Crear operations/items.xsd, operations/payment_types.xsd
         
-        7. PERFORMANCE:
-           - Los imports se resuelven en tiempo de compilación
-           - No hay impacto en performance de validación
-           - El schema compilado es equivalente al monolítico
+        6. Crear document_types/ para campos específicos por tipo
+        
+        BENEFICIOS DE ESTE ENFOQUE:
+        - ✅ Usa módulos reales existentes
+        - ✅ Estructura preparada para crecer
+        - ✅ Permite testear cada módulo independientemente
+        - ✅ Migración gradual sin romper funcionalidad
     -->
 
 </xs:schema>

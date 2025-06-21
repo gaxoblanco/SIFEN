@@ -17,9 +17,14 @@
   - common/basic_types.xsd (para tipos básicos)
   - common/currency_types.xsd (para tipos monetarios)
   
+  CORRECCIÓN v2025-06-21:
+  - Reemplazado tipoImporteMonetario por tipoMonto (tipo correcto definido en currency_types.xsd)
+  - Corregidas todas las referencias para mantener consistencia con la arquitectura modular
+  
   Autor: Sistema SIFEN Paraguay
   Versión: 1.5.0
   Fecha: 2025-06-20
+  Actualizado: 2025-06-21
 -->
 
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -58,105 +63,118 @@
                 Los cálculos deben realizarse con precisión de hasta 4 decimales
                 para evitar errores de redondeo en las validaciones.
                 
-                Rango de campos: F001-F099
+                Campos por sección:
+                F001-F010: Subtotales por gravamen
+                F011-F020: Totales de operación y descuentos
+                F021-F030: Impuestos calculados
+                F031-F040: Totales generales
+                F041-F099: Campos adicionales y complementarios
             </xs:documentation>
         </xs:annotation>
         
         <xs:sequence>
             
-            <!-- F008: Subtotal exento de IVA -->
-            <xs:element name="dSubExe" type="tipoImporteMonetario" minOccurs="0">
+            <!-- ========================================================= -->
+            <!-- F001-F010: SUBTOTALES POR TIPO DE GRAVAMEN              -->
+            <!-- ========================================================= -->
+            
+            <!-- F001: Subtotal exento de IVA -->
+            <xs:element name="dSubExe" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F008 - dSubExe: Subtotal de operaciones exentas de IVA.
+                        F001 - dSubExe: Subtotal de operaciones exentas de IVA.
                         
-                        Suma de todos los ítems que están exentos del pago de IVA
-                        según la legislación tributaria vigente.
+                        Suma de los montos de ítems que están exentos del pago
+                        de IVA según la legislación tributaria paraguaya.
                         
-                        Las operaciones exentas no generan débito fiscal para el emisor
+                        Estas operaciones no generan débito fiscal para el emisor
                         ni crédito fiscal para el receptor.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 0-1 (opcional, solo si hay ítems exentos)
                         
-                        Ejemplo: 1500.50 (para Gs. 1.500,50)
+                        Ejemplo: 1250.75
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F009: Subtotal exonerado -->
-            <xs:element name="dSubExo" type="tipoImporteMonetario" minOccurs="0">
+            <!-- F002: Subtotal exonerado de IVA -->
+            <xs:element name="dSubExo" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F009 - dSubExo: Subtotal de operaciones exoneradas de IVA.
+                        F002 - dSubExo: Subtotal de operaciones exoneradas de IVA.
                         
-                        Suma de todos los ítems que están exonerados del pago de IVA
-                        por disposiciones legales específicas (leyes especiales, 
-                        beneficios fiscales, etc.).
+                        Suma de los montos de ítems que tienen exoneración fiscal
+                        otorgada por autoridades competentes (ej: diplomaticos,
+                        organizaciones internacionales, etc.).
                         
-                        Diferencia con exento: la exoneración es una dispensa temporal
-                        o específica, mientras que la exención es una característica
-                        inherente del bien/servicio.
+                        Similar a exento pero con base legal diferente.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 0-1 (opcional, solo si hay ítems exonerados)
                         
-                        Ejemplo: 750.25
+                        Ejemplo: 850.00
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F010: Subtotal gravado IVA 5% -->
-            <xs:element name="dSub5" type="tipoImporteMonetario" minOccurs="0">
+            <!-- F003: Subtotal gravado IVA 5% -->
+            <xs:element name="dSub5" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F010 - dSub5: Subtotal de operaciones gravadas con IVA 5%.
+                        F003 - dSub5: Subtotal de operaciones gravadas con IVA 5%.
                         
-                        Suma de todos los ítems gravados con la tasa reducida de IVA del 5%.
-                        Esta tasa se aplica a productos básicos de la canasta familiar
-                        y algunos servicios esenciales.
+                        Suma de los montos de ítems gravados con la tasa
+                        reducida del IVA (5%), aplicable principalmente a:
+                        - Productos de primera necesidad
+                        - Algunos servicios básicos
+                        - Productos agropecuarios específicos
                         
-                        Sobre este subtotal se calcula el IVA correspondiente:
-                        IVA 5% = dSub5 * 0.05
+                        Sobre este monto se calcula el IVA correspondiente.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 0-1 (opcional, solo si hay ítems con IVA 5%)
                         
-                        Ejemplo: 2000.00 (IVA: 100.00)
+                        Ejemplo: 5000.25
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F011: Subtotal gravado IVA 10% -->
-            <xs:element name="dSub10" type="tipoImporteMonetario" minOccurs="0">
+            <!-- F004: Subtotal gravado IVA 10% -->
+            <xs:element name="dSub10" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F011 - dSub10: Subtotal de operaciones gravadas con IVA 10%.
+                        F004 - dSub10: Subtotal de operaciones gravadas con IVA 10%.
                         
-                        Suma de todos los ítems gravados con la tasa general de IVA del 10%.
-                        Esta es la tasa estándar que se aplica a la mayoría de bienes
-                        y servicios en Paraguay.
+                        Suma de los montos de ítems gravados con la tasa
+                        general del IVA (10%), aplicable a la mayoría de:
+                        - Bienes y productos en general
+                        - Servicios comerciales
+                        - Importaciones gravadas
                         
-                        Sobre este subtotal se calcula el IVA correspondiente:
-                        IVA 10% = dSub10 * 0.10
+                        Sobre este monto se calcula el IVA correspondiente.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 0-1 (opcional, solo si hay ítems con IVA 10%)
                         
-                        Ejemplo: 5000.00 (IVA: 500.00)
+                        Ejemplo: 3000.50
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F013: Total de la operación (antes de descuentos/recargos) -->
-            <xs:element name="dTotOpe" type="tipoImporteMonetario">
+            <!-- ========================================================= -->
+            <!-- F011-F020: TOTALES DE OPERACIÓN Y DESCUENTOS            -->
+            <!-- ========================================================= -->
+            
+            <!-- F013: Total de la operación -->
+            <xs:element name="dTotOpe" type="tipoMonto">
                 <xs:annotation>
                     <xs:documentation>
-                        F013 - dTotOpe: Total de la operación antes de descuentos/recargos globales.
+                        F013 - dTotOpe: Total de la operación sin impuestos.
                         
                         Suma de todos los subtotales parciales:
                         dTotOpe = dSubExe + dSubExo + dSub5 + dSub10
@@ -177,7 +195,7 @@
             </xs:element>
             
             <!-- F014: Total de descuentos -->
-            <xs:element name="dTotDesc" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="dTotDesc" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
                         F014 - dTotDesc: Total de descuentos aplicados al documento.
@@ -197,7 +215,7 @@
             </xs:element>
             
             <!-- F018: Descuentos globales sobre ítems -->
-            <xs:element name="dTotDescGlotem" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="dTotDescGlotem" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
                         F018 - dTotDescGlotem: Total de descuentos globales aplicados sobre ítems.
@@ -213,131 +231,353 @@
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 0-1 (opcional)
                         
-                        Ejemplo: 150.00
+                        Ejemplo: 125.50
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F019: Anticipos sobre ítems -->
-            <xs:element name="dTotAntItem" type="tipoImporteMonetario" minOccurs="0">
+            <!-- F015: Total de anticipos -->
+            <xs:element name="dTotAnt" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F019 - dTotAntItem: Total de anticipos aplicados sobre ítems.
+                        F015 - dTotAnt: Total de anticipos aplicados al documento.
                         
-                        Anticipos o pagos previos que el cliente realizó y que
-                        se descuentan del total a pagar en este documento.
+                        Suma de todos los anticipos o pagos previos realizados
+                        por el cliente que se descuentan del total a pagar.
                         
-                        Común en operaciones de venta a plazos o servicios
-                        que requieren pagos anticipados.
+                        Reduce el monto final que debe abonar el receptor.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
-                        Ocurrencia: 0-1 (opcional)
+                        Ocurrencia: 0-1 (opcional, solo si hay anticipos)
                         
                         Ejemplo: 500.00
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F020: Total de anticipos -->
-            <xs:element name="dTotAnt" type="tipoImporteMonetario" minOccurs="0">
+            <!-- F016: Porcentaje de descuento total -->
+            <xs:element name="dPorcDescTotal" type="xs:decimal" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F020 - dTotAnt: Total general de anticipos aplicados.
+                        F016 - dPorcDescTotal: Porcentaje de descuento total aplicado.
                         
-                        Suma de todos los anticipos aplicados al documento,
-                        incluyendo anticipos sobre ítems y anticipos generales.
+                        Porcentaje global de descuento aplicado sobre el total
+                        de la operación. Útil para cálculos y verificaciones.
                         
-                        Tipo: Numérico decimal
-                        Formato: 1-15 enteros, 0-4 decimales
-                        Ocurrencia: 0-1 (opcional)
+                        Formato: Decimal con 2 decimales (ej: 10.50 = 10.50%)
                         
-                        Ejemplo: 500.00
-                    </xs:documentation>
-                </xs:annotation>
-            </xs:element>
-            
-            <!-- F025: Porcentaje de descuento total -->
-            <xs:element name="dPorcDescTotal" type="tipoPorcentaje" minOccurs="0">
-                <xs:annotation>
-                    <xs:documentation>
-                        F025 - dPorcDescTotal: Porcentaje de descuento total aplicado.
-                        
-                        Porcentaje general de descuento aplicado sobre el total
-                        de la operación. Se expresa como número decimal.
-                        
-                        Ejemplo: 10.50 representa un descuento del 10.5%
-                        
-                        Tipo: Numérico decimal
+                        Tipo: Porcentaje
                         Formato: 1-3 enteros, 0-2 decimales
-                        Rango: 0.00-100.00
                         Ocurrencia: 0-1 (opcional)
+                        
+                        Ejemplo: 5.25 (significa 5.25% de descuento)
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F027: Descuento total en monto -->
-            <xs:element name="dDescTotal" type="tipoImporteMonetario" minOccurs="0">
+            <!-- F017: Descuento total -->
+            <xs:element name="dDescTotal" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F027 - dDescTotal: Descuento total expresado en monto.
+                        F017 - dDescTotal: Monto total de descuentos en valor absoluto.
                         
-                        Valor monetario del descuento total aplicado al documento.
-                        Debe ser coherente con dPorcDescTotal si ambos están presentes:
-                        dDescTotal = dTotOpe * (dPorcDescTotal / 100)
+                        Monto total de todos los descuentos aplicados al documento,
+                        calculado sobre el total de la operación.
+                        
+                        Debe ser coherente con dPorcDescTotal si ambos están presentes.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 0-1 (opcional)
                         
-                        Ejemplo: 867.33
+                        Ejemplo: 412.50
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F033: Total general de la operación -->
-            <xs:element name="dTotGralOpe" type="tipoImporteMonetario">
+            <!-- F019: Total de anticipos -->
+            <xs:element name="dAnticipo" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F033 - dTotGralOpe: Total general de la operación.
+                        F019 - dAnticipo: Monto de anticipo aplicado a esta operación.
                         
-                        Total final que debe pagar el cliente, calculado como:
-                        dTotGralOpe = dTotOpe - dTotDesc - dTotAnt + dTotIVA
+                        Monto específico de anticipo o pago a cuenta que se
+                        descuenta del total a pagar en este documento.
                         
-                        Este es el monto total incluidos todos los impuestos,
-                        descuentos y anticipos aplicados.
+                        Puede diferir de dTotAnt en algunos casos específicos.
                         
-                        Campo obligatorio y debe coincidir con la suma de
-                        todos los conceptos del documento.
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional)
+                        
+                        Ejemplo: 500.00
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F020: Redondeo -->
+            <xs:element name="dRedon" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F020 - dRedon: Ajuste por redondeo aplicado al total.
+                        
+                        Ajuste aplicado para redondear el total final a la
+                        unidad monetaria más pequeña en circulación.
+                        
+                        Puede ser positivo o negativo según el redondeo necesario.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional)
+                        
+                        Ejemplo: 2.50 (ajuste hacia arriba) o -1.25 (ajuste hacia abajo)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- ========================================================= -->
+            <!-- F021-F030: IMPUESTOS Y COMISIONES                       -->
+            <!-- ========================================================= -->
+            
+            <!-- F021: Comisiones -->
+            <xs:element name="dComi" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F021 - dComi: Total de comisiones aplicadas.
+                        
+                        Suma de todas las comisiones cobradas por servicios
+                        adicionales (manejo, gestión, intermediación, etc.).
+                        
+                        Las comisiones se suman al total a pagar.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional, solo si hay comisiones)
+                        
+                        Ejemplo: 75.00
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F022: Total general de la operación -->
+            <xs:element name="dTotGralOpe" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>
+                        F022 - dTotGralOpe: Total general de la operación con impuestos.
+                        
+                        Total final que debe pagar el receptor, incluyendo:
+                        - Total de la operación (dTotOpe)
+                        - Impuestos calculados (dTotIVA)
+                        - Comisiones (dComi)
+                        - Menos descuentos y anticipos
+                        - Más/menos redondeos
+                        
+                        Formula básica: dTotGralOpe = dTotOpe + dTotIVA + dComi - dTotDesc - dAnticipo + dRedon
+                        
+                        Es el monto final de la transacción.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 1-1 (obligatorio)
                         
-                        Ejemplo: 8383.42
+                        Ejemplo: 9125.25
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <!-- F034: Total de IVA -->
-            <xs:element name="dTotIVA" type="tipoImporteMonetario">
+            <!-- F023: IVA 5% -->
+            <xs:element name="dIVA5" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        F034 - dTotIVA: Total de IVA de la operación.
+                        F023 - dIVA5: Impuesto IVA calculado sobre base gravada al 5%.
                         
-                        Suma de todos los impuestos IVA aplicados, calculado como:
-                        dTotIVA = (dSub5 * 0.05) + (dSub10 * 0.10)
+                        Monto del impuesto calculado aplicando la tasa del 5%
+                        sobre el subtotal de ítems gravados con esta tasa (dSub5).
                         
-                        Este monto representa el débito fiscal generado por
-                        la operación para el emisor.
+                        Cálculo: dIVA5 = dSub5 * 0.05
                         
-                        Campo obligatorio, incluso si es cero (operaciones exentas).
+                        Este monto representa débito fiscal para el emisor
+                        y crédito fiscal para el receptor (si corresponde).
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional, solo si hay base gravada al 5%)
+                        
+                        Ejemplo: 250.01 (sobre base de 5000.25)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F024: IVA 10% -->
+            <xs:element name="dIVA10" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F024 - dIVA10: Impuesto IVA calculado sobre base gravada al 10%.
+                        
+                        Monto del impuesto calculado aplicando la tasa del 10%
+                        sobre el subtotal de ítems gravados con esta tasa (dSub10).
+                        
+                        Cálculo: dIVA10 = dSub10 * 0.10
+                        
+                        Este monto representa débito fiscal para el emisor
+                        y crédito fiscal para el receptor (si corresponde).
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional, solo si hay base gravada al 10%)
+                        
+                        Ejemplo: 300.05 (sobre base de 3000.50)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F025: Liquidación total IVA 5% -->
+            <xs:element name="dLiqTotIVA5" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F025 - dLiqTotIVA5: Total de liquidación de IVA al 5%.
+                        
+                        Monto total de IVA al 5% que se liquida en este documento,
+                        incluyendo ajustes por redondeos y correcciones.
+                        
+                        Normalmente igual a dIVA5, pero puede diferir en casos
+                        especiales de liquidación o ajustes contables.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional)
+                        
+                        Ejemplo: 250.00
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F026: Liquidación total IVA 10% -->
+            <xs:element name="dLiqTotIVA10" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F026 - dLiqTotIVA10: Total de liquidación de IVA al 10%.
+                        
+                        Monto total de IVA al 10% que se liquida en este documento,
+                        incluyendo ajustes por redondeos y correcciones.
+                        
+                        Normalmente igual a dIVA10, pero puede diferir en casos
+                        especiales de liquidación o ajustes contables.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional)
+                        
+                        Ejemplo: 300.00
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F027: IVA sobre comisiones -->
+            <xs:element name="dIVAComi" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F027 - dIVAComi: IVA calculado sobre comisiones.
+                        
+                        Impuesto IVA aplicado sobre las comisiones cobradas,
+                        cuando estas están sujetas a tributación.
+                        
+                        Se calcula aplicando la tasa correspondiente sobre dComi.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional, solo si hay comisiones gravadas)
+                        
+                        Ejemplo: 7.50 (IVA 10% sobre comisión de 75.00)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F028: Total IVA -->
+            <xs:element name="dTotIVA" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>
+                        F028 - dTotIVA: Total de impuesto IVA del documento.
+                        
+                        Suma de todos los impuestos IVA calculados en el documento:
+                        dTotIVA = dIVA5 + dIVA10 + dIVAComi
+                        
+                        Este es el monto total de impuesto que se traslada al
+                        receptor y que debe ser considerado para efectos fiscales.
+                        
+                        Campo obligatorio cuando hay ítems gravados.
                         
                         Tipo: Numérico decimal
                         Formato: 1-15 enteros, 0-4 decimales
                         Ocurrencia: 1-1 (obligatorio)
                         
-                        Ejemplo: 600.00 (100.00 de IVA 5% + 500.00 de IVA 10%)
+                        Ejemplo: 557.56
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- ========================================================= -->
+            <!-- F029-F035: BASES IMPONIBLES PARA CONTROL               -->
+            <!-- ========================================================= -->
+            
+            <!-- F029: Base gravada IVA 5% -->
+            <xs:element name="dBaseGrav5" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F029 - dBaseGrav5: Base imponible para IVA 5%.
+                        
+                        Monto sobre el cual se calcula el IVA al 5%.
+                        Debe coincidir con dSub5 en operaciones simples.
+                        
+                        Usado para verificaciones cruzadas y control fiscal.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional, pero recomendado si hay IVA 5%)
+                        
+                        Ejemplo: 5000.25
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F030: Base gravada IVA 10% -->
+            <xs:element name="dBaseGrav10" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F030 - dBaseGrav10: Base imponible para IVA 10%.
+                        
+                        Monto sobre el cual se calcula el IVA al 10%.
+                        Debe coincidir con dSub10 en operaciones simples.
+                        
+                        Usado para verificaciones cruzadas y control fiscal.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional, pero recomendado si hay IVA 10%)
+                        
+                        Ejemplo: 3000.50
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- F031: Total base gravada IVA -->
+            <xs:element name="dTBasGraIVA" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        F031 - dTBasGraIVA: Total de base gravada con IVA.
+                        
+                        Suma total de todas las bases imponibles:
+                        dTBasGraIVA = dBaseGrav5 + dBaseGrav10
+                        
+                        Representa el total de montos sobre los cuales se
+                        calcula algún tipo de IVA en el documento.
+                        
+                        Tipo: Numérico decimal
+                        Formato: 1-15 enteros, 0-4 decimales
+                        Ocurrencia: 0-1 (opcional, útil para reportes)
+                        
+                        Ejemplo: 8000.75
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
@@ -346,31 +586,29 @@
     </xs:complexType>
 
     <!-- ================================================================== -->
-    <!-- TIPOS SIMPLES PARA CÁLCULOS                                       -->
+    <!-- ELEMENTO PRINCIPAL DEL GRUPO                                      -->
     <!-- ================================================================== -->
     
-    <!-- Tipo para porcentajes -->
-    <xs:simpleType name="tipoPorcentaje">
+    <xs:element name="gTotSub" type="tipoGrupoTotalesSubtotales">
         <xs:annotation>
             <xs:documentation>
-                Tipo para valores de porcentaje.
-                Rango: 0.00 a 100.00 con hasta 2 decimales.
+                Elemento principal del grupo de totales y subtotales.
+                
+                Este elemento agrupa todos los cálculos financieros del documento
+                y es usado en la estructura principal del documento electrónico.
+                
+                Es fundamental para la validación fiscal ya que SIFEN verifica
+                la coherencia matemática entre estos totales y los ítems del documento.
             </xs:documentation>
         </xs:annotation>
-        <xs:restriction base="xs:decimal">
-            <xs:minInclusive value="0.00"/>
-            <xs:maxInclusive value="100.00"/>
-            <xs:fractionDigits value="2"/>
-            <xs:totalDigits value="5"/>
-        </xs:restriction>
-    </xs:simpleType>
+    </xs:element>
 
     <!-- ================================================================== -->
-    <!-- TIPOS COMPLEJOS PARA VALIDACIONES                                 -->
+    <!-- TIPOS AUXILIARES PARA VALIDACIONES ESPECÍFICAS                   -->
     <!-- ================================================================== -->
     
     <!-- Tipo para desglose de IVA -->
-    <xs:complexType name="tipoDesgloseIVA">
+    <xs:complexType name="tipoDetalleIVA">
         <xs:annotation>
             <xs:documentation>
                 Tipo auxiliar para desglosar el cálculo de IVA por tasa.
@@ -379,31 +617,31 @@
         </xs:annotation>
         
         <xs:sequence>
-            <xs:element name="baseImponible5" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="baseImponible5" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Base imponible para IVA 5%</xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <xs:element name="iva5" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="iva5" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>IVA calculado al 5%</xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <xs:element name="baseImponible10" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="baseImponible10" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Base imponible para IVA 10%</xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <xs:element name="iva10" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="iva10" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>IVA calculado al 10%</xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <xs:element name="totalIVA" type="tipoImporteMonetario">
+            <xs:element name="totalIVA" type="tipoMonto">
                 <xs:annotation>
                     <xs:documentation>Total de IVA (suma de IVA 5% + IVA 10%)</xs:documentation>
                 </xs:annotation>
@@ -421,25 +659,25 @@
         </xs:annotation>
         
         <xs:sequence>
-            <xs:element name="descuentosItems" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="descuentosItems" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Descuentos específicos por ítem</xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <xs:element name="descuentosGlobales" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="descuentosGlobales" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Descuentos globales aplicados</xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <xs:element name="descuentosComerciales" type="tipoImporteMonetario" minOccurs="0">
+            <xs:element name="descuentosComerciales" type="tipoMonto" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Descuentos comerciales o promocionales</xs:documentation>
                 </xs:annotation>
             </xs:element>
             
-            <xs:element name="totalDescuentos" type="tipoImporteMonetario">
+            <xs:element name="totalDescuentos" type="tipoMonto">
                 <xs:annotation>
                     <xs:documentation>Total de todos los descuentos</xs:documentation>
                 </xs:annotation>
@@ -475,13 +713,20 @@
             <xs:documentation>
                 Grupo que define los elementos mínimos obligatorios
                 que deben estar presentes en cualquier documento válido.
+                
+                Incluye:
+                - Total de operación (dTotOpe)
+                - Total general (dTotGralOpe)  
+                - Total IVA (dTotIVA)
+                
+                Estos campos son fundamentales para la validación fiscal.
             </xs:documentation>
         </xs:annotation>
         
         <xs:sequence>
-            <xs:element name="dTotOpe" type="tipoImporteMonetario"/>
-            <xs:element name="dTotGralOpe" type="tipoImporteMonetario"/>
-            <xs:element name="dTotIVA" type="tipoImporteMonetario"/>
+            <xs:element name="dTotOpe" type="tipoMonto"/>
+            <xs:element name="dTotGralOpe" type="tipoMonto"/>
+            <xs:element name="dTotIVA" type="tipoMonto"/>
         </xs:sequence>
     </xs:group>
 

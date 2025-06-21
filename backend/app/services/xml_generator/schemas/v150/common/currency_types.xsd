@@ -253,7 +253,7 @@
     <!-- ===================================================================== -->
     <!-- TIPOS PARA VALIDACIONES ESPECÍFICAS                                  -->
     <!-- ===================================================================== -->
-    
+
     <xs:simpleType name="tipoMontoPositivo">
         <xs:annotation>
             <xs:documentation>
@@ -267,8 +267,10 @@
                 Hereda las reglas de tipoMonto pero excluye el valor 0.
             </xs:documentation>
         </xs:annotation>
-        <xs:restriction base="tipoMonto">
+        <xs:restriction base="xs:decimal">
             <xs:minExclusive value="0"/>
+            <xs:totalDigits value="15"/>
+            <xs:fractionDigits value="4"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -281,16 +283,14 @@
                 - Descuentos (puede ser 0)
                 - Anticipos (puede ser 0)
                 - Algunos tipos de documentos especiales
-                
-                Idéntico a tipoMonto pero documentado específicamente
-                para casos donde cero es explícitamente permitido.
             </xs:documentation>
         </xs:annotation>
-        <xs:restriction base="tipoMonto">
+        <xs:restriction base="xs:decimal">
             <xs:minInclusive value="0"/>
+            <xs:totalDigits value="15"/>
+            <xs:fractionDigits value="4"/>
         </xs:restriction>
     </xs:simpleType>
-
     <!-- ===================================================================== -->
     <!-- TIPOS PARA PORCENTAJES MONETARIOS                                    -->
     <!-- ===================================================================== -->
