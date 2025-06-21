@@ -191,6 +191,12 @@ def main_schema_validator(schema_validator_factory):
     return schema_validator_factory("DE_v150.xsd")
 
 
+@pytest.fixture(scope="class")
+def document_core_validator(schema_validator_factory):
+    """Validator específico para totals_subtotals.xsd (que existe y funciona)"""
+    return schema_validator_factory("DE_v150.xsd")
+
+
 # =====================================================================
 # FIXTURES DE DATOS DE PRUEBA
 # =====================================================================
