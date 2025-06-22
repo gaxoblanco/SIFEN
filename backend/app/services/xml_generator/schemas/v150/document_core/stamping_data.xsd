@@ -18,20 +18,21 @@
   Autor: Sistema SIFEN Paraguay
   Versión: 1.5.0
   Fecha: 2025-06-20
+  Corregido: 2025-06-22 - Tipos no resueltos
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
-           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
-           elementFormDefault="qualified"
-           attributeFormDefault="unqualified"
-           version="1.5.0">
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
 
     <!-- ================================================================== -->
     <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
     <!-- ================================================================== -->
 
     <!-- Tipos básicos comunes -->
-    <xs:include schemaLocation="../common/basic_types.xsd"/>
+    <xs:include schemaLocation="../common/basic_types.xsd" />
 
     <!-- ================================================================== -->
     <!-- GRUPO: DATOS DEL TIMBRADO FISCAL (gTimb)                          -->
@@ -39,156 +40,112 @@
 
     <xs:complexType name="tipoGrupoTimbrado">
         <xs:annotation>
-            <xs:documentation>
-                gTimb - Grupo de datos del timbrado fiscal.
-
-                Este grupo contiene toda la información relacionada con el timbrado
-                fiscal que habilita al contribuyente para emitir documentos electrónicos.
-
-                El timbrado es la autorización otorgada por la SET (Subsecretaría de Estado
-                de Tributación) que permite a un contribuyente emitir documentos tributarios.
-                Para documentos electrónicos, contiene información específica sobre:
-
-                - Número del timbrado
-                - Establecimiento autorizado
-                - Punto de expedición
-                - Numeración autorizada
-                - Vigencia del timbrado
-
-                Todos estos datos son verificados por SIFEN al recibir el documento.
-
-                Rango de campos: C001-C099
-            </xs:documentation>
+            <xs:documentation> gTimb - Grupo de datos del timbrado fiscal. Este grupo contiene toda
+                la información relacionada con el timbrado fiscal que habilita al contribuyente para
+                emitir documentos electrónicos. El timbrado es la autorización otorgada por la SET
+                (Subsecretaría de Estado de Tributación) que permite a un contribuyente emitir
+                documentos tributarios. Para documentos electrónicos, contiene información
+                específica sobre: - Número del timbrado - Establecimiento autorizado - Punto de
+                expedición - Numeración autorizada - Vigencia del timbrado Todos estos datos son
+                verificados por SIFEN al recibir el documento. Rango de campos: C001-C099 </xs:documentation>
         </xs:annotation>
 
         <xs:sequence>
             <!-- C002: Tipo de documento electrónico -->
-            <xs:element name="iTiDE" type="tipoTipoDocumento" minOccurs="1" maxOccurs="1">
+            <!-- <xs:element name="iTiDE" type="tipoDocumentoElectronico" minOccurs="1"
+            maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C002 - iTiDE: Tipo de documento electrónico.
-                        
-                        Código que identifica el tipo de documento electrónico:
-                        1 = Factura electrónica
-                        4 = Autofactura electrónica  
-                        5 = Nota de crédito electrónica
-                        6 = Nota de débito electrónica
-                        7 = Nota de remisión electrónica
-                    </xs:documentation>
+                    <xs:documentation> C002 - iTiDE: Tipo de documento electrónico. Código que
+                        identifica el tipo de documento electrónico: 1 = Factura electrónica 4 =
+                        Autofactura electrónica 5 = Nota de crédito electrónica 6 = Nota de débito
+                        electrónica 7 = Nota de remisión electrónica Tipo: Numérico Longitud: 1
+                        dígito Ocurrencia: 1-1 (obligatorio) </xs:documentation>
                 </xs:annotation>
-            </xs:element>
+            </xs:element> -->
 
             <!-- C003: Descripción del tipo de documento -->
-            <xs:element name="dDesTiDE" type="tipoDescripcionTipoDocumento" minOccurs="1" maxOccurs="1">
+            <xs:element name="dDesTiDE" type="tipoTextoMedio" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C003 - dDesTiDE: Descripción del tipo de documento electrónico.
-                        
-                        Descripción textual del tipo de documento:
-                        "Factura electrónica"
-                        "Autofactura electrónica"
-                        "Nota de crédito electrónica"
-                        "Nota de débito electrónica"
-                        "Nota de remisión electrónica"
-                    </xs:documentation>
+                    <xs:documentation> C003 - dDesTiDE: Descripción del tipo de documento
+                        electrónico. Descripción textual del tipo de documento: "Factura
+                        electrónica" "Autofactura electrónica" "Nota de crédito electrónica" "Nota
+                        de débito electrónica" "Nota de remisión electrónica" Tipo: Alfanumérico
+                        Longitud: 17-28 caracteres según SIFEN v150 Ocurrencia: 1-1 (obligatorio) </xs:documentation>
                 </xs:annotation>
             </xs:element>
 
             <!-- C004: Número del timbrado -->
-            <xs:element name="dNumTim" type="tipoNumeroTimbrado" minOccurs="1" maxOccurs="1">
+            <xs:element name="dNumTim" type="tipoTimbrado" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C004 - dNumTim: Número del timbrado.
-                        
-                        Número del timbrado fiscal otorgado por la SET.
-                        Formato: 8 dígitos numéricos.
-                        Ejemplo: 12345678
-                    </xs:documentation>
+                    <xs:documentation> C004 - dNumTim: Número del timbrado. Número del timbrado
+                        fiscal otorgado por la SET. Formato: 8 dígitos numéricos. Ejemplo: 12345678
+                        Tipo: Numérico Longitud: 8 dígitos Ocurrencia: 1-1 (obligatorio) </xs:documentation>
                 </xs:annotation>
             </xs:element>
 
             <!-- C005: Establecimiento -->
-            <xs:element name="dEst" type="tipoCodigoEstablecimiento" minOccurs="1" maxOccurs="1">
+            <xs:element name="dEst" type="tipoEstablecimiento" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C005 - dEst: Código del establecimiento.
-                        
-                        Código de 3 dígitos que identifica el establecimiento
-                        autorizado para emitir documentos electrónicos.
-                        Formato: 001-999, completar con ceros a la izquierda.
-                        Ejemplo: 001
-                    </xs:documentation>
+                    <xs:documentation> C005 - dEst: Código del establecimiento. Código de 3 dígitos
+                        que identifica el establecimiento autorizado para emitir documentos
+                        electrónicos. Formato: 001-999, completar con ceros a la izquierda. Ejemplo:
+                        001 Tipo: Numérico con padding Longitud: 3 dígitos Ocurrencia: 1-1
+                        (obligatorio) </xs:documentation>
                 </xs:annotation>
             </xs:element>
 
             <!-- C006: Punto de expedición -->
-            <xs:element name="dPunExp" type="tipoCodigoPuntoExpedicion" minOccurs="1" maxOccurs="1">
+            <xs:element name="dPunExp" type="tipoPuntoExpedicion" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C006 - dPunExp: Código del punto de expedición.
-                        
-                        Código de 3 dígitos que identifica el punto de expedición
-                        dentro del establecimiento autorizado.
-                        Formato: 001-999, completar con ceros a la izquierda.
-                        Ejemplo: 001
-                    </xs:documentation>
+                    <xs:documentation> C006 - dPunExp: Código del punto de expedición. Código de 3
+                        dígitos que identifica el punto de expedición dentro del establecimiento
+                        autorizado. Formato: 001-999, completar con ceros a la izquierda. Ejemplo:
+                        001 Tipo: Numérico con padding Longitud: 3 dígitos Ocurrencia: 1-1
+                        (obligatorio) </xs:documentation>
                 </xs:annotation>
             </xs:element>
 
             <!-- C007: Número del documento -->
             <xs:element name="dNumDoc" type="tipoNumeroDocumento" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C007 - dNumDoc: Número secuencial del documento.
-                        
-                        Número secuencial de 7 dígitos que identifica
-                        univocamente el documento dentro del timbrado.
-                        Formato: 0000001-9999999, completar con ceros a la izquierda.
-                        Ejemplo: 0000001
-                    </xs:documentation>
-                </xs:annotation>
-            </xs:element>
-
-            <!-- C010: Serie del timbrado (opcional) -->
-            <xs:element name="dSerieNum" type="tipoSerieTimbrado" minOccurs="0" maxOccurs="1">
-                <xs:annotation>
-                    <xs:documentation>
-                        C010 - dSerieNum: Serie del timbrado (opcional).
-                        
-                        Serie alfanumérica del timbrado cuando aplique.
-                        Usado en casos especiales según normativa SET.
-                        Formato: 2-3 caracteres alfanuméricos.
-                    </xs:documentation>
+                    <xs:documentation> C007 - dNumDoc: Número secuencial del documento. Número
+                        secuencial de 7 dígitos que identifica univocamente el documento dentro del
+                        timbrado. Formato: 0000001-9999999, completar con ceros a la izquierda.
+                        Ejemplo: 0000001 Tipo: Numérico con padding Longitud: 1-7 dígitos
+                        Ocurrencia: 1-1 (obligatorio) </xs:documentation>
                 </xs:annotation>
             </xs:element>
 
             <!-- C008: Fecha de inicio de vigencia del timbrado -->
             <xs:element name="dFeIniT" type="tipoFecha" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C008 - dFeIniT: Fecha de inicio de vigencia del timbrado.
-                        
-                        Fecha desde la cual el timbrado está autorizado
-                        para emitir documentos electrónicos.
-                        Formato: AAAA-MM-DD
-                        Ejemplo: 2024-01-01
-                    </xs:documentation>
+                    <xs:documentation> C008 - dFeIniT: Fecha de inicio de vigencia del timbrado.
+                        Fecha desde la cual el timbrado está autorizado para emitir documentos
+                        electrónicos. Formato: AAAA-MM-DD Ejemplo: 2024-01-01 Tipo: Fecha
+                        Ocurrencia: 1-1 (obligatorio) </xs:documentation>
                 </xs:annotation>
             </xs:element>
 
             <!-- C009: Fecha de fin de vigencia del timbrado -->
             <xs:element name="dFeFinT" type="tipoFecha" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        C009 - dFeFinT: Fecha de fin de vigencia del timbrado.
-                        
-                        Fecha hasta la cual el timbrado está autorizado
-                        para emitir documentos electrónicos.
-                        Formato: AAAA-MM-DD
-                        Ejemplo: 2024-12-31
-                    </xs:documentation>
+                    <xs:documentation> C009 - dFeFinT: Fecha de fin de vigencia del timbrado. Fecha
+                        hasta la cual el timbrado está autorizado para emitir documentos
+                        electrónicos. Formato: AAAA-MM-DD Ejemplo: 2024-12-31 Tipo: Fecha
+                        Ocurrencia: 1-1 (obligatorio) Validación: dFeFinT debe ser >= dFeIniT </xs:documentation>
                 </xs:annotation>
             </xs:element>
+
+            <!-- C010: Serie del timbrado (opcional) -->
+            <xs:element name="dSerieNum" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> C010 - dSerieNum: Serie del timbrado (opcional). Serie
+                        alfanumérica del timbrado cuando aplique. Usado en casos especiales según
+                        normativa SET. Formato: 2-3 caracteres alfanuméricos. Tipo: Alfanumérico
+                        Longitud: 2-3 caracteres Ocurrencia: 0-1 (opcional) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
         </xs:sequence>
     </xs:complexType>
 
@@ -198,14 +155,9 @@
 
     <xs:element name="gTimb" type="tipoGrupoTimbrado">
         <xs:annotation>
-            <xs:documentation>
-                Elemento raíz para validar independientemente los datos del timbrado.
-                
-                Útil para:
-                - Validación previa de datos de timbrado
-                - Tests unitarios del grupo de timbrado
-                - Verificación de coherencia de datos fiscales
-            </xs:documentation>
+            <xs:documentation> Elemento raíz para validar independientemente los datos del timbrado.
+                Útil para: - Validación previa de datos de timbrado - Tests unitarios del grupo de
+                timbrado - Verificación de coherencia de datos fiscales </xs:documentation>
         </xs:annotation>
     </xs:element>
 

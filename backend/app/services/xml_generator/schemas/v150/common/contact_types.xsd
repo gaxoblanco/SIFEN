@@ -15,11 +15,11 @@
 -->
 
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
-           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
-           elementFormDefault="qualified"
-           attributeFormDefault="unqualified"
-           version="1.5.0">
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
 
     <!-- ===================================================================== -->
     <!-- TIPOS BÁSICOS DE CONTACTO                                            -->
@@ -28,119 +28,101 @@
     <!-- Tipo para número telefónico -->
     <xs:simpleType name="tipoTelefono">
         <xs:annotation>
-            <xs:documentation>
-                Número telefónico en formato internacional o nacional.
-                Acepta números fijos y móviles con códigos de país y área.
-                
-                Campo: dTelef
-                Formato: +595-21-123456 o 021-123456 o 0981-123456
-                Longitud: 6-20 caracteres
-            </xs:documentation>
+            <xs:documentation> Número telefónico en formato internacional o nacional. Acepta números
+                fijos y móviles con códigos de país y área. Campo: dTelef Formato: +595-21-123456 o
+                021-123456 o 0981-123456 Longitud: 6-20 caracteres </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:string">
-            <xs:minLength value="6"/>
-            <xs:maxLength value="20"/>
-            <xs:pattern value="[\+]?[0-9\-\s\(\)]{6,20}"/>
+            <xs:minLength value="6" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[\+]?[0-9\-\s\(\)]{6,20}" />
         </xs:restriction>
     </xs:simpleType>
 
     <!-- Tipo para teléfono móvil específico -->
     <xs:simpleType name="tipoTelefonoMovil">
         <xs:annotation>
-            <xs:documentation>
-                Número de teléfono móvil/celular.
-                Para Paraguay: 09XX-XXXXXX
-                Internacional: +595-9XX-XXXXXX
-                
-                Campo: dCelular
-                Formato más restrictivo que teléfono general
-            </xs:documentation>
+            <xs:documentation> Número de teléfono móvil/celular. Para Paraguay: 09XX-XXXXXX
+                Internacional: +595-9XX-XXXXXX Campo: dCelular Formato más restrictivo que teléfono
+                general </xs:documentation>
         </xs:annotation>
         <xs:restriction base="tipoTelefono">
-            <xs:pattern value="[\+]?[0-9\-\s]{8,15}"/>
+            <xs:pattern value="[\+]?[0-9\-\s]{8,15}" />
         </xs:restriction>
     </xs:simpleType>
 
     <!-- Tipo para correo electrónico -->
     <xs:simpleType name="tipoEmail">
         <xs:annotation>
-            <xs:documentation>
-                Dirección de correo electrónico válida según RFC 5322.
-                
-                Campo: dCorreo
-                Formato: usuario@dominio.ext
-                Longitud: 5-100 caracteres
-            </xs:documentation>
+            <xs:documentation> Dirección de correo electrónico válida según RFC 5322. Campo: dCorreo
+                Formato: usuario@dominio.ext Longitud: 5-100 caracteres </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:string">
-            <xs:minLength value="5"/>
-            <xs:maxLength value="100"/>
-            <xs:pattern value="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
+            <xs:minLength value="5" />
+            <xs:maxLength value="100" />
+            <xs:pattern value="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" />
         </xs:restriction>
     </xs:simpleType>
+
+    <!-- Tipo básico para contacto general -->
+    <xs:simpleType name="tipoContactoBasico">
+        <xs:annotation>
+            <xs:documentation> Tipo básico para información de contacto general. Acepta cualquier
+                información de contacto en formato texto: - Email - Teléfono - Dirección web - Otros
+                medios de comunicación Usado como tipo genérico cuando se necesita flexibilidad en
+                el tipo de contacto a almacenar. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="5" />
+            <xs:maxLength value="100" />
+            <xs:pattern value="[A-Za-z0-9@\.\-_\+\(\)\s/:#]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
 
     <!-- Tipo para sitio web -->
     <xs:simpleType name="tipoSitioWeb">
         <xs:annotation>
-            <xs:documentation>
-                URL de sitio web válida.
-                Debe incluir protocolo (http:// o https://)
-                
-                Campo: dSitioWeb
-                Longitud: 10-200 caracteres
-            </xs:documentation>
+            <xs:documentation> URL de sitio web válida. Debe incluir protocolo (http:// o https://)
+                Campo: dSitioWeb Longitud: 10-200 caracteres </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:string">
-            <xs:minLength value="10"/>
-            <xs:maxLength value="200"/>
-            <xs:pattern value="https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[/a-zA-Z0-9._?=&amp;%-]*"/>
+            <xs:minLength value="10" />
+            <xs:maxLength value="200" />
+            <xs:pattern value="https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[/a-zA-Z0-9._?=&amp;%-]*" />
         </xs:restriction>
     </xs:simpleType>
 
     <!-- Tipo para código postal -->
     <xs:simpleType name="tipoCodigoPostal">
         <xs:annotation>
-            <xs:documentation>
-                Código postal nacional o internacional.
-                Para Paraguay: formato numérico de 4 dígitos
-                Para otros países: formatos variables
-                
-                Campo: dCodPos
-                Longitud: 3-10 caracteres
-            </xs:documentation>
+            <xs:documentation> Código postal nacional o internacional. Para Paraguay: formato
+                numérico de 4 dígitos Para otros países: formatos variables Campo: dCodPos Longitud:
+                3-10 caracteres </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:string">
-            <xs:minLength value="3"/>
-            <xs:maxLength value="10"/>
-            <xs:pattern value="[A-Za-z0-9\-\s]{3,10}"/>
+            <xs:minLength value="3" />
+            <xs:maxLength value="10" />
+            <xs:pattern value="[A-Za-z0-9\-\s]{3,10}" />
         </xs:restriction>
     </xs:simpleType>
 
     <!-- Tipo para código postal Paraguay específico -->
     <xs:simpleType name="tipoCodigoPostalParaguay">
         <xs:annotation>
-            <xs:documentation>
-                Código postal específico para Paraguay.
-                Formato: 4 dígitos numéricos
-                
-                Ejemplos: 1001 (Asunción Centro), 2001 (Ciudad del Este)
-            </xs:documentation>
+            <xs:documentation> Código postal específico para Paraguay. Formato: 4 dígitos numéricos
+                Ejemplos: 1001 (Asunción Centro), 2001 (Ciudad del Este) </xs:documentation>
         </xs:annotation>
         <xs:restriction base="tipoCodigoPostal">
-            <xs:pattern value="[0-9]{4}"/>
+            <xs:pattern value="[0-9]{4}" />
         </xs:restriction>
     </xs:simpleType>
 
     <!-- Tipo para fax -->
     <xs:simpleType name="tipoFax">
         <xs:annotation>
-            <xs:documentation>
-                Número de fax en formato similar a teléfono.
-                Menos común pero aún usado en algunos sectores.
-                
-                Campo: dFax
-                Formato similar a teléfono
-            </xs:documentation>
+            <xs:documentation> Número de fax en formato similar a teléfono. Menos común pero aún
+                usado en algunos sectores. Campo: dFax Formato similar a teléfono </xs:documentation>
         </xs:annotation>
         <xs:restriction base="tipoTelefono">
             <!-- Hereda las mismas reglas que teléfono -->
@@ -154,10 +136,8 @@
     <!-- Tipo para información de contacto telefónico completa -->
     <xs:complexType name="tipoContactoTelefonico">
         <xs:annotation>
-            <xs:documentation>
-                Información completa de contacto telefónico.
-                Incluye teléfono principal y celular como opcionales.
-            </xs:documentation>
+            <xs:documentation> Información completa de contacto telefónico. Incluye teléfono
+                principal y celular como opcionales. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <!-- Teléfono principal (opcional) -->
@@ -166,14 +146,14 @@
                     <xs:documentation>Número de teléfono principal (fijo)</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Teléfono móvil (opcional) -->
             <xs:element name="dCelular" type="tipoTelefonoMovil" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Número de teléfono móvil/celular</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Fax (opcional) -->
             <xs:element name="dFax" type="tipoFax" minOccurs="0">
                 <xs:annotation>
@@ -186,10 +166,8 @@
     <!-- Tipo para información de contacto digital -->
     <xs:complexType name="tipoContactoDigital">
         <xs:annotation>
-            <xs:documentation>
-                Información de contacto digital/electrónico.
-                Incluye email y sitio web.
-            </xs:documentation>
+            <xs:documentation> Información de contacto digital/electrónico. Incluye email y sitio
+                web. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <!-- Email principal (opcional) -->
@@ -198,7 +176,7 @@
                     <xs:documentation>Dirección de correo electrónico principal</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Sitio web (opcional) -->
             <xs:element name="dSitioWeb" type="tipoSitioWeb" minOccurs="0">
                 <xs:annotation>
@@ -211,12 +189,9 @@
     <!-- Tipo para información de contacto completa -->
     <xs:complexType name="tipoContactoCompleto">
         <xs:annotation>
-            <xs:documentation>
-                Información completa de contacto que combina todos los medios.
-                Usado para emisores, receptores y otras entidades.
-                
-                Al menos uno de los medios de contacto debe estar presente.
-            </xs:documentation>
+            <xs:documentation> Información completa de contacto que combina todos los medios. Usado
+                para emisores, receptores y otras entidades. Al menos uno de los medios de contacto
+                debe estar presente. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <!-- Contacto telefónico -->
@@ -225,14 +200,14 @@
                     <xs:documentation>Información de contacto telefónico</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Contacto digital -->
             <xs:element name="gContactoDig" type="tipoContactoDigital" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Información de contacto digital</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Código postal (opcional) -->
             <xs:element name="dCodPos" type="tipoCodigoPostal" minOccurs="0">
                 <xs:annotation>
@@ -249,10 +224,8 @@
     <!-- Contacto específico para emisor -->
     <xs:complexType name="tipoContactoEmisor">
         <xs:annotation>
-            <xs:documentation>
-                Información de contacto específica para emisores.
-                El email es obligatorio para emisores activos en SIFEN.
-            </xs:documentation>
+            <xs:documentation> Información de contacto específica para emisores. El email es
+                obligatorio para emisores activos en SIFEN. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <!-- Email obligatorio para emisores -->
@@ -261,14 +234,14 @@
                     <xs:documentation>Email obligatorio para comunicaciones SIFEN</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Teléfono principal (recomendado) -->
             <xs:element name="dTelef" type="tipoTelefono" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Teléfono principal de contacto</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Sitio web (opcional) -->
             <xs:element name="dSitioWeb" type="tipoSitioWeb" minOccurs="0">
                 <xs:annotation>
@@ -281,10 +254,8 @@
     <!-- Contacto específico para receptor -->
     <xs:complexType name="tipoContactoReceptor">
         <xs:annotation>
-            <xs:documentation>
-                Información de contacto específica para receptores.
-                Todos los campos son opcionales para receptores.
-            </xs:documentation>
+            <xs:documentation> Información de contacto específica para receptores. Todos los campos
+                son opcionales para receptores. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <!-- Email (opcional) -->
@@ -293,14 +264,14 @@
                     <xs:documentation>Email para envío de documentos electrónicos</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Teléfono (opcional) -->
             <xs:element name="dTelef" type="tipoTelefono" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Teléfono de contacto del receptor</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Celular (opcional) -->
             <xs:element name="dCelular" type="tipoTelefonoMovil" minOccurs="0">
                 <xs:annotation>
@@ -317,30 +288,23 @@
     <!-- Tipo para validación de email con dominio específico -->
     <xs:simpleType name="tipoEmailEmpresarial">
         <xs:annotation>
-            <xs:documentation>
-                Email empresarial que excluye dominios de correo gratuito.
-                Para uso en validaciones más estrictas de emisores.
-            </xs:documentation>
+            <xs:documentation> Email empresarial que excluye dominios de correo gratuito. Para uso
+                en validaciones más estrictas de emisores. </xs:documentation>
         </xs:annotation>
         <xs:restriction base="tipoEmail">
             <!-- Excluir dominios comunes gratuitos en validaciones específicas -->
-            <xs:pattern value="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
+            <xs:pattern value="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" />
         </xs:restriction>
     </xs:simpleType>
 
     <!-- Tipo para teléfono Paraguay específico -->
     <xs:simpleType name="tipoTelefonoParaguay">
         <xs:annotation>
-            <xs:documentation>
-                Número telefónico específico para Paraguay.
-                Formatos válidos:
-                - Fijo Asunción: (021) XXX-XXXX
-                - Fijo interior: (0XXX) XXX-XXXX  
-                - Móvil: 09XX-XXXXXX
-            </xs:documentation>
+            <xs:documentation> Número telefónico específico para Paraguay. Formatos válidos: - Fijo
+                Asunción: (021) XXX-XXXX - Fijo interior: (0XXX) XXX-XXXX - Móvil: 09XX-XXXXXX </xs:documentation>
         </xs:annotation>
         <xs:restriction base="tipoTelefono">
-            <xs:pattern value="[0-9\(\)\-\s]{8,15}"/>
+            <xs:pattern value="[0-9\(\)\-\s]{8,15}" />
         </xs:restriction>
     </xs:simpleType>
 
@@ -351,31 +315,27 @@
     <!-- Grupo de elementos básicos de contacto -->
     <xs:group name="grupoContactoBasico">
         <xs:annotation>
-            <xs:documentation>
-                Grupo reutilizable con elementos básicos de contacto.
-                Usado en múltiples tipos complejos.
-            </xs:documentation>
+            <xs:documentation> Grupo reutilizable con elementos básicos de contacto. Usado en
+                múltiples tipos complejos. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element name="dTelef" type="tipoTelefono" minOccurs="0"/>
-            <xs:element name="dCorreo" type="tipoEmail" minOccurs="0"/>
+            <xs:element name="dTelef" type="tipoTelefono" minOccurs="0" />
+            <xs:element name="dCorreo" type="tipoEmail" minOccurs="0" />
         </xs:sequence>
     </xs:group>
 
     <!-- Grupo de elementos de contacto extendido -->
     <xs:group name="grupoContactoExtendido">
         <xs:annotation>
-            <xs:documentation>
-                Grupo reutilizable con elementos extendidos de contacto.
-                Incluye más opciones de comunicación.
-            </xs:documentation>
+            <xs:documentation> Grupo reutilizable con elementos extendidos de contacto. Incluye más
+                opciones de comunicación. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element name="dTelef" type="tipoTelefono" minOccurs="0"/>
-            <xs:element name="dCelular" type="tipoTelefonoMovil" minOccurs="0"/>
-            <xs:element name="dCorreo" type="tipoEmail" minOccurs="0"/>
-            <xs:element name="dSitioWeb" type="tipoSitioWeb" minOccurs="0"/>
-            <xs:element name="dFax" type="tipoFax" minOccurs="0"/>
+            <xs:element name="dTelef" type="tipoTelefono" minOccurs="0" />
+            <xs:element name="dCelular" type="tipoTelefonoMovil" minOccurs="0" />
+            <xs:element name="dCorreo" type="tipoEmail" minOccurs="0" />
+            <xs:element name="dSitioWeb" type="tipoSitioWeb" minOccurs="0" />
+            <xs:element name="dFax" type="tipoFax" minOccurs="0" />
         </xs:sequence>
     </xs:group>
 
@@ -386,10 +346,8 @@
     <!-- Tipo de contacto preferido -->
     <xs:simpleType name="tipoContactoPreferido">
         <xs:annotation>
-            <xs:documentation>
-                Tipo de contacto preferido para comunicaciones.
-                Usado para indicar el medio preferido de comunicación.
-            </xs:documentation>
+            <xs:documentation> Tipo de contacto preferido para comunicaciones. Usado para indicar el
+                medio preferido de comunicación. </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:string">
             <xs:enumeration value="1"> <!-- Email -->
@@ -423,10 +381,8 @@
     <!-- Estados de disponibilidad de contacto -->
     <xs:simpleType name="tipoEstadoContacto">
         <xs:annotation>
-            <xs:documentation>
-                Estado de disponibilidad del medio de contacto.
-                Usado para indicar si el contacto está activo.
-            </xs:documentation>
+            <xs:documentation> Estado de disponibilidad del medio de contacto. Usado para indicar si
+                el contacto está activo. </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:string">
             <xs:enumeration value="A"> <!-- Activo -->
@@ -454,12 +410,9 @@
     <!-- Contacto para notificaciones SIFEN -->
     <xs:complexType name="tipoContactoNotificacionesSIFEN">
         <xs:annotation>
-            <xs:documentation>
-                Información de contacto específica para recibir notificaciones
-                automáticas del sistema SIFEN (rechazos, alertas, etc.).
-                
-                Email es obligatorio para recibir notificaciones del sistema.
-            </xs:documentation>
+            <xs:documentation> Información de contacto específica para recibir notificaciones
+                automáticas del sistema SIFEN (rechazos, alertas, etc.). Email es obligatorio para
+                recibir notificaciones del sistema. </xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <!-- Email obligatorio para notificaciones -->
@@ -468,21 +421,21 @@
                     <xs:documentation>Email para notificaciones automáticas SIFEN</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Email alternativo (opcional) -->
             <xs:element name="dCorreoAlt" type="tipoEmail" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Email alternativo para notificaciones</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Teléfono para SMS (opcional) -->
             <xs:element name="dTelefSMS" type="tipoTelefonoMovil" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Número móvil para notificaciones SMS</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Horario preferido para notificaciones -->
             <xs:element name="cHorarioNotif" minOccurs="0">
                 <xs:annotation>
@@ -490,9 +443,9 @@
                 </xs:annotation>
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
-                        <xs:enumeration value="1"/> <!-- 24 horas -->
-                        <xs:enumeration value="2"/> <!-- Horario comercial -->
-                        <xs:enumeration value="3"/> <!-- Solo urgentes fuera de horario -->
+                        <xs:enumeration value="1" /> <!-- 24 horas -->
+                        <xs:enumeration value="2" /> <!-- Horario comercial -->
+                        <xs:enumeration value="3" /> <!-- Solo urgentes fuera de horario -->
                     </xs:restriction>
                 </xs:simpleType>
             </xs:element>
@@ -506,9 +459,7 @@
     <!-- Atributo para tipo de contacto -->
     <xs:attributeGroup name="atributosContacto">
         <xs:annotation>
-            <xs:documentation>
-                Grupo de atributos comunes para elementos de contacto.
-            </xs:documentation>
+            <xs:documentation> Grupo de atributos comunes para elementos de contacto. </xs:documentation>
         </xs:annotation>
         <xs:attribute name="tipo" type="tipoContactoPreferido" use="optional">
             <xs:annotation>
@@ -530,7 +481,7 @@
     <!-- ===================================================================== -->
     <!-- NOTAS DE IMPLEMENTACIÓN                                              -->
     <!-- ===================================================================== -->
-    
+
     <!--
         NOTAS PARA DESARROLLADORES:
         

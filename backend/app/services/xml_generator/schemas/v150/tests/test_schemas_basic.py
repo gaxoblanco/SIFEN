@@ -28,6 +28,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any
 from lxml import etree
+import os
 
 # Reutilizar utils ya implementados
 from app.services.xml_generator.schemas.v150.tests.utils.schema_validator import (
@@ -68,6 +69,15 @@ class TestBasicTypes:
     - Tipos de texto básicos
     - Validaciones de patrones fundamentales
     """
+
+    def save_xml_fragment(self, xml_content: str, test_name: str, output_dir: str = "xml_test_outputs"):
+        """
+        Guarda el fragmento XML en un archivo para inspección.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        file_path = os.path.join(output_dir, f"{test_name}.xml")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(xml_content)
 
     def test_version_format_valid(self, basic_types_validator, common_test_data, sifen_namespace):
         """Test validación de versión del formato (tu test original mejorado)"""

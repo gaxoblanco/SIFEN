@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Tipos de Emisores SIFEN v150
+  Archivo: parties/issuer_types.xsd
+  
+  Este módulo define los tipos específicos para emisores de documentos electrónicos,
+  implementando el Grupo D2 (D100-D139) del Manual Técnico SIFEN.
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  - common/geographic_types.xsd (ubicaciones geográficas)
+  - common/contact_types.xsd (información de contacto)
+  - parties/common_party_types.xsd (tipos base compartidos)
+  
+  Elementos SIFEN cubiertos:
+  - D100: gEmis (Grupo del emisor)
+  - D101-D114: Información básica del emisor
+  - D130-D139: Actividades económicas del emisor
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0 Modular
+  Fecha: 2025-06-21
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS DEPENDIENTES                               -->
+    <!-- ================================================================== -->
+    
+    <xs:include schemaLocation="../common/basic_types.xsd"/>
+    <xs:include schemaLocation="../common/geographic_types.xsd"/>
+    <xs:include schemaLocation="../common/contact_types.xsd"/>
+    <xs:include schemaLocation="common_party_types.xsd"/>
+
+    <!-- ================================================================== -->
+    <!-- ENUMERACIONES ESPECÍFICAS DE EMISORES                             -->
+    <!-- ================================================================== -->
+    
+    <!-- Código tipo régimen del emisor -->
+    <xs:simpleType name="tipoCodigoTipoRegimen">
+        <xs:annotation>
+            <xs:documentation>
+                cTipReg (D104) - Código tipo régimen del emisor
+                Basado en normativa SET Paraguay
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Régimen simplificado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Régimen general</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Régimen de pequeño contribuyente</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- TIPOS COMPLEJOS ESPECÍFICOS DE EMISORES                           -->
+    <!-- ================================================================== -->
+    
+    <!-- Información específica del emisor -->
+    <xs:complexType name="tipoInformacionEmisor">
+        <xs:annotation>
+            <xs:documentation>
+                Información específica del emisor de documentos electrónicos
+                Campos D101-D114 del Manual Técnico SIFEN
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- RUC del emisor (obligatorio) -->
+            <xs:element name="dRucEm" type="tipoRUC">
+                <xs:annotation>
+                    <xs:documentation>D101 - RUC del emisor (sin dígito verificador)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDVEmi" type="tipoDigitoVerificador">
+                <xs:annotation>
+                    <xs:documentation>D102 - Dígito verificador del RUC emisor</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Tipo de contribuyente y régimen -->
+            <xs:element name="iTipCont" type="tipoTipoContribuyente">
+                <xs:annotation>
+                    <xs:documentation>D103 - Tipo de contribuyente (1=Física, 2=Jurídica)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="cTipReg" type="tipoCodigoTipoRegimen">
+                <xs:annotation>
+                    <xs:documentation>D104 - Código tipo régimen</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Nombres del emisor -->
+            <xs:element name="dNomEmi">
+                <xs:annotation>
+                    <xs:documentation>D105 - Nombre/razón social emisor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="4"/>
+                        <xs:maxLength value="60"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dNomFanEmi" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D106 - Nombre de fantasía emisor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="4"/>
+                        <xs:maxLength value="60"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Dirección del emisor -->
+            <xs:element name="dDirEmi">
+                <xs:annotation>
+                    <xs:documentation>D107 - Dirección del emisor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="5"/>
+                        <xs:maxLength value="200"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dNumCas" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D108 - Número de casa</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="1"/>
+                        <xs:maxLength value="20"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            
+            <!-- Ubicación geográfica (D109-D112) -->
+            <xs:element name="cDepEmi" type="tipoCodigoDepartamento">
+                <xs:annotation>
+                    <xs:documentation>
+                        D109 - Código departamento emisor
+                        REUTILIZA tipo desde common/geographic_types.xsd
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="cDisEmi" type="tipoCodigoDistrito">
+                <xs:annotation>
+                    <xs:documentation>
+                        D110 - Código distrito emisor
+                        REUTILIZA tipo desde common/geographic_types.xsd
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="cCiuEmi" type="tipoCodigoCiudad">
+                <xs:annotation>
+                    <xs:documentation>
+                        D111 - Código ciudad emisor
+                        REUTILIZA tipo desde common/geographic_types.xsd
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDesCiuEmi" type="tipoDescripcionCiudad">
+                <xs:annotation>
+                    <xs:documentation>
+                        D112 - Descripción ciudad emisor
+                        REUTILIZA tipo desde common/geographic_types.xsd
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Información de contacto (D113-D114) -->
+            <xs:element name="dTelEmi" type="tipoTelefono" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        D113 - Teléfono emisor
+                        REUTILIZA tipo desde common/contact_types.xsd
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dEmailE" type="tipoEmail" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        D114 - Email emisor
+                        REUTILIZA tipo desde common/contact_types.xsd
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL DEL EMISOR                                        -->
+    <!-- ================================================================== -->
+    
+    <!-- Grupo completo del emisor -->
+    <xs:complexType name="tipoGrupoEmisor">
+        <xs:annotation>
+            <xs:documentation>
+                gEmis (D100) - Grupo del emisor completo
+                
+                Combina información básica del emisor con sus actividades económicas.
+                Implementa completamente el Grupo D2 del Manual Técnico SIFEN.
+                
+                Estructura:
+                - Información básica (D101-D114)
+                - Actividades económicas (D130-D139) - 1 a 999 actividades
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Información básica del emisor -->
+            <xs:element name="informacionBasica" type="tipoInformacionEmisor">
+                <xs:annotation>
+                    <xs:documentation>Datos básicos del emisor (D101-D114)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            
+            <!-- Actividades económicas del emisor -->
+            <xs:element name="actividadesEconomicas" type="tipoActividadesEconomicas">
+                <xs:annotation>
+                    <xs:documentation>
+                        Actividades económicas del emisor (D130-D139)
+                        REUTILIZA tipo desde common_party_types.xsd
+                        
+                        Un emisor debe tener al menos 1 actividad económica
+                        y puede tener hasta 999 actividades.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING INDEPENDIENTE                    -->
+    <!-- ================================================================== -->
+    
+    <xs:element name="gEmis" type="tipoGrupoEmisor">
+        <xs:annotation>
+            <xs:documentation>
+                Elemento global para testing independiente del grupo emisor
+                
+                Permite validar la estructura del emisor de forma aislada,
+                útil para tests unitarios y desarrollo modular.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+    
+    <xs:element name="informacionEmisor" type="tipoInformacionEmisor">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de información básica del emisor</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE IMPLEMENTACIÓN                                   -->
+    <!-- ================================================================== -->
+    
+    <!--
+        EJEMPLO DE USO - PyME paraguaya típica:
+        
+        <gEmis>
+            <informacionBasica>
+                <dRucEm>80012345</dRucEm>
+                <dDVEmi>9</dDVEmi>
+                <iTipCont>2</iTipCont>
+                <cTipReg>2</cTipReg>
+                <dNomEmi>Consultores Asociados S.A.</dNomEmi>
+                <dNomFanEmi>Consultores Asociados</dNomFanEmi>
+                <dDirEmi>Av. Mariscal López 1234</dDirEmi>
+                <dNumCas>1234</dNumCas>
+                <cDepEmi>11</cDepEmi>
+                <cDisEmi>1</cDisEmi>
+                <cCiuEmi>101</cCiuEmi>
+                <dDesCiuEmi>Asunción</dDesCiuEmi>
+                <dTelEmi>021123456</dTelEmi>
+                <dEmailE>contacto@consultores.com.py</dEmailE>
+            </informacionBasica>
+            <actividadesEconomicas>
+                <gActEco>
+                    <cActEco>691100</cActEco>
+                    <dDesActEco>Servicios de contabilidad y auditoría</dDesActEco>
+                </gActEco>
+            </actividadesEconomicas>
+        </gEmis>
+        
+        REUTILIZACIÓN DE MÓDULOS:
+        - common/basic_types.xsd: tipoRUC, tipoDigitoVerificador
+        - common/geographic_types.xsd: códigos y descripciones geográficas
+        - common/contact_types.xsd: tipoTelefono, tipoEmail
+        - common_party_types.xsd: tipoActividadesEconomicas, tipoTipoContribuyente
+        
+        VALIDACIONES ESPECÍFICAS:
+        - RUC obligatorio para emisores
+        - Al menos 1 actividad económica
+        - Ubicación geográfica completa obligatoria
+        - Formato de datos según especificación SIFEN
+        
+        CASOS DE TESTING:
+        - Emisor persona física vs jurídica
+        - Múltiples actividades económicas
+        - Diferentes regímenes fiscales
+        - Validación de ubicaciones paraguayas
+        - Formatos de contacto válidos
+    -->
+
+</xs:schema>

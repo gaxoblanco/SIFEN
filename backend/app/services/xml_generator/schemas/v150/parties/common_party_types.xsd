@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Tipos Base Compartidos para Emisores y Receptores SIFEN v150
+  Archivo: parties/common_party_types.xsd
+  
+  Este módulo define tipos básicos reutilizables entre emisores y receptores,
+  evitando duplicación y garantizando consistencia.
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos del sistema)
+  - common/geographic_types.xsd (ubicaciones geográficas)
+  - common/contact_types.xsd (información de contacto)
+  
+  Elementos SIFEN cubiertos:
+  - Estructura base de contribuyente
+  - Actividades económicas (D130-D139)
+  - Tipos de identificación
+  - Naturaleza de contribuyente
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0 Modular
+  Fecha: 2025-06-21
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS DEPENDIENTES                               -->
+    <!-- ================================================================== -->
+
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+    <xs:include schemaLocation="../common/geographic_types.xsd" />
+    <xs:include schemaLocation="../common/contact_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- ENUMERACIONES Y TIPOS SIMPLES                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipo de contribuyente según SIFEN -->
+    <xs:simpleType name="tipoTipoContribuyente">
+        <xs:annotation>
+            <xs:documentation> iTipCont (D103) - Tipo de contribuyente Basado en Manual Técnico
+                SIFEN v150 </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Persona física</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Persona jurídica</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Naturaleza del contribuyente -->
+    <xs:simpleType name="tipoNaturalezaContribuyente">
+        <xs:annotation>
+            <xs:documentation> iNatRec (D202) - Naturaleza del receptor/contribuyente Aplica tanto
+                para emisores como receptores </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Nacional</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Extranjero</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de operación comercial -->
+    <xs:simpleType name="tipoTipoOperacion">
+        <xs:annotation>
+            <xs:documentation> iTiOpe (D203) - Tipo de operación Define el tipo de transacción
+                comercial </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>B2B - Business to Business</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>B2C - Business to Consumer</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>B2G - Business to Government</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>B2F - Business to Foreigner</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de documento de identidad -->
+    <xs:simpleType name="tipoTipoDocumentoIdentidad">
+        <xs:annotation>
+            <xs:documentation> iTipIDRec (D209) - Tipo de documento de identidad Para receptores sin
+                RUC </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Cédula de identidad paraguaya</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Pasaporte</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Cédula de identidad extranjera</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Carnet de residencia</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Otro documento válido</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- TIPOS COMPLEJOS BASE                                              -->
+    <!-- ================================================================== -->
+
+    <!-- Información básica de identificación -->
+    <xs:complexType name="tipoIdentificacionBasica">
+        <xs:annotation>
+            <xs:documentation> Estructura base para identificación de personas físicas/jurídicas
+                Reutilizable entre emisores y receptores </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- RUC (opcional para consumo final) -->
+            <xs:element name="dRuc" type="tipoRUC" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>RUC del contribuyente (sin DV)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDVRuc" type="tipoDigitoVerificador" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Dígito verificador del RUC</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tipo y naturaleza -->
+            <xs:element name="iTipCont" type="tipoTipoContribuyente" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Tipo de contribuyente</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="iNaturaleza" type="tipoNaturalezaContribuyente" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Naturaleza del contribuyente</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Documento de identidad alternativo (para no contribuyentes) -->
+            <xs:element name="iTipDocIdent" type="tipoTipoDocumentoIdentidad" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Tipo de documento de identidad</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dNumDocIdent" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Número del documento de identidad</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="1" />
+                        <xs:maxLength value="20" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Información de nombres -->
+    <xs:complexType name="tipoInformacionNombres">
+        <xs:annotation>
+            <xs:documentation> Nombres y razón social del contribuyente Reutilizable entre emisores
+                y receptores </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dNombre" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Nombre/razón social principal</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="4" />
+                        <xs:maxLength value="60" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dNombreFantasia" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Nombre de fantasía</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="4" />
+                        <xs:maxLength value="60" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Actividad económica individual -->
+    <xs:complexType name="tipoActividadEconomica">
+        <xs:annotation>
+            <xs:documentation> gActEco (D130) - Grupo de actividad económica individual Basado en
+                campos D131-D132 del Manual Técnico SIFEN </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="cActEco">
+                <xs:annotation>
+                    <xs:documentation>D131 - Código de actividad económica (6 dígitos)</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:pattern value="[0-9]{6}" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dDesActEco">
+                <xs:annotation>
+                    <xs:documentation>D132 - Descripción de la actividad económica</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="8" />
+                        <xs:maxLength value="200" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Lista de actividades económicas -->
+    <xs:complexType name="tipoActividadesEconomicas">
+        <xs:annotation>
+            <xs:documentation> Contenedor para múltiples actividades económicas Un emisor puede
+                tener de 1 a 999 actividades </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="gActEco" type="tipoActividadEconomica" minOccurs="1" maxOccurs="999">
+                <xs:annotation>
+                    <xs:documentation>Actividad económica individual</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- TIPO BASE CONTRIBUYENTE                                           -->
+    <!-- ================================================================== -->
+
+    <!-- Estructura base completa de contribuyente -->
+    <xs:complexType name="tipoContribuyenteBase">
+        <xs:annotation>
+            <xs:documentation> Estructura base reutilizable para emisores y receptores Combina
+                identificación, nombres, ubicación y contacto Reutiliza tipos de módulos common/: -
+                basic_types.xsd: RUC, dígitos verificadores - geographic_types.xsd: ubicación
+                geográfica - contact_types.xsd: teléfonos y emails </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Identificación -->
+            <xs:element name="identificacion" type="tipoIdentificacionBasica">
+                <xs:annotation>
+                    <xs:documentation>Datos de identificación del contribuyente</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Nombres -->
+            <xs:element name="nombres" type="tipoInformacionNombres">
+                <xs:annotation>
+                    <xs:documentation>Información de nombres del contribuyente</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Ubicación geográfica (reutiliza common/geographic_types.xsd) -->
+            <xs:element name="ubicacion" type="tipoUbicacionGeografica" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Ubicación geográfica del contribuyente IMPORTADO desde
+                        common/geographic_types.xsd </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Información de contacto (reutiliza common/contact_types.xsd) -->
+            <xs:element name="contacto" type="tipoContactoBasico" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Información de contacto del contribuyente IMPORTADO desde
+                        common/contact_types.xsd </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING INDEPENDIENTE                    -->
+    <!-- ================================================================== -->
+
+    <xs:element name="gActEco" type="tipoActividadEconomica">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing independiente de actividad económica</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gActEcos" type="tipoActividadesEconomicas">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing independiente de múltiples actividades</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="contribuyenteBase" type="tipoContribuyenteBase">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing independiente de contribuyente base</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE CASOS DE USO                                     -->
+    <!-- ================================================================== -->
+
+    <!--
+        CASOS DE USO PRINCIPALES:
+        
+        1. PyME paraguaya típica:
+           - RUC: 80012345-9
+           - Razón social: "Consultores Asociados S.A."
+           - Tipo: Persona jurídica (2)
+           - Naturaleza: Nacional (1)
+           - 1 actividad económica principal
+           - Ubicación: Asunción, Paraguay
+           - Contacto: teléfono paraguayo + email
+        
+        2. Receptor contribuyente:
+           - RUC: 80098765-1
+           - Razón social: "Cliente Empresarial S.R.L."
+           - Tipo: Persona jurídica (2)
+           - Naturaleza: Nacional (1)
+           
+        3. Receptor consumo final:
+           - Sin RUC
+           - Cédula de identidad: 1234567
+           - Nombre: "Juan Pérez"
+           - Tipo documento: Cédula paraguaya (1)
+        
+        REUTILIZACIÓN DE MÓDULOS:
+        - basic_types.xsd: tipoRUC, tipoDigitoVerificador
+        - geographic_types.xsd: tipoUbicacionCompleta
+        - contact_types.xsd: tipoInformacionContacto
+        
+        BENEFICIOS:
+        - Consistencia entre emisores y receptores
+        - Reutilización máxima de código
+        - Testing independiente por tipo
+        - Base sólida para extensiones futuras
+    -->
+
+</xs:schema>

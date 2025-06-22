@@ -9,166 +9,219 @@
   - Atributos fundamentales como CDC (Id)
   - Grupos principales que componen cualquier documento electrónico
   
-  Grupos definidos:
-  - gDatGralOpe: Datos generales de la operación (B001-B099)
-  - gOpDE: Operación específica del documento electrónico (B001-B099) 
-  - gTimbr: Datos del timbrado (C001-C099)
-  - gEmis: Datos del emisor (D001-D099)
-  - gDatRec: Datos del receptor (D100-D199)
-  - gTotSub: Totales y subtotales (F001-F099)
+  ESTADO ACTUAL:
+  ✅ Usa módulos existentes: parties/, document_core/
+  ⏳ Define temporalmente: tipoGrupoItems (hasta que exista operations/items.xsd)
+  ❌ Comenta: Campos específicos por tipo (hasta que existan document_types/)
   
   Dependencias:
-  - common/basic_types.xsd (para tipos básicos como tipoCodigoControl, tipoVersionFormato)
+  - common/basic_types.xsd (tipos básicos)
+  - document_core/operation_data.xsd (operación)
+  - document_core/stamping_data.xsd (timbrado)  
+  - document_core/totals_subtotals.xsd (totales)
+  - parties/issuer_types.xsd (emisor)
+  - parties/receiver_types.xsd (receptor)
   
   Autor: Sistema SIFEN Paraguay
   Versión: 1.5.0
   Fecha: 2025-06-20
+  Corregido: 2025-06-22 - Integración con módulos existentes
 -->
 
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns="http://ekuatia.set.gov.py/sifen/xsd"
-           targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
-           elementFormDefault="qualified"
-           attributeFormDefault="unqualified"
-           version="1.5.0">
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
 
     <!-- ================================================================== -->
     <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
     <!-- ================================================================== -->
-    
+
     <!-- Tipos básicos comunes -->
-    <xs:include schemaLocation="../common/basic_types.xsd"/>
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Módulos document_core/ -->
+    <xs:include schemaLocation="operation_data.xsd" />
+    <xs:include schemaLocation="stamping_data.xsd" />
+    <xs:include schemaLocation="totals_subtotals.xsd" />
+
+    <!-- Módulos parties/ -->
+    <xs:include schemaLocation="../parties/issuer_types.xsd" />
+    <xs:include schemaLocation="../parties/receiver_types.xsd" />
+
+    <!-- TODO: Agregar cuando existan:
+    <xs:include schemaLocation="../operations/items.xsd"/>
+    <xs:include schemaLocation="../document_types/factura_types.xsd"/>
+    <xs:include schemaLocation="../document_types/nota_credito_types.xsd"/>
+    <xs:include schemaLocation="../document_types/nota_debito_types.xsd"/>
+    <xs:include schemaLocation="../document_types/nota_remision_types.xsd"/>
+    <xs:include schemaLocation="../document_types/autofactura_types.xsd"/>
+    <xs:include schemaLocation="../document_types/associated_document.xsd"/>
+    -->
+
+    <!-- ================================================================== -->
+    <!-- TIPOS TEMPORALES (hasta que existan los módulos)                  -->
+    <!-- ================================================================== -->
+
+    <!-- Tipo temporal para ítems -->
+    <xs:complexType name="tipoGrupoItems">
+        <xs:annotation>
+            <xs:documentation> TEMPORAL: Grupo de ítems simplificado. Esta es una definición
+                temporal hasta que se implemente el módulo operations/items.xsd completo. Contiene
+                los campos mínimos necesarios para un ítem: - Descripción del producto/servicio -
+                Cantidad - Precio unitario - Precio total (cantidad * precio unitario) TODO:
+                Reemplazar por tipoGrupoItems de operations/items.xsd </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- Descripción del producto o servicio -->
+            <xs:element name="dDesProSer" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation> Descripción del producto o servicio. Campo E708 según
+                        documentación SIFEN v150. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Cantidad -->
+            <xs:element name="dCantProSer" type="xs:decimal">
+                <xs:annotation>
+                    <xs:documentation> Cantidad del producto o servicio. Permite decimales para
+                        productos fraccionables. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Precio unitario -->
+            <xs:element name="dPUniProSer" type="xs:decimal">
+                <xs:annotation>
+                    <xs:documentation> Precio unitario del producto o servicio. En guaraníes (PYG). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Precio total del ítem -->
+            <xs:element name="dTotBruOpeItem" type="xs:decimal">
+                <xs:annotation>
+                    <xs:documentation> Total bruto de la operación del ítem. Calculado: dCantProSer
+                        * dPUniProSer </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
 
     <!-- ================================================================== -->
     <!-- ELEMENTO PRINCIPAL: DOCUMENTO ELECTRÓNICO (A001)                  -->
     <!-- ================================================================== -->
-    
+
     <xs:element name="DE" type="tipoDocumentoElectronico">
         <xs:annotation>
-            <xs:documentation>
-                A001 - DE: Documento Electrónico completo.
-                
-                Este es el elemento principal que contiene toda la información
-                estructurada del documento electrónico según normativa SIFEN.
-                
-                Atributos obligatorios:
-                - Id: CDC (Código de Control) de 44 dígitos que identifica únicamente el documento
-                
-                Grupos principales que contiene:
-                - gOpeDE: Datos de la operación del documento electrónico
-                - gTimb: Datos del timbrado fiscal
-                - gDatGralOpe: Datos generales de la operación
-                - gEmis: Datos del emisor
-                - gDatRec: Datos del receptor  
-                - gCamItem: Campos de ítems/productos/servicios
-                - gTotSub: Totales, subtotales e impuestos
-                - Grupos específicos según tipo de documento
-            </xs:documentation>
+            <xs:documentation> A001 - DE: Documento Electrónico completo. Este es el elemento
+                principal que contiene toda la información estructurada del documento electrónico
+                según normativa SIFEN. Atributos obligatorios: - Id: CDC (Código de Control) de 44
+                dígitos que identifica únicamente el documento Grupos principales que contiene: -
+                gOpeDE: Datos de la operación del documento electrónico - gTimb: Datos del timbrado
+                fiscal - gDatGralOpe: Datos generales de la operación - gEmis: Datos del emisor -
+                gDatRec: Datos del receptor - gCamItem: Campos de ítems/productos/servicios -
+                gTotSub: Totales, subtotales e impuestos - Grupos específicos según tipo de
+                documento (pendientes) </xs:documentation>
         </xs:annotation>
     </xs:element>
 
     <!-- ================================================================== -->
     <!-- TIPO COMPLEJO: DOCUMENTO ELECTRÓNICO                              -->
     <!-- ================================================================== -->
-    
+
     <xs:complexType name="tipoDocumentoElectronico">
         <xs:annotation>
-            <xs:documentation>
-                Tipo complejo que define la estructura completa de un documento electrónico.
-                
-                Contiene todos los grupos de datos necesarios para conformar
-                un documento válido según la normativa SET/SIFEN de Paraguay.
-                
-                La secuencia de elementos debe respetarse para mantener 
-                compatibilidad con el sistema receptor SIFEN.
-            </xs:documentation>
+            <xs:documentation> Tipo complejo que define la estructura completa de un documento
+                electrónico. Contiene todos los grupos de datos necesarios para conformar un
+                documento válido según la normativa SET/SIFEN de Paraguay. La secuencia de elementos
+                debe respetarse para mantener compatibilidad con el sistema receptor SIFEN. ESTADO
+                ACTUAL: ✅ Integrado con módulos existentes (parties/, document_core/) ⏳ Definición
+                temporal de gCamItem (hasta que exista operations/) ❌ Campos específicos comentados
+                (hasta que existan document_types/) </xs:documentation>
         </xs:annotation>
-        
+
         <xs:sequence>
-            
+
+            <!-- ✅ GRUPOS EXISTENTES (con módulos implementados) -->
+
             <!-- Datos de la operación del documento electrónico -->
             <xs:element name="gOpeDE" type="tipoGrupoOperacionDocumento" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        Grupo de datos de la operación del documento electrónico.
-                        Incluye tipo de documento, fecha de emisión, condiciones de pago, etc.
-                        Este grupo es obligatorio en todos los tipos de documentos.
-                    </xs:documentation>
+                    <xs:documentation> Grupo de datos de la operación del documento electrónico.
+                        IMPORTADO desde document_core/operation_data.xsd Incluye tipo de documento,
+                        fecha de emisión, código de seguridad, etc. </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Datos del timbrado fiscal -->
             <xs:element name="gTimb" type="tipoGrupoTimbrado" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        Grupo de datos del timbrado fiscal.
-                        Contiene información sobre el timbrado habilitante para emitir documentos electrónicos.
-                        Obligatorio para validar la autorización de emisión.
-                    </xs:documentation>
+                    <xs:documentation> Grupo de datos del timbrado fiscal. IMPORTADO desde
+                        document_core/stamping_data.xsd Contiene información sobre el timbrado
+                        habilitante para emitir documentos electrónicos. </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Datos generales de la operación comercial -->
-            <xs:element name="gDatGralOpe" type="tipoGrupoDatosGeneralesOperacion" minOccurs="1" maxOccurs="1">
+            <xs:element name="gDatGralOpe" type="tipoGrupoDatosGeneralesOperacion" minOccurs="1"
+                maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        Grupo de datos generales de la operación comercial.
-                        Incluye fecha y lugar de la operación, condiciones comerciales, etc.
-                        Diferente de gOpeDE que se enfoca en el documento electrónico en sí.
-                    </xs:documentation>
+                    <xs:documentation> Grupo de datos generales de la operación comercial. IMPORTADO
+                        desde document_core/operation_data.xsd Incluye fecha y lugar de la
+                        operación, condiciones comerciales, etc. </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Datos del emisor del documento -->
             <xs:element name="gEmis" type="tipoGrupoEmisor" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        Grupo de datos del emisor del documento.
-                        Contiene información del contribuyente que emite el documento:
-                        RUC, nombre/razón social, dirección, actividad económica, etc.
-                    </xs:documentation>
+                    <xs:documentation> Grupo de datos del emisor del documento. IMPORTADO desde
+                        parties/issuer_types.xsd Contiene información del contribuyente que emite el
+                        documento: RUC, nombre/razón social, dirección, actividad económica, etc. </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <!-- Datos del receptor del documento -->
             <xs:element name="gDatRec" type="tipoGrupoReceptor" minOccurs="0" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        Grupo de datos del receptor del documento.
-                        Opcional en algunos tipos de documentos (ej: tickets de venta al público).
-                        Cuando está presente, incluye RUC/CI, nombre, dirección del receptor.
-                    </xs:documentation>
+                    <xs:documentation> Grupo de datos del receptor del documento. IMPORTADO desde
+                        parties/receiver_types.xsd Opcional en algunos tipos de documentos (ej:
+                        tickets de venta al público). Cuando está presente, incluye RUC/CI, nombre,
+                        dirección del receptor. </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
+            <!-- ⏳ GRUPOS TEMPORALES (hasta que existan los módulos) -->
+
             <!-- Campos de ítems, productos o servicios -->
             <xs:element name="gCamItem" type="tipoGrupoItems" minOccurs="1" maxOccurs="unbounded">
                 <xs:annotation>
-                    <xs:documentation>
-                        Grupo de campos de ítems, productos o servicios.
-                        Puede repetirse múltiples veces (uno por cada ítem/producto/servicio).
-                        Cada grupo contiene: descripción, cantidad, precio, impuestos, etc.
-                        Al menos un grupo gCamItem es obligatorio en cualquier documento.
-                    </xs:documentation>
+                    <xs:documentation> Grupo de campos de ítems, productos o servicios. TEMPORAL:
+                        Definición simplificada hasta que exista operations/items.xsd Puede
+                        repetirse múltiples veces (uno por cada ítem/producto/servicio). Al menos un
+                        grupo gCamItem es obligatorio en cualquier documento. </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
+            <!-- ✅ GRUPOS EXISTENTES (continuación) -->
+
             <!-- Totales, subtotales e impuestos -->
             <xs:element name="gTotSub" type="tipoGrupoTotalesSubtotales" minOccurs="1" maxOccurs="1">
                 <xs:annotation>
-                    <xs:documentation>
-                        Grupo de totales, subtotales e impuestos.
-                        Consolida todos los cálculos del documento:
-                        - Subtotales por tipo de gravamen (exento, 5%, 10%)
-                        - Total de impuestos (IVA)
-                        - Descuentos globales
-                        - Total general de la operación
-                        Obligatorio para validar coherencia de cálculos.
-                    </xs:documentation>
+                    <xs:documentation> Grupo de totales, subtotales e impuestos. IMPORTADO desde
+                        document_core/totals_subtotals.xsd Consolida todos los cálculos del
+                        documento: - Subtotales por tipo de gravamen (exento, 5%, 10%) - Total de
+                        impuestos (IVA) - Descuentos globales - Total general de la operación </xs:documentation>
                 </xs:annotation>
             </xs:element>
+
+            <!-- ❌ GRUPOS COMENTADOS (hasta que existan los módulos) -->
+
+            <!-- TODO: Descomentar cuando existan los módulos document_types/
             
-            <!-- Campos específicos por tipo de documento (choice) -->
             <xs:choice minOccurs="0" maxOccurs="1">
                 <xs:annotation>
                     <xs:documentation>
@@ -182,35 +235,30 @@
                     </xs:documentation>
                 </xs:annotation>
                 
-                <!-- Campos específicos Factura Electrónica -->
                 <xs:element name="gCamFE" type="tipoGrupoCamposFactura" minOccurs="0">
                     <xs:annotation>
                         <xs:documentation>Campos específicos para Factura Electrónica (iTiDE=1)</xs:documentation>
                     </xs:annotation>
                 </xs:element>
                 
-                <!-- Campos específicos Autofactura -->
                 <xs:element name="gCamAuto" type="tipoGrupoCamposAutofactura" minOccurs="0">
                     <xs:annotation>
                         <xs:documentation>Campos específicos para Autofactura Electrónica (iTiDE=4)</xs:documentation>
                     </xs:annotation>
                 </xs:element>
                 
-                <!-- Campos específicos Nota de Crédito -->
                 <xs:element name="gCamNCE" type="tipoGrupoCamposNotaCredito" minOccurs="0">
                     <xs:annotation>
                         <xs:documentation>Campos específicos para Nota de Crédito Electrónica (iTiDE=5)</xs:documentation>
                     </xs:annotation>
                 </xs:element>
                 
-                <!-- Campos específicos Nota de Débito -->
                 <xs:element name="gCamNDE" type="tipoGrupoCamposNotaDebito" minOccurs="0">
                     <xs:annotation>
                         <xs:documentation>Campos específicos para Nota de Débito Electrónica (iTiDE=6)</xs:documentation>
                     </xs:annotation>
                 </xs:element>
                 
-                <!-- Campos específicos Nota de Remisión -->
                 <xs:element name="gCamNRE" type="tipoGrupoCamposNotaRemision" minOccurs="0">
                     <xs:annotation>
                         <xs:documentation>Campos específicos para Nota de Remisión Electrónica (iTiDE=7)</xs:documentation>
@@ -219,71 +267,105 @@
                 
             </xs:choice>
             
-            <!-- Campos de documento electrónico asociado (opcional) -->
             <xs:element name="gCamDEAsoc" type="tipoGrupoDocumentoAsociado" minOccurs="0" maxOccurs="1">
                 <xs:annotation>
                     <xs:documentation>
                         Grupo de campos de documento electrónico asociado.
+                        IMPORTADO desde document_types/associated_document.xsd
                         Utilizado para referenciar documentos relacionados:
                         - Documento que se anula (en Notas de Crédito/Débito)
                         - Documento de referencia
                         - Documentos impresos anteriores
-                        Opcional, solo presente cuando hay documentos asociados.
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             
+            -->
+
         </xs:sequence>
-        
+
         <!-- ============================================================== -->
         <!-- ATRIBUTOS DEL DOCUMENTO ELECTRÓNICO                           -->
         <!-- ============================================================== -->
-        
+
         <!-- CDC: Código de Control del Documento (44 dígitos) -->
-        <xs:attribute name="Id" type="tipoCodigoControl" use="required">
+        <xs:attribute name="Id" type="tipoCDC" use="required">
             <xs:annotation>
-                <xs:documentation>
-                    CDC (Código de Control del Documento) - Identificador único de 44 dígitos.
-                    
-                    Estructura del CDC:
-                    - Dígitos 1-2: Tipo de documento (01, 04, 05, 06, 07)
-                    - Dígitos 3-10: RUC del emisor (8 dígitos)
-                    - Dígitos 11-13: Código de establecimiento (3 dígitos)
-                    - Dígitos 14-16: Punto de expedición (3 dígitos)
-                    - Dígitos 17-23: Número secuencial (7 dígitos)
-                    - Dígitos 24-25: Tipo de contribuyente (1 dígito) + Fecha emisión día (1 dígito)
-                    - Dígitos 26-31: Fecha emisión YYMMDD (6 dígitos)
-                    - Dígitos 32-39: Código de seguridad tipo numérico (8 dígitos)
-                    - Dígitos 40-44: Dígito verificador (5 dígitos)
-                    
-                    Ejemplo: 01800024250016700100112022062632165498741
-                    Este CDC es único en todo el sistema SIFEN y permite rastreabilidad completa.
-                </xs:documentation>
+                <xs:documentation> CDC (Código de Control del Documento) - Identificador único de 44
+                    dígitos. Estructura del CDC según Manual SIFEN v150:
+                    [RUC_EMISOR][DV][TIPO_DOC][ESTABLECIMIENTO][PUNTO_EXP][NUMERO_DOC][FECHA_EMISION][TIPO_EMISION][COD_SEGURIDAD][DV_CDC]
+                    Donde: - RUC_EMISOR: RUC del emisor (8 dígitos) - DV: Dígito verificador del RUC
+                    (1 dígito) - TIPO_DOC: Tipo de documento (2 dígitos: 01,04,05,06,07) -
+                    ESTABLECIMIENTO: Código de establecimiento (3 dígitos) - PUNTO_EXP: Punto de
+                    expedición (3 dígitos) - NUMERO_DOC: Número secuencial (7 dígitos) -
+                    FECHA_EMISION: Fecha emisión YYYYMMDD (8 dígitos) - TIPO_EMISION: Tipo emisión
+                    (1 dígito: 1=Normal, 2=Contingencia) - COD_SEGURIDAD: Código de seguridad
+                    aleatorio (9 dígitos) - DV_CDC: Dígito verificador del CDC (1 dígito) Total: 44
+                    dígitos numéricos Ejemplo: 01800024250016700100112022062632165498741 Este CDC es
+                    único en todo el sistema SIFEN y permite rastreabilidad completa. </xs:documentation>
             </xs:annotation>
         </xs:attribute>
-        
+
     </xs:complexType>
 
     <!-- ================================================================== -->
-    <!-- DECLARACIONES DE TIPOS PARA GRUPOS (REFERENCIAS)                  -->
+    <!-- ELEMENTOS GLOBALES PARA VALIDACIÓN INDEPENDIENTE                  -->
     <!-- ================================================================== -->
-    
-    <!-- 
-        NOTA: Los tipos complejos para cada grupo (tipoGrupoOperacionDocumento, 
-        tipoGrupoTimbrado, etc.) están definidos en sus respectivos módulos:
+
+    <!-- Elemento global para el documento completo -->
+    <xs:element name="DocumentoElectronico" type="tipoDocumentoElectronico">
+        <xs:annotation>
+            <xs:documentation> Elemento global para validar independientemente el documento
+                electrónico completo. Útil para: - Validación de documentos completos - Tests de
+                integración entre módulos - Verificación de estructura general </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN                                           -->
+    <!-- ================================================================== -->
+
+    <!--
+        ESTADO ACTUAL DEL MÓDULO:
         
-        - tipoGrupoOperacionDocumento: document_core/operation_data.xsd
-        - tipoGrupoTimbrado: document_core/stamping_data.xsd  
-        - tipoGrupoDatosGeneralesOperacion: document_core/operation_data.xsd
-        - tipoGrupoEmisor: parties/issuer_types.xsd
-        - tipoGrupoReceptor: parties/receiver_types.xsd
-        - tipoGrupoItems: operations/items.xsd
-        - tipoGrupoTotalesSubtotales: document_core/totals_subtotals.xsd
-        - tipoGrupoCampos*: document_types/[tipo_documento]_types.xsd
-        - tipoGrupoDocumentoAsociado: document_types/associated_document.xsd
+        ✅ MÓDULOS INTEGRADOS:
+        - document_core/operation_data.xsd (gOpeDE, gDatGralOpe)
+        - document_core/stamping_data.xsd (gTimb)
+        - document_core/totals_subtotals.xsd (gTotSub)
+        - parties/issuer_types.xsd (gEmis)
+        - parties/receiver_types.xsd (gDatRec)
         
-        Esta modularización permite mantener el código organizado y facilita
-        el mantenimiento de cada sección específica.
+        ⏳ DEFINICIONES TEMPORALES:
+        - tipoGrupoItems (gCamItem) - hasta que exista operations/items.xsd
+        
+        ❌ PENDIENTES (comentados):
+        - Campos específicos por tipo de documento (document_types/)
+        - Documentos asociados (document_types/associated_document.xsd)
+        
+        PRÓXIMOS PASOS:
+        
+        1. Crear operations/items.xsd
+           - Implementar tipoGrupoItems completo
+           - Eliminar definición temporal de este archivo
+        
+        2. Crear document_types/factura_types.xsd
+           - Implementar tipoGrupoCamposFactura
+           - Descomentar elementos correspondientes
+        
+        3. Crear document_types/nota_*.xsd
+           - Implementar tipos para cada tipo de documento
+           - Descomentar choice de campos específicos
+        
+        4. Crear document_types/associated_document.xsd
+           - Implementar tipoGrupoDocumentoAsociado
+           - Descomentar elemento gCamDEAsoc
+        
+        BENEFICIOS DE ESTE ENFOQUE:
+        - ✅ Schema funcional con módulos existentes
+        - ✅ Estructura preparada para crecimiento
+        - ✅ Validación independiente de módulos
+        - ✅ Migración gradual sin romper funcionalidad
+        - ✅ Compatible con especificación SIFEN v150
     -->
 
 </xs:schema>

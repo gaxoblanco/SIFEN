@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Tipos de Receptores SIFEN v150
+  Archivo: parties/receiver_types.xsd
+  
+  Este módulo define los tipos específicos para receptores de documentos electrónicos,
+  implementando el Grupo D3 (D200-D299) del Manual Técnico SIFEN.
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  - common/geographic_types.xsd (ubicaciones geográficas)
+  - common/contact_types.xsd (información de contacto)
+  - parties/common_party_types.xsd (tipos base compartidos)
+  
+  Elementos SIFEN cubiertos:
+  - D200: gDatRec (Grupo del receptor)
+  - D201-D218: Información del receptor (contribuyente y consumo final)
+  
+  Casos soportados:
+  - Receptor contribuyente (con RUC)
+  - Receptor consumo final (sin RUC, con documento identidad)
+  - Receptor extranjero
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0 Modular
+  Fecha: 2025-06-21
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIÓN DE MÓDULOS DEPENDIENTES                               -->
+    <!-- ================================================================== -->
+
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+    <xs:include schemaLocation="../common/geographic_types.xsd" />
+    <xs:include schemaLocation="../common/contact_types.xsd" />
+    <xs:include schemaLocation="common_party_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- ENUMERACIONES ESPECÍFICAS DE RECEPTORES                           -->
+    <!-- ================================================================== -->
+
+    <!-- Tipo de contribuyente receptor -->
+    <xs:simpleType name="tipoTipoContribuyenteReceptor">
+        <xs:annotation>
+            <xs:documentation> iTiContRec (D201) - Tipo de contribuyente receptor Define si el
+                receptor es contribuyente o no </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Contribuyente inscripto</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>No contribuyente (consumo final)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de contribuyente RUC -->
+    <xs:simpleType name="tipoTipoContribuyenteRUC">
+        <xs:annotation>
+            <xs:documentation> iTiContRuc (D206) - Tipo de contribuyente RUC Específico para
+                receptores con RUC </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Persona física</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Persona jurídica</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- TIPOS COMPLEJOS ESPECÍFICOS DE RECEPTORES                         -->
+    <!-- ================================================================== -->
+
+    <!-- Información del receptor contribuyente -->
+    <xs:complexType name="tipoReceptorContribuyente">
+        <xs:annotation>
+            <xs:documentation> Información específica para receptor con RUC (contribuyente) Campos
+                D206-D218 del Manual Técnico SIFEN </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Tipo de contribuyente RUC -->
+            <xs:element name="iTiContRuc" type="tipoTipoContribuyenteRUC" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D206 - Tipo de contribuyente RUC</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC del receptor -->
+            <xs:element name="dRucRec" type="tipoRUC" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D207 - RUC del receptor (sin dígito verificador)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDVRec" type="tipoDigitoVerificador" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D208 - Dígito verificador del RUC receptor</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Nombres del receptor -->
+            <xs:element name="dNomRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D211 - Nombre/razón social receptor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="4" />
+                        <xs:maxLength value="60" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dNomFanRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D212 - Nombre fantasía receptor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="4" />
+                        <xs:maxLength value="60" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+
+            <!-- Dirección del receptor -->
+            <xs:element name="dDirRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D213 - Dirección receptor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="5" />
+                        <xs:maxLength value="200" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dNumCasRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D218 - Número casa receptor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="1" />
+                        <xs:maxLength value="20" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Información del receptor consumo final -->
+    <xs:complexType name="tipoReceptorConsumoFinal">
+        <xs:annotation>
+            <xs:documentation> Información específica para receptor sin RUC (consumo final) Campos
+                D209-D218 del Manual Técnico SIFEN </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Documento de identidad -->
+            <xs:element name="iTipIDRec" type="tipoTipoDocumentoIdentidad" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> D209 - Tipo de documento identidad REUTILIZA tipo desde
+                        common_party_types.xsd </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dNumIDRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D210 - Número documento identidad</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="1" />
+                        <xs:maxLength value="20" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+
+            <!-- Nombres del receptor -->
+            <xs:element name="dNomRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D211 - Nombre/razón social receptor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="4" />
+                        <xs:maxLength value="60" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+
+            <!-- Dirección del receptor (opcional para consumo final) -->
+            <xs:element name="dDirRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D213 - Dirección receptor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="5" />
+                        <xs:maxLength value="200" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="dNumCasRec" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>D218 - Número casa receptor</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="1" />
+                        <xs:maxLength value="20" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL DEL RECEPTOR                                      -->
+    <!-- ================================================================== -->
+
+    <!-- Grupo completo del receptor -->
+    <xs:complexType name="tipoGrupoReceptor">
+        <xs:annotation>
+            <xs:documentation> gDatRec (D200) - Grupo del receptor completo Implementa completamente
+                el Grupo D3 del Manual Técnico SIFEN. Soporta tanto receptores contribuyentes como
+                consumo final. El grupo es opcional (0-1) ya que algunas operaciones pueden
+                realizarse sin especificar receptor (ej: consumo final genérico). Estructura
+                condicional según tipo de receptor: - Contribuyente: incluye datos RUC - Consumo
+                final: incluye documento identidad - País extranjero: incluye información país </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Información básica del receptor (obligatoria) -->
+            <xs:element name="iTiContRec" type="tipoTipoContribuyenteReceptor">
+                <xs:annotation>
+                    <xs:documentation>D201 - Tipo de contribuyente receptor</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="iNatRec" type="tipoNaturalezaContribuyente" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> D202 - Naturaleza del receptor REUTILIZA tipo desde
+                        common_party_types.xsd </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="iTiOpe" type="tipoTipoOperacion">
+                <xs:annotation>
+                    <xs:documentation> D203 - Tipo de operación REUTILIZA tipo desde
+                        common_party_types.xsd </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Información país (para extranjeros) -->
+            <xs:element name="cPaisRec" type="tipoCodigoPais" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> D204 - Código país receptor (ISO 3166-1) REUTILIZA tipo desde
+                        common/geographic_types.xsd </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDesPaisRe" type="tipoNombrePais" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> D205 - Descripción país receptor REUTILIZA tipo desde
+                        common/geographic_types.xsd </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Información específica según tipo de receptor -->
+            <xs:choice minOccurs="0">
+                <xs:element name="datosContribuyente" type="tipoReceptorContribuyente">
+                    <xs:annotation>
+                        <xs:documentation> Datos específicos para receptor contribuyente (con RUC)
+                            Usar cuando iTiContRec = "1" </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="datosConsumoFinal" type="tipoReceptorConsumoFinal">
+                    <xs:annotation>
+                        <xs:documentation> Datos específicos para receptor consumo final (sin RUC)
+                            Usar cuando iTiContRec = "2" </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING INDEPENDIENTE                    -->
+    <!-- ================================================================== -->
+
+    <xs:element name="gDatRec" type="tipoGrupoReceptor">
+        <xs:annotation>
+            <xs:documentation> Elemento global para testing independiente del grupo receptor Permite
+                validar la estructura del receptor de forma aislada, útil para tests unitarios y
+                desarrollo modular. </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="receptorContribuyente" type="tipoReceptorContribuyente">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de receptor contribuyente</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="receptorConsumoFinal" type="tipoReceptorConsumoFinal">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de receptor consumo final</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE IMPLEMENTACIÓN                                   -->
+    <!-- ================================================================== -->
+
+    <!--
+        EJEMPLO DE USO 1 - Receptor contribuyente:
+        
+        <gDatRec>
+            <iTiContRec>1</iTiContRec>
+            <iNatRec>1</iNatRec>
+            <iTiOpe>1</iTiOpe>
+            <datosContribuyente>
+                <iTiContRuc>2</iTiContRuc>
+                <dRucRec>80098765</dRucRec>
+                <dDVRec>1</dDVRec>
+                <dNomRec>Cliente Empresarial S.R.L.</dNomRec>
+                <dDirRec>Av. Cliente 456</dDirRec>
+                <dNumCasRec>456</dNumCasRec>
+            </datosContribuyente>
+        </gDatRec>
+        
+        EJEMPLO DE USO 2 - Receptor consumo final:
+        
+        <gDatRec>
+            <iTiContRec>2</iTiContRec>
+            <iNatRec>1</iNatRec>
+            <iTiOpe>2</iTiOpe>
+            <datosConsumoFinal>
+                <iTipIDRec>1</iTipIDRec>
+                <dNumIDRec>1234567</dNumIDRec>
+                <dNomRec>Juan Pérez</dNomRec>
+                <dDirRec>Calle Principal 123</dDirRec>
+            </datosConsumoFinal>
+        </gDatRec>
+        
+        EJEMPLO DE USO 3 - Receptor extranjero:
+        
+        <gDatRec>
+            <iTiContRec>1</iTiContRec>
+            <iNatRec>2</iNatRec>
+            <iTiOpe>4</iTiOpe>
+            <cPaisRec>BRA</cPaisRec>
+            <dDesPaisRe>Brasil</dDesPaisRe>
+            <datosContribuyente>
+                <dNomRec>Empresa Brasileña Ltda.</dNomRec>
+                <dDirRec>Rua das Palmeiras 789</dDirRec>
+            </datosContribuyente>
+        </gDatRec>
+        
+        REUTILIZACIÓN DE MÓDULOS:
+        - common/basic_types.xsd: tipoRUC, tipoDigitoVerificador
+        - common/geographic_types.xsd: códigos país y descripciones
+        - common_party_types.xsd: tipos de operación, naturaleza, documento identidad
+        
+        VALIDACIONES ESPECÍFICAS:
+        - Receptor opcional para operaciones genéricas
+        - RUC obligatorio solo para contribuyentes
+        - Documento identidad para consumo final
+        - País obligatorio para extranjeros
+        - Coherencia entre tipo contribuyente y datos proporcionados
+        
+        CASOS DE TESTING:
+        - Receptor contribuyente nacional
+        - Receptor consumo final con cédula
+        - Receptor extranjero
+        - Validación de tipos de operación
+        - Validación de coherencia de datos
+        - Casos sin receptor (operaciones genéricas)
+        
+        REGLAS DE NEGOCIO:
+        - Si iTiContRec = "1" → debe usar datosContribuyente
+        - Si iTiContRec = "2" → debe usar datosConsumoFinal  
+        - Si iNatRec = "2" → debe incluir información país
+        - Si iTiOpe = "4" (B2F) → receptor debe ser extranjero
+    -->
+
+</xs:schema>

@@ -38,7 +38,7 @@ backend/app/services/xml_generator/
 │   │   │
         ├── DE_v150.xsd                # 🟢 Schema principal
         ├── common/                    # 🟢 Tipos básicos
-        ├── document_core/             # Estructura núcleo
+        ├── document_core/             # 🟢 Estructura núcleo
         ├── parties/                   # Emisores y receptores
         ├── document_types/            # Tipos específicos
         ├── operations/                # Operaciones y pagos
