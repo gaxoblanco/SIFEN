@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_types/factura_types.xsd
+  Propósito: Definición de tipos específicos para Factura Electrónica (FE) SIFEN v150
+  
+  Este módulo define:
+  - gCamFE: Grupo de campos específicos de Factura Electrónica (E011)
+  - Validaciones específicas para facturas estándar
+  - Condiciones de venta y operación
+  - Indicadores de presencia del comprador
+  
+  CASOS DE USO PRINCIPALES:
+  - Ventas estándar entre contribuyentes
+  - Operaciones comerciales regulares
+  - Facturas con IVA (gravadas)
+  - Ventas tanto al contado como a crédito
+  
+  ELEMENTOS ESPECÍFICOS:
+  - iIndPres: Indicador presencia comprador (1-4)
+  - dDesIndPres: Descripción presencia
+  - iIndRec: Indicador entrega/recibo (1-2) [OPCIONAL]
+  - dDesIndRec: Descripción recibo [OPCIONAL]
+  
+  VALIDACIONES CRÍTICAS:
+  - Receptor obligatorio (gDatRec)
+  - Ítems obligatorios (gCamItem)
+  - Totales coherentes (gTotSub)
+  - Condición operación = "1" (Venta)
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  - operations/payment_conditions.xsd (condiciones de pago)
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ IMPLEMENTACIÓN INICIAL COMPLETA
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA FACTURA ELECTRÓNICA                        -->
+    <!-- ================================================================== -->
+
+    <!-- Indicador de presencia del comprador -->
+    <xs:simpleType name="tipoIndicadorPresencia">
+        <xs:annotation>
+            <xs:documentation> Indicador de presencia del comprador en la operación comercial.
+                Valores válidos según normativa SIFEN: - 1: Operación presencial - Comprador
+                presente en el establecimiento - 2: Operación no presencial - Entrega domicilio
+                cliente - 3: Operación no presencial - Entrega punto fijo - 4: Operación no
+                presencial - Otro tipo de entrega Campo obligatorio para todas las facturas
+                electrónicas. Determina el tipo de interacción comercial realizada. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Operación presencial</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Operación no presencial - Entrega domicilio</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Operación no presencial - Entrega punto fijo</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Operación no presencial - Otro tipo de entrega</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del indicador de presencia -->
+    <xs:simpleType name="tipoDescripcionPresencia">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del tipo de presencia del comprador. Debe
+                corresponder con el valor de iIndPres: - "Operación presencial" para iIndPres=1 -
+                "Entrega domicilio cliente" para iIndPres=2 - "Entrega punto fijo" para iIndPres=3 -
+                "Otro tipo de entrega" para iIndPres=4 Campo obligatorio, generado automáticamente
+                según iIndPres. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="10" />
+            <xs:maxLength value="30" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Indicador de recibo (opcional) -->
+    <xs:simpleType name="tipoIndicadorRecibo">
+        <xs:annotation>
+            <xs:documentation> Indicador de entrega/recibo del bien o servicio. Campo opcional usado
+                cuando se requiere especificar: - 1: Bienes remitidos al comprador - 2: Servicios
+                prestados al comprador Uso típico: - Ventas de mercaderías (valor 1) - Prestación de
+                servicios (valor 2) - Combinación de ambos según corresponda </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Bienes remitidos</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Servicios prestados</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del indicador de recibo -->
+    <xs:simpleType name="tipoDescripcionRecibo">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del tipo de entrega/recibo. Debe corresponder con
+                el valor de iIndRec: - "Bienes remitidos" para iIndRec=1 - "Servicios prestados"
+                para iIndRec=2 Campo opcional, requerido solo si se especifica iIndRec. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="10" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL: CAMPOS FACTURA ELECTRÓNICA (gCamFE)             -->
+    <!-- ================================================================== -->
+
+    <xs:complexType name="tipoGrupoCamposFactura">
+        <xs:annotation>
+            <xs:documentation> E011 - gCamFE: Grupo de campos específicos para Factura Electrónica.
+                Contiene los elementos distintivos que caracterizan una factura electrónica estándar
+                según la normativa SIFEN v150. CARACTERÍSTICAS PRINCIPALES: - Operación comercial
+                entre contribuyentes - Receptor identificado obligatorio - Incluye cálculo de IVA
+                según corresponda - Validaciones específicas de coherencia ESTRUCTURA: - Indicador
+                presencia comprador (obligatorio) - Descripción presencia (obligatorio) - Indicador
+                recibo (opcional) - Descripción recibo (opcional si tiene indicador) VALIDACIONES
+                AUTOMÁTICAS: - Coherencia entre indicadores y descripciones - Validación de campos
+                obligatorios según contexto - Verificación de formato y longitudes USO EN SCHEMA:
+                Elemento dentro de gDtipDE cuando iTiDE = "1" (Factura Electrónica) </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- E012: iIndPres - Indicador presencia comprador (OBLIGATORIO) -->
+            <xs:element name="iIndPres" type="tipoIndicadorPresencia" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E012 - iIndPres: Indicador de presencia del comprador. CAMPO
+                        OBLIGATORIO que especifica el tipo de operación comercial: - 1: Operación
+                        presencial (cliente en establecimiento) - 2: Entrega domicilio cliente - 3:
+                        Entrega punto fijo - 4: Otro tipo de entrega IMPACTO EN VALIDACIONES: -
+                        Determina validaciones adicionales de transporte - Afecta requerimientos de
+                        datos del receptor - Influye en cálculos de impuestos según modalidad
+                        VALORES MÁS COMUNES: - Valor 1: ~80% de operaciones (ventas presenciales) -
+                        Valor 2: ~15% de operaciones (delivery) - Valores 3-4: ~5% casos especiales </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E013: dDesIndPres - Descripción presencia (OBLIGATORIO) -->
+            <xs:element name="dDesIndPres" type="tipoDescripcionPresencia" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E013 - dDesIndPres: Descripción del indicador de presencia.
+                        CAMPO OBLIGATORIO que describe en texto el tipo de presencia. Debe ser
+                        coherente con el valor de iIndPres. VALORES ESTÁNDAR: - "Operación
+                        presencial" (iIndPres=1) - "Entrega domicilio cliente" (iIndPres=2) -
+                        "Entrega punto fijo" (iIndPres=3) - "Otro tipo de entrega" (iIndPres=4)
+                        GENERACIÓN AUTOMÁTICA: Este campo típicamente se genera automáticamente
+                        basado en el valor de iIndPres para garantizar coherencia. VALIDACIONES: -
+                        Longitud: 10-30 caracteres - Coherencia con iIndPres - Formato de texto
+                        descriptivo estándar </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E014: iIndRec - Indicador recibo/entrega (OPCIONAL) -->
+            <xs:element name="iIndRec" type="tipoIndicadorRecibo" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E014 - iIndRec: Indicador de entrega/recibo del bien o
+                        servicio. CAMPO OPCIONAL que especifica el tipo de entrega: - 1: Bienes
+                        remitidos al comprador - 2: Servicios prestados al comprador CUÁNDO USAR: -
+                        Obligatorio en operaciones no presenciales (iIndPres > 1) - Opcional en
+                        operaciones presenciales - Recomendado para claridad en facturas mixtas
+                        CASOS TÍPICOS: - Venta de productos físicos: valor 1 - Prestación de
+                        servicios: valor 2 - Facturas mixtas: según elemento predominante NOTA
+                        IMPORTANTE: Si se especifica iIndRec, es OBLIGATORIO incluir dDesIndRec. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E015: dDesIndRec - Descripción recibo (CONDICIONAL) -->
+            <xs:element name="dDesIndRec" type="tipoDescripcionRecibo" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E015 - dDesIndRec: Descripción del indicador de recibo. CAMPO
+                        CONDICIONAL: Obligatorio solo si se especifica iIndRec. VALORES ESTÁNDAR: -
+                        "Bienes remitidos" (iIndRec=1) - "Servicios prestados" (iIndRec=2) REGLAS DE
+                        VALIDACIÓN: - Si existe iIndRec, dDesIndRec es OBLIGATORIO - Si no existe
+                        iIndRec, dDesIndRec NO debe estar presente - Coherencia estricta entre valor
+                        y descripción GENERACIÓN AUTOMÁTICA: Al igual que dDesIndPres, este campo se
+                        genera automáticamente basado en iIndRec para evitar inconsistencias.
+                        LONGITUD: 10-20 caracteres según especificación. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- VALIDACIONES Y RESTRICCIONES ADICIONALES                          -->
+    <!-- ================================================================== -->
+
+    <!--
+        VALIDACIONES CRUZADAS IMPLEMENTADAS A NIVEL DE APLICACIÓN:
+        
+        1. COHERENCIA INDICADOR-DESCRIPCIÓN:
+           - iIndPres debe corresponder con dDesIndPres
+           - iIndRec debe corresponder con dDesIndRec
+        
+        2. CONDICIONALES:
+           - Si iIndRec existe -> dDesIndRec OBLIGATORIO
+           - Si iIndRec NO existe -> dDesIndRec NO debe estar
+        
+        3. CONTEXTO DE FACTURA:
+           - gCamFE solo válido cuando iTiDE = "1"
+           - Receptor (gDatRec) obligatorio para FE
+           - Al menos un ítem (gCamItem) obligatorio
+           - Totales (gTotSub) obligatorios y coherentes
+        
+        4. OPERACIONES ESPECÍFICAS:
+           - Para iIndPres > 1: Validar datos de entrega
+           - Para operaciones a crédito: Validar condiciones de pago
+           - Para servicios: Validar estructura de ítems apropiada
+        
+        IMPLEMENTACIÓN EN CÓDIGO:
+        Estas validaciones se implementan en el validador de negocio,
+        no a nivel XSD para mantener flexibilidad y mensajes de error claros.
+    -->
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE INTEGRACIÓN                                      -->
+    <!-- ================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON ROOT_ELEMENTS.XSD:
+        
+        Este tipo se usa en document_core/root_elements.xsd como:
+        
+        <xs:element name="gCamFE" type="tipoGrupoCamposFactura" minOccurs="0">
+            <xs:annotation>
+                <xs:documentation>
+                    Campos específicos para Factura Electrónica (iTiDE=1)
+                    Definido en: document_types/factura_types.xsd
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        ACTIVACIÓN EN DE_v150.XSD:
+        
+        Para activar este módulo, descomentar en root_elements.xsd:
+        <xs:include schemaLocation="../document_types/factura_types.xsd"/>
+        
+        PRUEBAS RECOMENDADAS:
+        
+        1. Validar estructura básica de gCamFE
+        2. Probar todos los valores de iIndPres (1-4)
+        3. Validar combinaciones iIndRec/dDesIndRec
+        4. Verificar campos opcionales/obligatorios
+        5. Testear integración con documento completo
+        
+        EJEMPLOS DE USO:
+        
+    -->
+
+</xs:schema>

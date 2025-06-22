@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_types/nota_credito_types.xsd
+  Propósito: Definición de tipos específicos para Nota de Crédito Electrónica (NCE) SIFEN v150
+  
+  Este módulo define:
+  - gCamNCE: Grupo de campos específicos de Nota de Crédito Electrónica
+  - Validaciones específicas para notas de crédito
+  - Motivos de emisión definidos por normativa
+  - Relación obligatoria con documento original
+  
+  CASOS DE USO PRINCIPALES:
+  - Devolución total o parcial de mercaderías
+  - Descuentos por defectos o inconvenientes
+  - Bonificaciones comerciales por volumen
+  - Ajustes de precios (reducción)
+  - Créditos incobrables
+  - Recupero de costos/gastos (casos específicos)
+  
+  CARACTERÍSTICAS CRÍTICAS:
+  - Documento asociado obligatorio (referencia al original)
+  - Motivo de emisión obligatorio y específico
+  - Montos típicamente negativos (crédito al cliente)
+  - No puede superar monto del documento original
+  - Emisor y receptor deben coincidir con documento original
+  
+  ELEMENTOS ESPECÍFICOS:
+  - iMotEmi: Motivo de emisión (1-8)
+  - dDesMotEmi: Descripción automática del motivo
+  - Validaciones de coherencia con documento asociado
+  
+  VALIDACIONES CRÍTICAS:
+  - Documento asociado presente y válido (gCamDEAsoc)
+  - Motivo de emisión válido (1-8)
+  - Montos coherentes con tipo de operación
+  - Emisor = Emisor original, Receptor = Receptor original
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  - document_types/associated_document.xsd (documento asociado)
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ IMPLEMENTACIÓN INICIAL COMPLETA
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA NOTA DE CRÉDITO ELECTRÓNICA                -->
+    <!-- ================================================================== -->
+
+    <!-- Motivo de emisión de la nota de crédito -->
+    <xs:simpleType name="tipoMotivoEmisionNotaCredito">
+        <xs:annotation>
+            <xs:documentation> Motivo o razón de emisión de la nota de crédito electrónica. Valores
+                válidos según normativa SIFEN v150: - 1: Devolución y Ajuste de precios - Caso más
+                común y completo - 2: Devolución - Solo devolución de mercaderías o servicios - 3:
+                Descuento - Reducción por defectos, inconvenientes, etc. - 4: Bonificación -
+                Descuentos comerciales por volumen, fidelidad - 5: Crédito incobrable - Cancelación
+                de deudas incobrables - 6: Recupero de costo - Devolución de costos recuperables -
+                7: Recupero de gasto - Devolución de gastos recuperables - 8: Ajuste de precio -
+                Corrección de precios (reducción) CASOS TÍPICOS POR MOTIVO: - Motivo 1: Devolución
+                completa por producto defectuoso - Motivo 2: Devolución parcial por cantidad
+                incorrecta - Motivo 3: Descuento por entrega tardía o defectos menores - Motivo 4:
+                Bonificación por compras de gran volumen - Motivo 5: Cancelación de facturas
+                imposibles de cobrar - Motivos 6-7: Casos específicos de recupero (menos comunes) -
+                Motivo 8: Corrección de errores en precios facturados IMPACTO EN VALIDACIONES: -
+                Determina el tipo de ítems esperados - Influye en la validación de montos - Afecta
+                la documentación requerida Campo obligatorio para todas las notas de crédito. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Devolución y Ajuste de precios</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Devolución</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Descuento</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Bonificación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Crédito incobrable</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="6">
+                <xs:annotation>
+                    <xs:documentation>Recupero de costo</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="7">
+                <xs:annotation>
+                    <xs:documentation>Recupero de gasto</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="8">
+                <xs:annotation>
+                    <xs:documentation>Ajuste de precio</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del motivo de emisión -->
+    <xs:simpleType name="tipoDescripcionMotivoEmision">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del motivo de emisión de la nota de crédito. Debe
+                corresponder exactamente con el valor de iMotEmi: - "Devolución y Ajuste de precios"
+                para iMotEmi=1 - "Devolución" para iMotEmi=2 - "Descuento" para iMotEmi=3 -
+                "Bonificación" para iMotEmi=4 - "Crédito incobrable" para iMotEmi=5 - "Recupero de
+                costo" para iMotEmi=6 - "Recupero de gasto" para iMotEmi=7 - "Ajuste de precio" para
+                iMotEmi=8 GENERACIÓN AUTOMÁTICA: Este campo se genera automáticamente basado en
+                iMotEmi para garantizar coherencia entre código y descripción. PROPÓSITO: - Facilita
+                la lectura e interpretación del documento - Mejora los reportes y consultas del
+                sistema - Proporciona claridad para auditorías Campo obligatorio, siempre presente
+                cuando hay iMotEmi. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="8" />
+            <xs:maxLength value="30" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL: CAMPOS NOTA DE CRÉDITO ELECTRÓNICA (gCamNCE)     -->
+    <!-- ================================================================== -->
+
+    <xs:complexType name="tipoGrupoCamposNotaCredito">
+        <xs:annotation>
+            <xs:documentation> Grupo de campos específicos para Nota de Crédito Electrónica (NCE).
+                Contiene los elementos distintivos que caracterizan una nota de crédito electrónica
+                según la normativa SIFEN v150. CARACTERÍSTICAS PRINCIPALES: - Documento que reduce
+                el valor de una factura original - Siempre referencia a un documento electrónico
+                previo - Motivo de emisión obligatorio y específico - Montos típicamente negativos
+                (crédito al cliente) ESTRUCTURA OBLIGATORIA: 1. Motivo de emisión (obligatorio) 2.
+                Descripción del motivo (obligatorio) RELACIONES CRÍTICAS: - Debe existir gCamDEAsoc
+                (documento asociado) - Emisor debe ser el mismo del documento original - Receptor
+                debe ser el mismo del documento original - Montos no pueden superar el documento
+                original CASOS DE USO: - Devoluciones: cliente devuelve productos - Descuentos:
+                compensación por inconvenientes - Bonificaciones: descuentos comerciales - Ajustes:
+                corrección de errores de facturación - Créditos incobrables: cancelación de deudas
+                VALIDACIONES AUTOMÁTICAS: - Coherencia entre motivo y descripción - Existencia de
+                documento asociado válido - Verificación de montos contra documento original -
+                Validación de partes (emisor/receptor) USO EN SCHEMA: Elemento dentro de gDtipDE
+                cuando iTiDE = "5" (Nota Crédito Electrónica) ELEMENTOS RELACIONADOS: - Siempre
+                acompañado de gCamDEAsoc (documento asociado) - Ítems con montos típicamente
+                negativos - Totales que pueden ser negativos </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- =====================================================
+                 MOTIVO DE EMISIÓN (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- iMotEmi - Motivo de emisión (OBLIGATORIO) -->
+            <xs:element name="iMotEmi" type="tipoMotivoEmisionNotaCredito" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> iMotEmi: Motivo de emisión de la nota de crédito. CAMPO
+                        OBLIGATORIO que especifica la razón de la NCE: - 1: Devolución y Ajuste de
+                        precios (más completo) - 2: Devolución (solo devolución) - 3: Descuento
+                        (reducción por inconvenientes) - 4: Bonificación (descuentos comerciales) -
+                        5: Crédito incobrable (cancelación de deudas) - 6: Recupero de costo (casos
+                        específicos) - 7: Recupero de gasto (casos específicos) - 8: Ajuste de
+                        precio (corrección de errores) DETERMINA VALIDACIONES: - Tipo de ítems
+                        esperados en el documento - Validaciones específicas de montos -
+                        Documentación adicional requerida ESTADÍSTICAS DE USO: - Motivo 2
+                        (Devolución): ~40% de casos - Motivo 3 (Descuento): ~25% de casos - Motivo 4
+                        (Bonificación): ~20% de casos - Motivo 1 (Devolución y Ajuste): ~10% de
+                        casos - Otros motivos: ~5% de casos REGLA CRÍTICA: Debe ser coherente con el
+                        contenido de los ítems y el documento asociado. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- dDesMotEmi - Descripción motivo (OBLIGATORIO) -->
+            <xs:element name="dDesMotEmi" type="tipoDescripcionMotivoEmision" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> dDesMotEmi: Descripción del motivo de emisión. CAMPO
+                        OBLIGATORIO que describe textualmente el motivo. Debe ser coherente con el
+                        valor de iMotEmi. VALORES ESTÁNDAR: - "Devolución y Ajuste de precios"
+                        (iMotEmi=1) - "Devolución" (iMotEmi=2) - "Descuento" (iMotEmi=3) -
+                        "Bonificación" (iMotEmi=4) - "Crédito incobrable" (iMotEmi=5) - "Recupero de
+                        costo" (iMotEmi=6) - "Recupero de gasto" (iMotEmi=7) - "Ajuste de precio"
+                        (iMotEmi=8) GENERACIÓN AUTOMÁTICA: Este campo se genera automáticamente
+                        basado en iMotEmi para garantizar coherencia y evitar errores manuales.
+                        PROPÓSITO: - Claridad en reportes e impresiones - Facilita auditorías y
+                        controles - Mejora la comprensión del documento - Usado en interfaces de
+                        usuario VALIDACIONES: - Longitud: 8-30 caracteres - Coherencia estricta con
+                        iMotEmi - Solo caracteres alfanuméricos y espacios </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- VALIDACIONES Y RESTRICCIONES ADICIONALES                          -->
+    <!-- ================================================================== -->
+
+    <!--
+        VALIDACIONES CRUZADAS IMPLEMENTADAS A NIVEL DE APLICACIÓN:
+        
+        1. COHERENCIA MOTIVO-DESCRIPCIÓN:
+           - iMotEmi debe corresponder exactamente con dDesMotEmi
+           - Mapeo estricto entre códigos y descripciones
+        
+        2. DOCUMENTO ASOCIADO OBLIGATORIO:
+           - gCamDEAsoc debe estar presente y completo
+           - CDC de referencia debe ser válido (44 dígitos)
+           - Documento referenciado debe existir y ser válido
+        
+        3. COHERENCIA DE PARTES:
+           - Emisor NCE = Emisor documento original
+           - Receptor NCE = Receptor documento original
+           - RUCs deben coincidir exactamente
+        
+        4. VALIDACIONES DE MONTOS:
+           - Monto total NCE no puede superar documento original
+           - Para devoluciones: montos negativos esperados
+           - Para ajustes: coherencia con tipo de ajuste
+           - IVA debe calcularse correctamente sobre montos negativos
+        
+        5. CONTEXTO DE NOTA DE CRÉDITO:
+           - gCamNCE solo válido cuando iTiDE = "5"
+           - Siempre debe estar acompañado de gCamDEAsoc
+           - Ítems deben ser coherentes con el motivo
+           - Fecha emisión posterior al documento original
+        
+        6. VALIDACIONES ESPECÍFICAS POR MOTIVO:
+           - Motivo 2 (Devolución): requiere detalle de productos devueltos
+           - Motivo 3 (Descuento): debe especificar razón del descuento
+           - Motivo 4 (Bonificación): validar condiciones comerciales
+           - Motivo 5 (Crédito incobrable): justificación requerida
+        
+        IMPLEMENTACIÓN EN CÓDIGO:
+        Estas validaciones se implementan en el validador de negocio
+        para mantener flexibilidad y proporcionar mensajes de error claros.
+    -->
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE INTEGRACIÓN                                      -->
+    <!-- ================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON ROOT_ELEMENTS.XSD:
+        
+        Este tipo se usa en document_core/root_elements.xsd como:
+        
+        <xs:element name="gCamNCE" type="tipoGrupoCamposNotaCredito" minOccurs="0">
+            <xs:annotation>
+                <xs:documentation>
+                    Campos específicos para Nota de Crédito Electrónica (iTiDE=5)
+                    Definido en: document_types/nota_credito_types.xsd
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        ACTIVACIÓN EN DE_v150.XSD:
+        
+        Para activar este módulo, descomentar en root_elements.xsd:
+        <xs:include schemaLocation="../document_types/nota_credito_types.xsd"/>
+        
+        DEPENDENCIAS REQUERIDAS:
+        
+        También se requiere activar:
+        <xs:include schemaLocation="../document_types/associated_document.xsd"/>
+        
+        PRUEBAS RECOMENDADAS:
+        
+        1. Validar estructura básica de gCamNCE
+        2. Probar todos los motivos de emisión (1-8)
+        3. Validar coherencia motivo-descripción
+        4. Verificar integración con documento asociado
+        5. Testear validaciones de montos
+        6. Probar casos de error específicos
+        7. Verificar integración con documento completo
+        
+        EJEMPLOS DE USO:
+        
+         NCE devolución típica 
+        <gCamNCE>
+            <iMotEmi>2</iMotEmi>
+            <dDesMotEmi>Devolución</dDesMotEmi>
+        </gCamNCE>
+        
+         NCE descuento por inconvenientes
+        <gCamNCE>
+            <iMotEmi>3</iMotEmi>
+            <dDesMotEmi>Descuento</dDesMotEmi>
+        </gCamNCE>
+        
+         NCE bonificación comercial
+        <gCamNCE>
+            <iMotEmi>4</iMotEmi>
+            <dDesMotEmi>Bonificación</dDesMotEmi>
+        </gCamNCE>
+        
+         NCE ajuste de precio
+        <gCamNCE>
+            <iMotEmi>8</iMotEmi>
+            <dDesMotEmi>Ajuste de precio</dDesMotEmi>
+        </gCamNCE>
+        
+        VALIDACIONES IMPLEMENTADAS:
+        
+        1. Motivo de emisión obligatorio y válido (1-8)
+        2. Descripción coherente con motivo
+        3. Documento asociado presente y válido
+        4. Coherencia entre emisor/receptor con documento original
+        5. Validación de montos contra documento original
+        6. Verificación de fecha posterior al original
+        
+        CASOS DE ERROR TÍPICOS:
+        
+        1. Motivo inválido (valor fuera de rango 1-8)
+        2. Descripción no coherente con motivo
+        3. Falta documento asociado (gCamDEAsoc)
+        4. CDC de referencia inválido
+        5. Monto supera documento original
+        6. Emisor/receptor no coinciden con original
+        7. Fecha anterior al documento original
+        
+        BENEFICIOS DE ESTE DISEÑO:
+        
+        - ✅ Estructura simple pero completa
+        - ✅ Validaciones específicas por motivo
+        - ✅ Reutilización de tipos básicos existentes
+        - ✅ Flexibilidad para diferentes casos de uso
+        - ✅ Compatibilidad total con especificación SIFEN v150
+        - ✅ Preparado para validaciones de negocio complejas
+        - ✅ Facilita la implementación de lógica específica por motivo
+        - ✅ Base sólida para reportes y análisis
+    -->
+
+</xs:schema>

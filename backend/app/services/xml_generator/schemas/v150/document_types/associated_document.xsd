@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_types/associated_document.xsd
+  Propósito: Definición de tipos para referencias a documentos asociados SIFEN v150
+  
+  Este módulo define:
+  - gCamDEAsoc: Grupo de campos de documento electrónico asociado (H001)
+  - Validaciones para diferentes tipos de documentos referenciados
+  - Manejo condicional de campos según tipo de documento
+  - Referencias tanto a documentos electrónicos como impresos
+  
+  CASOS DE USO PRINCIPALES:
+  - NCE: Referencia a factura original para devolución/descuento
+  - NDE: Referencia a factura original para cargos adicionales
+  - Rectificación de documentos previos
+  - Anulación con referencia al documento original
+  - Documentos complementarios que referencian originales
+  
+  TIPOS DE DOCUMENTOS ASOCIADOS:
+  - Tipo 1: Documento Electrónico (CDC requerido)
+  - Tipo 2: Documento Impreso (datos tradicionales requeridos)
+  - Tipo 3: Constancia (casos especiales)
+  
+  CARACTERÍSTICAS CRÍTICAS:
+  - Obligatorio para NCE y NDE
+  - Validaciones condicionales según tipo de documento
+  - CDC debe ser válido para documentos electrónicos
+  - Datos completos requeridos para documentos impresos
+  - Coherencia entre emisor/receptor del documento original
+  
+  ELEMENTOS PRINCIPALES:
+  - iTipDocAso: Tipo de documento asociado (1-3)
+  - dDesTipDocAso: Descripción del tipo
+  - dCdCDERef: CDC del documento electrónico (si tipo=1)
+  - Datos específicos para documentos impresos (si tipo=2)
+  
+  VALIDACIONES CRÍTICAS:
+  - CDC válido (44 dígitos) para documentos electrónicos
+  - Datos completos para documentos impresos
+  - Fechas coherentes con documento original
+  - Tipo de documento específico válido
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ IMPLEMENTACIÓN INICIAL COMPLETA
+  
+  NOTA IMPORTANTE:
+  Este módulo es FUNDAMENTAL para NCE y NDE, ya que estos documentos
+  siempre deben referenciar un documento original válido.
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA DOCUMENTOS ASOCIADOS                       -->
+    <!-- ================================================================== -->
+
+    <!-- Tipo de documento asociado -->
+    <xs:simpleType name="tipoDocumentoAsociado">
+        <xs:annotation>
+            <xs:documentation> Tipo de documento al cual se hace referencia. Valores válidos según
+                normativa SIFEN v150: - 1: Electrónico - Documento electrónico SIFEN (CDC requerido)
+                - 2: Impreso - Documento tradicional en papel (datos completos requeridos) - 3:
+                Constancia - Documento especial (casos específicos) CASOS TÍPICOS POR TIPO: - Tipo
+                1: ~85% de casos (facturas electrónicas SIFEN) - Tipo 2: ~10% de casos (facturas
+                impresas anteriores) - Tipo 3: ~5% de casos (constancias especiales) IMPACTO EN
+                VALIDACIONES: - Tipo 1: CDC obligatorio (44 dígitos), otros campos opcionales - Tipo
+                2: Datos completos obligatorios (timbrado, establecimiento, etc.) - Tipo 3:
+                Validaciones específicas según caso de uso CAMPOS REQUERIDOS POR TIPO: - Tipo 1:
+                dCdCDERef (obligatorio) - Tipo 2: dNTimDI, dEstDocAso, dPExpDocAso, dNumDocAso
+                (obligatorios) - Tipo 3: Según especificación del caso particular Campo obligatorio
+                para todas las referencias de documentos. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Electrónico</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Impreso</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Constancia</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del tipo de documento asociado -->
+    <xs:simpleType name="tipoDescripcionDocumentoAsociado">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del tipo de documento asociado. Debe corresponder
+                exactamente con el valor de iTipDocAso: - "Electrónico" para iTipDocAso=1 -
+                "Impreso" para iTipDocAso=2 - "Constancia" para iTipDocAso=3 GENERACIÓN AUTOMÁTICA:
+                Este campo se genera automáticamente basado en iTipDocAso para garantizar coherencia
+                entre código y descripción. Campo obligatorio, siempre presente cuando hay
+                iTipDocAso. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="8" />
+            <xs:maxLength value="18" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- CDC del documento electrónico referenciado -->
+    <xs:simpleType name="tipoCDCReferencia">
+        <xs:annotation>
+            <xs:documentation> CDC (Código de Control) del documento electrónico referenciado.
+                OBLIGATORIO cuando iTipDocAso = "1" (Documento Electrónico). FORMATO: 44 caracteres
+                numéricos exactos ESTRUCTURA:
+                [RUC][DV][TIPO][EST][PEXP][NUM][FECHA][TEMISION][CODSEG][DV] VALIDACIONES: -
+                Exactamente 44 dígitos numéricos - Dígito verificador válido (posición 44) - Debe
+                corresponder a un documento válido en SIFEN - Tipo de documento coherente con
+                operación (ej: NCE -> FE original) EJEMPLOS VÁLIDOS: -
+                "01800123451001001000001202412151200012345678" (Factura) -
+                "04800567892001002000015202412161300087654321" (Autofactura) CASOS DE USO: - NCE que
+                referencia factura electrónica original - NDE que referencia factura electrónica
+                original - Rectificación de documento electrónico previo NOTA IMPORTANTE: El
+                documento referenciado debe existir y estar válido en SIFEN. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoCDC">
+            <!-- Hereda las validaciones de tipoCDC de basic_types.xsd -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de timbrado para documento impreso -->
+    <xs:simpleType name="tipoTimbradoDocumentoImpreso">
+        <xs:annotation>
+            <xs:documentation> Número de timbrado del documento impreso referenciado. OBLIGATORIO
+                cuando iTipDocAso = "2" (Documento Impreso). FORMATO: 1-8 dígitos numéricos
+                CARACTERÍSTICAS: - Número único asignado por la SET - Debe haber estado vigente en
+                fecha de emisión del documento original - Identifica la autorización fiscal del
+                documento impreso VALIDACIONES: - Solo dígitos numéricos - Longitud entre 1 y 8
+                caracteres - Debe corresponder a un timbrado válido de la SET EJEMPLOS: - "12345678"
+                (formato completo 8 dígitos) - "1234567" (formato de 7 dígitos) - "123456" (formato
+                más corto válido) NOTA IMPORTANTE: Aunque el timbrado puede haber vencido, debe
+                haber sido válido al momento de emisión del documento original referenciado. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTimbrado">
+            <!-- Hereda las validaciones de tipoTimbrado de basic_types.xsd -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Establecimiento del documento impreso -->
+    <xs:simpleType name="tipoEstablecimientoDocumento">
+        <xs:annotation>
+            <xs:documentation> Código de establecimiento del documento impreso. OBLIGATORIO cuando
+                iTipDocAso = "2" (Documento Impreso). FORMATO: 3 dígitos numéricos (completar con
+                ceros a la izquierda) EJEMPLOS: - "001" (establecimiento principal) - "002"
+                (sucursal 2) - "010" (sucursal 10) VALIDACIONES: - Exactamente 3 caracteres - Solo
+                dígitos numéricos - Completar con ceros si es necesario COHERENCIA: Debe
+                corresponder al establecimiento real donde se emitió el documento impreso original. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{3}" />
+            <xs:length value="3" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Punto de expedición del documento impreso -->
+    <xs:simpleType name="tipoPuntoExpedicionDocumento">
+        <xs:annotation>
+            <xs:documentation> Código de punto de expedición del documento impreso. OBLIGATORIO
+                cuando iTipDocAso = "2" (Documento Impreso). FORMATO: 3 dígitos numéricos (completar
+                con ceros a la izquierda) EJEMPLOS: - "001" (punto principal) - "002" (caja 2) -
+                "010" (punto de venta 10) VALIDACIONES: - Exactamente 3 caracteres - Solo dígitos
+                numéricos - Completar con ceros si es necesario COHERENCIA: Debe corresponder al
+                punto de expedición real donde se emitió el documento impreso original. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{3}" />
+            <xs:length value="3" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número del documento impreso -->
+    <xs:simpleType name="tipoNumeroDocumentoImpreso">
+        <xs:annotation>
+            <xs:documentation> Número secuencial del documento impreso. OBLIGATORIO cuando
+                iTipDocAso = "2" (Documento Impreso). FORMATO: 7 dígitos numéricos (completar con
+                ceros a la izquierda) EJEMPLOS: - "0000001" (documento número 1) - "0001234"
+                (documento número 1234) - "1234567" (documento número 1234567) VALIDACIONES: -
+                Exactamente 7 caracteres - Solo dígitos numéricos - Completar con ceros si es
+                necesario COHERENCIA: Debe corresponder al número real del documento impreso
+                original. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{7}" />
+            <xs:length value="7" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de documento impreso -->
+    <xs:simpleType name="tipoDocumentoImpreso">
+        <xs:annotation>
+            <xs:documentation> Tipo específico de documento impreso referenciado. OPCIONAL cuando
+                iTipDocAso = "2" (Documento Impreso). Valores válidos: - 1: Factura - Factura
+                tradicional impresa - 2: Nota de Crédito - NCE impresa - 3: Nota de Débito - NDE
+                impresa - 4: Nota de Remisión - NRE impresa - 5: Retención - Comprobante de
+                retención PROPÓSITO: Especifica qué tipo de documento impreso se está referenciando
+                para mayor claridad y validaciones específicas. CASOS TÍPICOS: - Valor 1: ~80%
+                (facturas tradicionales) - Valor 2: ~10% (notas de crédito impresas) - Valor 5: ~5%
+                (retenciones) - Otros: ~5% </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Factura</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Nota de Crédito</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Nota de Débito</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Nota de Remisión</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Retención</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del tipo de documento impreso -->
+    <xs:simpleType name="tipoDescripcionDocumentoImpreso">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del tipo de documento impreso. Debe corresponder
+                con el valor de iTipoDocAso: - "Factura" para iTipoDocAso=1 - "Nota de Crédito" para
+                iTipoDocAso=2 - "Nota de Débito" para iTipoDocAso=3 - "Nota de Remisión" para
+                iTipoDocAso=4 - "Retención" para iTipoDocAso=5 OPCIONAL, requerido solo si se
+                especifica iTipoDocAso. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="7" />
+            <xs:maxLength value="16" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL: DOCUMENTO ELECTRÓNICO ASOCIADO (gCamDEAsoc)      -->
+    <!-- ================================================================== -->
+
+    <xs:complexType name="tipoGrupoDocumentoAsociado">
+        <xs:annotation>
+            <xs:documentation> H001 - gCamDEAsoc: Grupo de campos de documento electrónico asociado.
+                Contiene la información completa de referencia a un documento previo, ya sea
+                electrónico, impreso o constancia especial. CARACTERÍSTICAS PRINCIPALES: -
+                Obligatorio para NCE y NDE (referencia al documento original) - Validaciones
+                condicionales según tipo de documento - Soporte para documentos electrónicos y
+                tradicionales - Coherencia entre datos del documento original y actual CASOS DE USO
+                PRINCIPALES: 1. NCE: Referencia a factura original para devolución/descuento 2. NDE:
+                Referencia a factura original para cargos adicionales 3. Rectificación: Referencia
+                al documento que se corrige 4. Anulación: Referencia al documento que se anula TIPOS
+                DE DOCUMENTOS SOPORTADOS: - Tipo 1: Documento Electrónico SIFEN (CDC) - Tipo 2:
+                Documento Impreso tradicional (datos completos) - Tipo 3: Constancia especial (casos
+                específicos) VALIDACIONES AUTOMÁTICAS: - Coherencia entre tipo y campos requeridos -
+                CDC válido para documentos electrónicos - Datos completos para documentos impresos -
+                Fechas coherentes con documento original ESTRUCTURA CONDICIONAL: - iTipDocAso = 1:
+                dCdCDERef obligatorio - iTipDocAso = 2: datos impresos obligatorios - iTipDocAso =
+                3: validaciones específicas USO EN SCHEMA: Elemento opcional dentro del documento
+                electrónico, pero obligatorio para NCE y NDE. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- =====================================================
+                 IDENTIFICACIÓN DEL DOCUMENTO ASOCIADO (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- H002: iTipDocAso - Tipo de documento asociado (OBLIGATORIO) -->
+            <xs:element name="iTipDocAso" type="tipoDocumentoAsociado" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H002 - iTipDocAso: Tipo de documento asociado. CAMPO
+                        OBLIGATORIO que especifica el tipo de documento referenciado: - 1:
+                        Electrónico (85% de casos - documentos SIFEN) - 2: Impreso (10% de casos -
+                        documentos tradicionales) - 3: Constancia (5% de casos - documentos
+                        especiales) DETERMINA CAMPOS REQUERIDOS: - Tipo 1: dCdCDERef obligatorio,
+                        otros opcionales - Tipo 2: dNTimDI, dEstDocAso, dPExpDocAso, dNumDocAso
+                        obligatorios - Tipo 3: Validaciones específicas según caso IMPACTO EN
+                        VALIDACIONES: - Define qué campos adicionales son obligatorios - Determina
+                        formato de validación (CDC vs datos tradicionales) - Influye en
+                        verificaciones de coherencia CASOS TÍPICOS: - NCE por devolución -> Tipo 1
+                        (factura electrónica original) - NDE por intereses -> Tipo 1 (factura
+                        electrónica vencida) - Referencias a facturas pre-SIFEN -> Tipo 2 (impreso)
+                        REGLA CRÍTICA: Debe ser coherente con la naturaleza del documento original. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- H003: dDesTipDocAso - Descripción tipo documento (OBLIGATORIO) -->
+            <xs:element name="dDesTipDocAso" type="tipoDescripcionDocumentoAsociado" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H003 - dDesTipDocAso: Descripción del tipo de documento
+                        asociado. CAMPO OBLIGATORIO que describe textualmente el tipo. Debe ser
+                        coherente con el valor de iTipDocAso. VALORES ESTÁNDAR: - "Electrónico"
+                        (iTipDocAso=1) - "Impreso" (iTipDocAso=2) - "Constancia" (iTipDocAso=3)
+                        GENERACIÓN AUTOMÁTICA: Este campo se genera automáticamente basado en
+                        iTipDocAso para garantizar coherencia y evitar errores manuales. PROPÓSITO:
+                        - Claridad en reportes e impresiones - Facilita auditorías y controles -
+                        Mejora la comprensión del documento - Usado en interfaces de usuario </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 DATOS PARA DOCUMENTO ELECTRÓNICO (CONDICIONAL)
+                 ===================================================== -->
+
+            <!-- H004: dCdCDERef - CDC del documento referenciado (CONDICIONAL) -->
+            <xs:element name="dCdCDERef" type="tipoCDCReferencia" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H004 - dCdCDERef: CDC del documento electrónico referenciado.
+                        CAMPO CONDICIONAL: Obligatorio cuando iTipDocAso = "1". FORMATO: 44 dígitos
+                        numéricos exactos VALIDACIONES: - Solo válido si iTipDocAso = "1" - Debe ser
+                        un CDC válido (formato y dígito verificador) - Documento debe existir en
+                        sistema SIFEN - Debe estar en estado válido (no anulado) CASOS TÍPICOS: -
+                        NCE que referencia FE original - NDE que referencia FE original -
+                        Rectificación de documento electrónico EJEMPLO:
+                        "01800123451001001000001202412151200012345678" NOTA IMPORTANTE: Este CDC
+                        debe corresponder a un documento real y válido en SIFEN. El sistema puede
+                        validar su existencia en tiempo real. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 DATOS PARA DOCUMENTO IMPRESO (CONDICIONAL)
+                 ===================================================== -->
+
+            <!-- H005: dNTimDI - Número timbrado documento impreso (CONDICIONAL) -->
+            <xs:element name="dNTimDI" type="tipoTimbradoDocumentoImpreso" minOccurs="0"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H005 - dNTimDI: Número de timbrado del documento impreso.
+                        CAMPO CONDICIONAL: Obligatorio cuando iTipDocAso = "2". PROPÓSITO:
+                        Identifica la autorización fiscal del documento impreso referenciado.
+                        VALIDACIONES: - Solo válido si iTipDocAso = "2" - Formato: 1-8 dígitos
+                        numéricos - Debe haber sido válido en fecha de emisión original NOTA: Aunque
+                        el timbrado puede haber vencido actualmente, debe haber estado vigente
+                        cuando se emitió el documento original. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- H006: dEstDocAso - Establecimiento (CONDICIONAL) -->
+            <xs:element name="dEstDocAso" type="tipoEstablecimientoDocumento" minOccurs="0"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H006 - dEstDocAso: Establecimiento del documento impreso.
+                        CAMPO CONDICIONAL: Obligatorio cuando iTipDocAso = "2". FORMATO: 3 dígitos
+                        (completar con ceros) EJEMPLO: "001", "002", "010" COHERENCIA: Debe
+                        corresponder al establecimiento real donde se emitió el documento impreso
+                        original. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- H007: dPExpDocAso - Punto de expedición (CONDICIONAL) -->
+            <xs:element name="dPExpDocAso" type="tipoPuntoExpedicionDocumento" minOccurs="0"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H007 - dPExpDocAso: Punto de expedición del documento
+                        impreso. CAMPO CONDICIONAL: Obligatorio cuando iTipDocAso = "2". FORMATO: 3
+                        dígitos (completar con ceros) EJEMPLO: "001", "002", "010" COHERENCIA: Debe
+                        corresponder al punto de expedición real donde se emitió el documento
+                        impreso original. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- H008: dNumDocAso - Número del documento (CONDICIONAL) -->
+            <xs:element name="dNumDocAso" type="tipoNumeroDocumentoImpreso" minOccurs="0"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H008 - dNumDocAso: Número del documento impreso. CAMPO
+                        CONDICIONAL: Obligatorio cuando iTipDocAso = "2". FORMATO: 7 dígitos
+                        (completar con ceros) EJEMPLO: "0000001", "1234567" COHERENCIA: Debe
+                        corresponder al número real del documento impreso original. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 INFORMACIÓN ADICIONAL DOCUMENTO IMPRESO (OPCIONAL)
+                 ===================================================== -->
+
+            <!-- H009: iTipoDocAso - Tipo documento impreso (OPCIONAL) -->
+            <xs:element name="iTipoDocAso" type="tipoDocumentoImpreso" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H009 - iTipoDocAso: Tipo específico de documento impreso.
+                        CAMPO OPCIONAL que especifica el tipo exacto de documento impreso: - 1:
+                        Factura (más común) - 2: Nota de Crédito - 3: Nota de Débito - 4: Nota de
+                        Remisión - 5: Retención PROPÓSITO: Proporciona mayor especificidad sobre el
+                        tipo de documento referenciado para validaciones y reportes más precisos. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- H010: dDTipoDocAso - Descripción tipo documento impreso (OPCIONAL) -->
+            <xs:element name="dDTipoDocAso" type="tipoDescripcionDocumentoImpreso" minOccurs="0"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H010 - dDTipoDocAso: Descripción del tipo de documento
+                        impreso. CAMPO OPCIONAL que describe el tipo específico. Requerido solo si
+                        se especifica iTipoDocAso. VALORES ESTÁNDAR: - "Factura" (iTipoDocAso=1) -
+                        "Nota de Crédito" (iTipoDocAso=2) - "Nota de Débito" (iTipoDocAso=3) - "Nota
+                        de Remisión" (iTipoDocAso=4) - "Retención" (iTipoDocAso=5) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- H011: dFecEmiDI - Fecha emisión documento impreso (OPCIONAL) -->
+            <xs:element name="dFecEmiDI" type="tipoFecha" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H011 - dFecEmiDI: Fecha de emisión del documento impreso.
+                        CAMPO OPCIONAL con la fecha de emisión del documento original. FORMATO:
+                        AAAA-MM-DD (ISO 8601) EJEMPLO: "2024-12-15" VALIDACIONES: - Debe ser una
+                        fecha válida - Debe ser anterior a la fecha de emisión del documento actual
+                        - Coherente con período de vigencia del timbrado PROPÓSITO: - Verificación
+                        de coherencia temporal - Auditorías y controles fiscales - Validación de
+                        plazos legales </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- H012: dNumComRet - Número comprobante retención (OPCIONAL) -->
+            <xs:element name="dNumComRet" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> H012 - dNumComRet: Número de comprobante de retención. CAMPO
+                        OPCIONAL para casos específicos donde el documento asociado es un
+                        comprobante de retención. FORMATO: Alfanumérico, hasta 15 caracteres CASOS
+                        DE USO: - Referencias a retenciones de IVA - Retenciones de renta - Otros
+                        comprobantes de retención específicos NOTA: Usado principalmente cuando
+                        iTipoDocAso = 5 (Retención). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- VALIDACIONES Y RESTRICCIONES ADICIONALES                          -->
+    <!-- ================================================================== -->
+
+    <!--
+        VALIDACIONES CRUZADAS IMPLEMENTADAS A NIVEL DE APLICACIÓN:
+        
+        1. COHERENCIA TIPO-CAMPOS:
+           - iTipDocAso=1: dCdCDERef obligatorio, campos impresos opcionales
+           - iTipDocAso=2: campos impresos obligatorios, dCdCDERef opcional
+           - iTipDocAso=3: validaciones específicas según caso
+        
+        2. VALIDACIÓN CDC (TIPO 1):
+           - CDC debe tener exactamente 44 dígitos
+           - Dígito verificador debe ser válido
+           - Documento debe existir en sistema SIFEN
+           - Documento no debe estar anulado
+           - Emisor/receptor deben ser coherentes
+        
+        3. VALIDACIÓN DOCUMENTO IMPRESO (TIPO 2):
+           - Todos los campos básicos obligatorios
+           - Formato correcto de establecimiento/punto/número
+           - Timbrado debe haber sido válido en fecha emisión
+           - Coherencia en numeración secuencial
+        
+        4. COHERENCIA TEMPORAL:
+           - Fecha emisión original < fecha emisión actual
+           - Período entre documentos razonable
+           - Vigencia de timbrado apropiada
+        
+        5. COHERENCIA DE PARTES:
+           - Emisor documento actual = Emisor documento original
+           - Receptor documento actual = Receptor documento original
+           - Validar que la operación es lógicamente coherente
+        
+        6. VALIDACIONES ESPECÍFICAS NCE/NDE:
+           - NCE: documento original debe permitir devoluciones/descuentos
+           - NDE: documento original debe permitir cargos adicionales
+           - Montos coherentes con documento original
+           - Plazos legales respetados
+        
+        7. VALIDACIONES DE TIPO ESPECÍFICO:
+           - Si iTipoDocAso especificado, dDTipoDocAso requerido
+           - Coherencia entre tipo y naturaleza de la operación
+           - Validaciones específicas por tipo de documento
+        
+        IMPLEMENTACIÓN EN CÓDIGO:
+        Estas validaciones se implementan en el validador de negocio
+        para mantener flexibilidad y proporcionar mensajes de error específicos.
+    -->
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE INTEGRACIÓN                                      -->
+    <!-- ================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON ROOT_ELEMENTS.XSD:
+        
+        Este tipo se usa en document_core/root_elements.xsd como:
+        
+        <xs:element name="gCamDEAsoc" type="tipoGrupoDocumentoAsociado" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    Grupo de campos de documento electrónico asociado.
+                    Obligatorio para NCE y NDE.
+                    Definido en: document_types/associated_document.xsd
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        ACTIVACIÓN EN DE_v150.XSD:
+        
+        Para activar este módulo, descomentar en root_elements.xsd:
+        <xs:include schemaLocation="../document_types/associated_document.xsd"/>
+        
+        DEPENDENCIAS REQUERIDAS:
+        
+        Este módulo es una dependencia crítica para:
+        - document_types/nota_credito_types.xsd
+        - document_types/nota_debito_types.xsd
+        
+        PRUEBAS RECOMENDADAS:
+        
+        1. Validar estructura básica de gCamDEAsoc
+        2. Probar todos los tipos de documento (1-3)
+        3. Validar campos condicionales por tipo
+        4. Verificar validación de CDC para tipo 1
+        5. Testear datos completos para tipo 2
+        6. Validar coherencia temporal (fechas)
+        7. Probar validaciones específicas por tipo de documento
+        8. Verificar integración con NCE y NDE
+        9. Testear casos de error específicos
+        10. Verificar integración con documento completo
+        
+        EJEMPLOS DE USO:
+        
+        ss Documento electrónico asociado (más común)
+        <gCamDEAsoc>
+            <iTipDocAso>1</iTipDocAso>
+            <dDesTipDocAso>Electrónico</dDesTipDocAso>
+            <dCdCDERef>01800123451001001000001202412151200012345678</dCdCDERef>
+        </gCamDEAsoc>
+        
+        ss Documento impreso asociado (completo)
+        <gCamDEAsoc>
+            <iTipDocAso>2</iTipDocAso>
+            <dDesTipDocAso>Impreso</dDesTipDocAso>
+            <dNTimDI>12345678</dNTimDI>
+            <dEstDocAso>001</dEstDocAso>
+            <dPExpDocAso>001</dPExpDocAso>
+            <dNumDocAso>0001234</dNumDocAso>
+            <iTipoDocAso>1</iTipoDocAso>
+            <dDTipoDocAso>Factura</dDTipoDocAso>
+            <dFecEmiDI>2024-12-10</dFecEmiDI>
+        </gCamDEAsoc>
+        
+        ss Constancia especial
+        <gCamDEAsoc>
+            <iTipDocAso>3</iTipDocAso>
+            <dDesTipDocAso>Constancia</dDesTipDocAso>
+            <dNumComRet>RET001234567890</dNumComRet>
+        </gCamDEAsoc>
+        
+        VALIDACIONES IMPLEMENTADAS:
+        
+        1. Tipo de documento obligatorio y válido (1-3)
+        2. Descripción coherente con tipo
+        3. Campos condicionales según tipo:
+           - Tipo 1: CDC obligatorio
+           - Tipo 2: Datos impresos obligatorios
+           - Tipo 3: Validaciones específicas
+        4. Formato correcto de CDC (44 dígitos)
+        5. Formato correcto de datos impresos
+        6. Coherencia temporal de fechas
+        7. Validaciones específicas por tipo de documento
+        
+        CASOS DE ERROR TÍPICOS:
+        
+        1. Tipo inválido (valor fuera de rango 1-3)
+        2. Descripción no coherente con tipo
+        3. CDC faltante para tipo 1
+        4. CDC inválido (formato o dígito verificador)
+        5. Datos impresos incompletos para tipo 2
+        6. Formato incorrecto en campos numéricos
+        7. Fechas incoherentes (futuras o muy antiguas)
+        8. Documento referenciado no existe
+        9. Documento referenciado está anulado
+        10. Partes no coherentes con documento actual
+        
+        IMPORTANCIA CRÍTICA:
+        
+        Este módulo es FUNDAMENTAL porque:
+        - ✅ Obligatorio para NCE y NDE (principales tipos de ajuste)
+        - ✅ Proporciona trazabilidad completa de operaciones
+        - ✅ Permite validaciones de coherencia fiscal
+        - ✅ Facilita auditorías y controles
+        - ✅ Soporte tanto para documentos electrónicos como tradicionales
+        - ✅ Base para validaciones de montos y plazos
+        - ✅ Esencial para la integridad del sistema SIFEN
+        
+        BENEFICIOS DE ESTE DISEÑO:
+        
+        - ✅ Estructura flexible para diferentes tipos de referencias
+        - ✅ Validaciones condicionales apropiadas por tipo
+        - ✅ Reutilización de tipos básicos existentes
+        - ✅ Soporte completo para documentos electrónicos y tradicionales
+        - ✅ Compatibilidad total con especificación SIFEN v150
+        - ✅ Preparado para validaciones de negocio complejas
+        - ✅ Facilita la implementación de controles fiscales
+        - ✅ Base sólida para trazabilidad de operaciones
+        - ✅ Flexibilidad para casos especiales (constancias)
+        - ✅ Integración perfecta con NCE y NDE
+    -->
+
+</xs:schema>

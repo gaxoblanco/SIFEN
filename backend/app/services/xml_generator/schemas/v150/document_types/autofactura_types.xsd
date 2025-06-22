@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_types/autofactura_types.xsd
+  Propósito: Definición de tipos específicos para Autofactura Electrónica (AFE) SIFEN v150
+  
+  Este módulo define:
+  - gCamAE: Grupo de campos específicos de Autofactura Electrónica (E300)
+  - Validaciones específicas para autofacturas
+  - Datos completos del vendedor original
+  - Información de la transacción comercial
+  
+  CASOS DE USO PRINCIPALES:
+  - Importación de mercaderías (vendedor extranjero)
+  - Compras a no contribuyentes nacionales
+  - Operaciones donde el receptor debe emitir la factura
+  - Transacciones con proveedores no habilitados para facturar
+  
+  CARACTERÍSTICAS CRÍTICAS:
+  - Emisor = Receptor (mismo RUC obligatorio)
+  - Datos del vendedor original obligatorios
+  - Información geográfica de la transacción
+  - Naturaleza del vendedor especificada
+  
+  ELEMENTOS ESPECÍFICOS:
+  - iNatVen: Naturaleza del vendedor (1=No contribuyente, 2=Extranjero)
+  - iTipIDVen: Tipo identificación vendedor (1-4)
+  - dNomVen: Nombre/razón social del vendedor
+  - Ubicación completa del vendedor y transacción
+  
+  VALIDACIONES CRÍTICAS:
+  - Emisor = Receptor (gEmis.RUC = gDatRec.RUC)
+  - Vendedor obligatorio (gCamAE completo)
+  - Datos geográficos coherentes
+  - Naturaleza del vendedor válida
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  - common/geographic_types.xsd (códigos geográficos)
+  - common/contact_types.xsd (teléfonos, emails)
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ IMPLEMENTACIÓN INICIAL COMPLETA
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos geográficos (departamentos, distritos, ciudades) -->
+    <xs:include
+        schemaLocation="../common/geographic_types.xsd" />
+
+    <!-- Tipos de contacto (teléfonos, emails) -->
+    <xs:include
+        schemaLocation="../common/contact_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA AUTOFACTURA ELECTRÓNICA                    -->
+    <!-- ================================================================== -->
+
+    <!-- Naturaleza del vendedor -->
+    <xs:simpleType name="tipoNaturalezaVendedor">
+        <xs:annotation>
+            <xs:documentation> Naturaleza o tipo del vendedor original en operaciones AFE. Valores
+                válidos según normativa SIFEN: - 1: No contribuyente - Persona física nacional no
+                obligada a facturar - 2: Extranjero - Persona física o jurídica no residente en
+                Paraguay CASOS TÍPICOS: - Valor 1: Productor rural, artesano, pequeño comerciante
+                nacional - Valor 2: Proveedor internacional, importación directa IMPACTO EN
+                VALIDACIONES: - Determina tipos de documentos aceptables - Afecta requerimientos de
+                datos adicionales - Influye en tratamiento fiscal de la operación Campo obligatorio
+                para todas las autofacturas. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>No contribuyente nacional</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Extranjero</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción de la naturaleza del vendedor -->
+    <xs:simpleType
+        name="tipoDescripcionNaturalezaVendedor">
+        <xs:annotation>
+            <xs:documentation> Descripción textual de la naturaleza del vendedor. Debe corresponder
+                con el valor de iNatVen: - "No contribuyente" para iNatVen=1 - "Extranjero" para
+                iNatVen=2 Campo obligatorio, generado automáticamente según iNatVen. Usado para
+                claridad en reportes y validaciones. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="8" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de identificación del vendedor -->
+    <xs:simpleType
+        name="tipoIdentificacionVendedor">
+        <xs:annotation>
+            <xs:documentation> Tipo de documento de identificación del vendedor. Valores válidos
+                según naturaleza del vendedor: - 1: Cédula paraguaya (solo para nacionalesh) - 2:
+                Pasaporte (extranjeros) - 3: Cédula extranjera (extranjeros residentes) - 4: Carnet
+                de residencia (extranjeros con residencia) REGLAS DE COHERENCIA: - Si iNatVen=1 (No
+                contribuyente): iTipIDVen debe ser 1 - Si iNatVen=2 (Extranjero): iTipIDVen puede
+                ser 2, 3, o 4 Campo obligatorio para identificar al vendedor. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Cédula paraguaya</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Pasaporte</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Cédula extranjera</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Carnet de residencia</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del tipo de identificación -->
+    <xs:simpleType
+        name="tipoDescripcionIdentificacionVendedor">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del tipo de identificación del vendedor. Debe
+                corresponder con el valor de iTipIDVen: - "Cédula paraguaya" para iTipIDVen=1 -
+                "Pasaporte" para iTipIDVen=2 - "Cédula extranjera" para iTipIDVen=3 - "Carnet de
+                residencia" para iTipIDVen=4 Campo obligatorio, generado automáticamente según
+                iTipIDVen. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="8" />
+            <xs:maxLength value="25" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de identificación del vendedor -->
+    <xs:simpleType
+        name="tipoNumeroIdentificacionVendedor">
+        <xs:annotation>
+            <xs:documentation> Número del documento de identificación del vendedor. FORMATOS SEGÚN
+                TIPO: - Cédula paraguaya: 1-8 dígitos (ej: "12345678") - Pasaporte: alfanumérico
+                6-20 caracteres (ej: "P1234567890") - Cédula extranjera: según país emisor, máximo
+                20 caracteres - Carnet de residencia: formato SET, máximo 20 caracteres
+                VALIDACIONES: - Solo caracteres alfanuméricos - Sin espacios ni caracteres
+                especiales - Longitud apropiada según tipo de documento Campo obligatorio para
+                identificar univocamente al vendedor. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z0-9\-]{1,20}" />
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL: CAMPOS AUTOFACTURA ELECTRÓNICA (gCamAE)          -->
+    <!-- ================================================================== -->
+
+    <xs:complexType
+        name="tipoGrupoCamposAutofactura">
+        <xs:annotation>
+            <xs:documentation> E300 - gCamAE: Grupo de campos específicos para Autofactura
+                Electrónica. Contiene la información completa del vendedor original y la transacción
+                comercial específica de las autofacturas según normativa SIFEN v150. CARACTERÍSTICAS
+                PRINCIPALES: - Emisor = Receptor (mismo RUC obligatorio) - Datos completos del
+                vendedor original - Información geográfica de vendedor y transacción - Validaciones
+                específicas de coherencia ESTRUCTURA OBLIGATORIA: 1. Naturaleza del vendedor
+                (obligatorio) 2. Identificación del vendedor (obligatorio) 3. Datos personales del
+                vendedor (obligatorio) 4. Ubicación del vendedor (obligatorio) 5. Ubicación de la
+                transacción (obligatorio) CASOS DE USO: - Importaciones: vendedor extranjero,
+                comprador nacional - No contribuyentes: vendedor sin obligación de facturar -
+                Operaciones especiales: según normativa tributaria USO EN SCHEMA: Elemento dentro de
+                gDtipDE cuando iTiDE = "4" (Autofactura Electrónica) </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- =====================================================
+                 SECCIÓN 1: NATURALEZA DEL VENDEDOR (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- E301: iNatVen - Naturaleza del vendedor (OBLIGATORIO) -->
+            <xs:element name="iNatVen" type="tipoNaturalezaVendedor" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E301 - iNatVen: Naturaleza del vendedor original. CAMPO
+                        OBLIGATORIO que clasifica al vendedor: - 1: No contribuyente nacional (sin
+                        obligación de facturar) - 2: Extranjero (no residente en Paraguay) DETERMINA
+                        VALIDACIONES: - Tipos de documentos aceptables - Requerimientos de datos
+                        adicionales - Tratamiento fiscal de la operación EJEMPLOS COMUNES: - Valor
+                        1: Productores rurales, artesanos, pequeños comerciantes - Valor 2:
+                        Proveedores internacionales, importaciones REGLA CRÍTICA: Debe ser coherente
+                        con iTipIDVen y datos geográficos. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E302: dDesNatVen - Descripción naturaleza (OBLIGATORIO) -->
+            <xs:element name="dDesNatVen" type="tipoDescripcionNaturalezaVendedor" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E302 - dDesNatVen: Descripción de la naturaleza del vendedor.
+                        CAMPO OBLIGATORIO que describe textualmente la naturaleza. Debe ser
+                        coherente con el valor de iNatVen. VALORES ESTÁNDAR: - "No contribuyente"
+                        (iNatVen=1) - "Extranjero" (iNatVen=2) GENERACIÓN AUTOMÁTICA: Este campo se
+                        genera automáticamente basado en iNatVen para garantizar coherencia y evitar
+                        errores manuales. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 SECCIÓN 2: IDENTIFICACIÓN DEL VENDEDOR (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- E303: iTipIDVen - Tipo identificación vendedor (OBLIGATORIO) -->
+            <xs:element name="iTipIDVen" type="tipoIdentificacionVendedor" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E303 - iTipIDVen: Tipo de identificación del vendedor. CAMPO
+                        OBLIGATORIO que especifica el tipo de documento: - 1: Cédula paraguaya (solo
+                        para nacionales) - 2: Pasaporte (extranjeros) - 3: Cédula extranjera
+                        (extranjeros residentes) - 4: Carnet de residencia (extranjeros con
+                        residencia) REGLAS DE COHERENCIA: - Si iNatVen=1: iTipIDVen debe ser 1 - Si
+                        iNatVen=2: iTipIDVen puede ser 2, 3, o 4 VALIDACIÓN CRÍTICA: Determina el
+                        formato esperado para dNumIDVen. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E304: dDTipIDVen - Descripción tipo identificación (OBLIGATORIO) -->
+            <xs:element name="dDTipIDVen" type="tipoDescripcionIdentificacionVendedor" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E304 - dDTipIDVen: Descripción del tipo de identificación.
+                        CAMPO OBLIGATORIO que describe textualmente el tipo de ID. Debe ser
+                        coherente con el valor de iTipIDVen. VALORES ESTÁNDAR: - "Cédula paraguaya"
+                        (iTipIDVen=1) - "Pasaporte" (iTipIDVen=2) - "Cédula extranjera"
+                        (iTipIDVen=3) - "Carnet de residencia" (iTipIDVen=4) GENERACIÓN AUTOMÁTICA:
+                        Se genera automáticamente para garantizar coherencia. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E305: dNumIDVen - Número identificación vendedor (OBLIGATORIO) -->
+            <xs:element name="dNumIDVen" type="tipoNumeroIdentificacionVendedor" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E305 - dNumIDVen: Número de identificación del vendedor.
+                        CAMPO OBLIGATORIO con el número del documento. Formato debe ser coherente
+                        con iTipIDVen. FORMATOS VÁLIDOS: - Cédula paraguaya: 1-8 dígitos numéricos -
+                        Pasaporte: alfanumérico 6-20 caracteres - Cédula extranjera: según país,
+                        máximo 20 caracteres - Carnet residencia: formato SET, máximo 20 caracteres
+                        VALIDACIONES: - Solo alfanuméricos y guiones - Sin espacios ni caracteres
+                        especiales - Longitud apropiada según tipo </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E306: dNomVen - Nombre/razón social vendedor (OBLIGATORIO) -->
+            <xs:element name="dNomVen" type="tipoTextoMedio" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E306 - dNomVen: Nombre o razón social del vendedor. CAMPO
+                        OBLIGATORIO con el nombre completo del vendedor. FORMATOS SEGÚN NATURALEZA:
+                        - No contribuyente: Nombre y apellido completo - Extranjero: Nombre completo
+                        o razón social empresarial VALIDACIONES: - Longitud: 4-255 caracteres - Solo
+                        caracteres imprimibles - Sin HTML o XML embebido EJEMPLOS: - "Juan Carlos
+                        González Pérez" - "International Supplies Inc." - "María Elena Rodríguez de
+                        López" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 SECCIÓN 3: UBICACIÓN DEL VENDEDOR (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- E307: dDirVen - Dirección del vendedor (OBLIGATORIO) -->
+            <xs:element name="dDirVen" type="tipoTextoMedio" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E307 - dDirVen: Dirección del vendedor. CAMPO OBLIGATORIO con
+                        la dirección completa del vendedor. CONTENIDO REQUERIDO: - Calle, avenida o
+                        ruta principal - Referencia de ubicación - Información suficiente para
+                        localización EJEMPLOS: - "Av. España 1234 c/ Brasil" - "Ruta 1 Km 25
+                        Capiatá" - "Miami Trade Center, 123 Biscayne Blvd" VALIDACIONES: - Longitud:
+                        5-255 caracteres - Descripción clara y específica </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E308: dNumCasVen - Número casa vendedor (OPCIONAL) -->
+            <xs:element name="dNumCasVen" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E308 - dNumCasVen: Número de casa o local del vendedor. CAMPO
+                        OPCIONAL que complementa la dirección principal. CONTENIDO TÍPICO: - Número
+                        de casa o edificio - Número de oficina o local - Código de apartamento
+                        EJEMPLOS: - "123" - "Ofc. 505" - "Apto 3B" - "Local 15" CUÁNDO USAR: Cuando
+                        la información no esté incluida en dDirVen. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E309-E314: Ubicación geográfica del vendedor -->
+            <xs:element name="cDepVen" type="tipoCodigoDepartamento" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E309 - cDepVen: Código de departamento del vendedor
+                        (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dDesDepVen" type="tipoDescripcionDepartamento" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E310 - dDesDepVen: Descripción departamento vendedor
+                        (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="cDisVen" type="tipoCodigoDistrito" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E311 - cDisVen: Código de distrito del vendedor (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dDesDisVen" type="tipoDescripcionDistrito" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E312 - dDesDisVen: Descripción distrito vendedor (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="cCiuVen" type="tipoCodigoCiudad" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E313 - cCiuVen: Código de ciudad del vendedor (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dDesCiuVen" type="tipoDescripcionCiudad" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E314 - dDesCiuVen: Descripción ciudad vendedor (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 SECCIÓN 4: UBICACIÓN DE LA TRANSACCIÓN (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- E315-E320: Ubicación donde se realiza la transacción -->
+            <xs:element name="cDepTrans" type="tipoCodigoDepartamento" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E315 - cDepTrans: Código departamento donde se realiza la
+                        transacción. PROPÓSITO: Identifica la ubicación geográfica donde ocurre la
+                        operación comercial. Puede ser diferente a la ubicación del vendedor. CASOS
+                        TÍPICOS: - Importación: departamento del puerto/aeropuerto de ingreso -
+                        Venta local: departamento donde se entrega la mercadería - Servicios:
+                        departamento donde se presta el servicio </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dDesDepTrans" type="tipoDescripcionDepartamento" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E316 - dDesDepTrans: Descripción departamento transacción
+                        (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="cDisTrans" type="tipoCodigoDistrito" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E317 - cDisTrans: Código distrito transacción (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dDesDisTrans" type="tipoDescripcionDistrito" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E318 - dDesDisTrans: Descripción distrito transacción
+                        (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="cCiuTrans" type="tipoCodigoCiudad" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E319 - cCiuTrans: Código ciudad transacción (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dDesCiuTrans" type="tipoDescripcionCiudad" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>E320 - dDesCiuTrans: Descripción ciudad transacción
+                        (obligatorio)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- VALIDACIONES Y RESTRICCIONES ADICIONALES                          -->
+    <!-- ================================================================== -->
+
+    <!--
+        VALIDACIONES CRUZADAS IMPLEMENTADAS A NIVEL DE APLICACIÓN:
+        
+        1. COHERENCIA NATURALEZA-IDENTIFICACIÓN:
+           - Si iNatVen=1 -> iTipIDVen debe ser 1 (cédula paraguaya)
+           - Si iNatVen=2 -> iTipIDVen puede ser 2, 3, o 4
+        
+        2. FORMATO NÚMERO IDENTIFICACIÓN:
+           - iTipIDVen=1: solo dígitos, máximo 8 caracteres
+           - iTipIDVen=2,3,4: alfanumérico, máximo 20 caracteres
+        
+        3. COHERENCIA EMISOR-RECEPTOR:
+           - gEmis.dRUCEmi debe ser igual a gDatRec.dRucRec
+           - gEmis.dDVEmi debe ser igual a gDatRec.dDVRec
+        
+        4. UBICACIÓN GEOGRÁFICA:
+           - Códigos de departamento/distrito/ciudad deben existir
+           - Descripciones deben corresponder con códigos
+           - Ubicación transacción debe ser en Paraguay
+        
+        5. CONTEXTO DE AUTOFACTURA:
+           - gCamAE solo válido cuando iTiDE = "4"
+           - Todos los campos obligatorios deben estar presentes
+           - Datos del vendedor deben ser completos y coherentes
+        
+        IMPLEMENTACIÓN EN CÓDIGO:
+        Estas validaciones se implementan en el validador de negocio
+        para mantener flexibilidad y mensajes de error claros.
+    -->
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE INTEGRACIÓN                                      -->
+    <!-- ================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON ROOT_ELEMENTS.XSD:
+        
+        Este tipo se usa en document_core/root_elements.xsd como:
+        
+        <xs:element name="gCamAE" type="tipoGrupoCamposAutofactura" minOccurs="0">
+            <xs:annotation>
+                <xs:documentation>
+                    Campos específicos para Autofactura Electrónica (iTiDE=4)
+                    Definido en: document_types/autofactura_types.xsd
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        ACTIVACIÓN EN DE_v150.XSD:
+        
+        Para activar este módulo, descomentar en root_elements.xsd:
+        <xs:include schemaLocation="../document_types/autofactura_types.xsd"/>
+        
+        PRUEBAS RECOMENDADAS:
+        
+        1. Validar estructura completa de gCamAE
+        2. Probar coherencia iNatVen/iTipIDVen
+        3. Validar formatos de números de identificación
+        4. Verificar datos geográficos obligatorios
+        5. Testear validación Emisor = Receptor
+        6. Probar integración con documento completo
+        
+        EJEMPLOS DE USO:
+        
+        AFE importación típica
+        <gCamAE>
+            <iNatVen>2</iNatVen>
+            <dDesNatVen>Extranjero</dDesNatVen>
+            <iTipIDVen>2</iTipIDVen>
+            <dDTipIDVen>Pasaporte</dDTipIDVen>
+            <dNumIDVen>P1234567890</dNumIDVen>
+            <dNomVen>International Supplies Inc.</dNomVen>
+            <dDirVen>Miami Trade Center, 123 Biscayne Blvd</dDirVen>
+            <dNumCasVen>Suite 505</dNumCasVen>
+            <cDepVen>1</cDepVen>
+            <dDesDepVen>CAPITAL</dDesDepVen>
+            <cDisVen>1</cDisVen>
+            <dDesDisVen>ASUNCION</dDesDisVen>
+            <cCiuVen>1</cCiuVen>
+            <dDesCiuVen>ASUNCION</dDesCiuVen>
+            <cDepTrans>1</cDepTrans>
+            <dDesDepTrans>CAPITAL</dDesDepTrans>
+            <cDisTrans>1</cDisTrans>
+            <dDesDisTrans>ASUNCION</dDesDisTrans>
+            <cCiuTrans>1</cCiuTrans>
+            <dDesCiuTrans>ASUNCION</dDesCiuTrans>
+        </gCamAE>
+        
+         AFE no contribuyente nacional
+        <gCamAE>
+        <iNatVen>1</iNatVen>
+        <dDesNatVen>No contribuyente</dDesNatVen>
+        <iTipIDVen>1</iTipIDVen>
+        <dDTipIDVen>Cédula paraguaya</dDTipIDVen>
+        <dNumIDVen>12345678</dNumIDVen>
+        <dNomVen>Juan Carlos González Pérez</dNomVen>
+        <dDirVen>Ruta 1 Km 25 Capiatá</dDirVen>
+        <cDepVen>11</cDepVen>
+        <dDesDepVen>CENTRAL</dDesDepVen>
+        <cDisVen>52</cDisVen>
+        <dDesDisVen>CAPIATA</dDesDisVen>
+        <cCiuVen>1345</cCiuVen>
+        <dDesCiuVen>CAPIATA</dDesCiuVen>
+        <cDepTrans>1</cDepTrans>
+        <dDesDepTrans>CAPITAL</dDesDepTrans>
+        <cDisTrans>1</cDisTrans>
+        <dDesDisTrans>ASUNCION</dDesDisTrans>
+        <cCiuTrans>1</cCiuTrans>
+        <dDesCiuTrans>ASUNCION</dDesCiuTrans>
+    </gCamAE> VALIDACIONES IMPLEMENTADAS: 1. Coherencia
+    entre naturaleza e identificación del vendedor 2. Formato correcto de números de identificación
+    3. Completitud de datos geográficos obligatorios 4. Consistencia entre ubicación vendedor y
+    transacción 5. Validación Emisor = Receptor a nivel de aplicación -->
+</xs:schema>

@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_types/nota_debito_types.xsd
+  Propósito: Definición de tipos específicos para Nota de Débito Electrónica (NDE) SIFEN v150
+  
+  Este módulo define:
+  - gCamNDE: Grupo de campos específicos de Nota de Débito Electrónica
+  - Validaciones específicas para notas de débito
+  - Motivos de emisión para cargos adicionales
+  - Relación obligatoria con documento original
+  
+  CASOS DE USO PRINCIPALES:
+  - Intereses por mora en pagos vencidos
+  - Gastos bancarios y de cobranza
+  - Recupero de costos operativos adicionales
+  - Ajustes de precios por incrementos
+  - Penalidades contractuales
+  - Cargos por servicios adicionales no facturados
+  
+  CARACTERÍSTICAS CRÍTICAS:
+  - Documento asociado obligatorio (referencia al original)
+  - Motivo de emisión obligatorio y específico
+  - Montos típicamente positivos (cargo al cliente)
+  - Aumenta el valor total a pagar del documento original
+  - Emisor y receptor deben coincidir con documento original
+  
+  DIFERENCIAS CON NCE:
+  - NCE: Reduce valor (crédito al cliente), montos negativos
+  - NDE: Aumenta valor (cargo al cliente), montos positivos
+  - NCE: Motivos típicos 1-4 (devolución, descuento, bonificación)
+  - NDE: Motivos típicos 6-8 (recupero costo/gasto, ajuste precio)
+  
+  ELEMENTOS ESPECÍFICOS:
+  - iMotEmi: Motivo de emisión (1-8, típicamente 6-8 para NDE)
+  - dDesMotEmi: Descripción automática del motivo
+  - Validaciones específicas para cargos adicionales
+  
+  VALIDACIONES CRÍTICAS:
+  - Documento asociado presente y válido (gCamDEAsoc)
+  - Motivo de emisión válido y justificado
+  - Montos positivos y coherentes con motivo
+  - Justificación adecuada para cargos adicionales
+  
+  NOTA TÉCNICA:
+  NDE comparte la misma estructura XSD que NCE (gCamNCDE) según especificación SIFEN,
+  pero se diferencia en la lógica de negocio y validaciones específicas.
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  - document_types/associated_document.xsd (documento asociado)
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ IMPLEMENTACIÓN INICIAL COMPLETA
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA NOTA DE DÉBITO ELECTRÓNICA                 -->
+    <!-- ================================================================== -->
+
+    <!-- Motivo de emisión de la nota de débito -->
+    <xs:simpleType name="tipoMotivoEmisionNotaDebito">
+        <xs:annotation>
+            <xs:documentation> Motivo o razón de emisión de la nota de débito electrónica. Valores
+                válidos según normativa SIFEN v150: - 1: Devolución y Ajuste de precios - Raramente
+                usado en NDE - 2: Devolución - No aplicable para NDE (contradictorio) - 3: Descuento
+                - No aplicable para NDE (contradictorio) - 4: Bonificación - No aplicable para NDE
+                (contradictorio) - 5: Crédito incobrable - Puede aplicar en casos específicos - 6:
+                Recupero de costo - MÁS COMÚN para NDE (costos adicionales) - 7: Recupero de gasto -
+                MÁS COMÚN para NDE (gastos adicionales) - 8: Ajuste de precio - COMÚN para NDE
+                (incrementos de precio) CASOS TÍPICOS POR MOTIVO EN NDE: - Motivo 6: Costos de envío
+                no facturados, seguros adicionales, gestión de cobranza - Motivo 7: Gastos
+                bancarios, honorarios profesionales, trámites judiciales - Motivo 8: Incrementos de
+                precio por inflación, ajustes tarifarios - Motivo 5: Cargos por recuperación de
+                créditos incobrables - Motivos 1-4: Muy raros en NDE, más típicos de NCE DIFERENCIAS
+                CON NCE: - En NCE: Motivos 1-4 son muy comunes (devoluciones, descuentos) - En NDE:
+                Motivos 6-8 son más apropiados (cargos adicionales) - Lógica opuesta: NCE reduce
+                valor, NDE aumenta valor VALIDACIONES ESPECÍFICAS: - Motivo debe estar justificado
+                con ítems coherentes - Cargos deben ser razonables y documentados - Debe haber base
+                legal/contractual para los cargos Campo obligatorio para todas las notas de débito. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Devolución y Ajuste de precios (raro en NDE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Devolución (no aplicable para NDE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Descuento (no aplicable para NDE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Bonificación (no aplicable para NDE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Crédito incobrable (casos específicos)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="6">
+                <xs:annotation>
+                    <xs:documentation>Recupero de costo (MÁS COMÚN en NDE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="7">
+                <xs:annotation>
+                    <xs:documentation>Recupero de gasto (MÁS COMÚN en NDE)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="8">
+                <xs:annotation>
+                    <xs:documentation>Ajuste de precio (COMÚN en NDE - incrementos)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del motivo de emisión -->
+    <xs:simpleType name="tipoDescripcionMotivoEmisionDebito">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del motivo de emisión de la nota de débito. Debe
+                corresponder exactamente con el valor de iMotEmi: - "Devolución y Ajuste de precios"
+                para iMotEmi=1 (raro en NDE) - "Devolución" para iMotEmi=2 (no aplicable en NDE) -
+                "Descuento" para iMotEmi=3 (no aplicable en NDE) - "Bonificación" para iMotEmi=4 (no
+                aplicable en NDE) - "Crédito incobrable" para iMotEmi=5 (casos específicos) -
+                "Recupero de costo" para iMotEmi=6 (MÁS COMÚN en NDE) - "Recupero de gasto" para
+                iMotEmi=7 (MÁS COMÚN en NDE) - "Ajuste de precio" para iMotEmi=8 (COMÚN en NDE) NOTA
+                IMPORTANTE: Aunque técnicamente se pueden usar todos los motivos (1-8), los motivos
+                2, 3, 4 son conceptualmente contradictorios con el propósito de una nota de débito
+                (aumentar valor). GENERACIÓN AUTOMÁTICA: Este campo se genera automáticamente basado
+                en iMotEmi para garantizar coherencia entre código y descripción. VALIDACIÓN DE
+                LÓGICA DE NEGOCIO: El sistema debería validar que: - Motivos 6-8: apropiados para
+                NDE (cargos adicionales) - Motivos 2-4: generar advertencias (lógica contradictoria)
+                - Motivos 1,5: permitir pero requerir justificación especial Campo obligatorio,
+                siempre presente cuando hay iMotEmi. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="8" />
+            <xs:maxLength value="30" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL: CAMPOS NOTA DE DÉBITO ELECTRÓNICA (gCamNDE)      -->
+    <!-- ================================================================== -->
+
+    <xs:complexType name="tipoGrupoCamposNotaDebito">
+        <xs:annotation>
+            <xs:documentation> Grupo de campos específicos para Nota de Débito Electrónica (NDE).
+                NOTA TÉCNICA IMPORTANTE: Según la especificación SIFEN v150, tanto NCE como NDE
+                comparten la misma estructura XML (gCamNCDE) con los mismos campos: - iMotEmi:
+                Motivo de emisión - dDesMotEmi: Descripción del motivo La diferencia principal está
+                en: 1. LÓGICA DE NEGOCIO: NCE reduce valor, NDE aumenta valor 2. MOTIVOS TÍPICOS:
+                NCE usa 1-4, NDE usa 6-8 principalmente 3. MONTOS: NCE negativos, NDE positivos 4.
+                VALIDACIONES: Específicas según tipo de documento CARACTERÍSTICAS PRINCIPALES DE
+                NDE: - Documento que aumenta el valor de una factura original - Siempre referencia a
+                un documento electrónico previo - Motivo de emisión obligatorio y justificado -
+                Montos típicamente positivos (cargo al cliente) ESTRUCTURA OBLIGATORIA: 1. Motivo de
+                emisión (obligatorio) 2. Descripción del motivo (obligatorio) RELACIONES CRÍTICAS: -
+                Debe existir gCamDEAsoc (documento asociado) - Emisor debe ser el mismo del
+                documento original - Receptor debe ser el mismo del documento original - Cargos
+                deben estar justificados legal/contractualmente CASOS DE USO MÁS COMUNES: -
+                Intereses por mora: motivo 6 o 7 - Gastos de cobranza: motivo 7 - Ajustes de precio:
+                motivo 8 - Costos adicionales no facturados: motivo 6 - Penalidades contractuales:
+                motivo 6 o 7 VALIDACIONES AUTOMÁTICAS: - Coherencia entre motivo y descripción -
+                Existencia de documento asociado válido - Verificación de montos positivos (típico
+                NDE) - Validación de partes (emisor/receptor) - Justificación adecuada de cargos USO
+                EN SCHEMA: Elemento dentro de gDtipDE cuando iTiDE = "6" (Nota Débito Electrónica)
+                ELEMENTOS RELACIONADOS: - Siempre acompañado de gCamDEAsoc (documento asociado) -
+                Ítems con montos típicamente positivos - Totales que aumentan el valor a pagar -
+                Justificación detallada en descripción de ítems </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- =====================================================
+                 MOTIVO DE EMISIÓN (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- iMotEmi - Motivo de emisión (OBLIGATORIO) -->
+            <xs:element name="iMotEmi" type="tipoMotivoEmisionNotaDebito" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> iMotEmi: Motivo de emisión de la nota de débito. CAMPO
+                        OBLIGATORIO que especifica la razón de la NDE: - 6: Recupero de costo (MÁS
+                        COMÚN - 40% de casos NDE) - 7: Recupero de gasto (MÁS COMÚN - 35% de casos
+                        NDE) - 8: Ajuste de precio (COMÚN - 20% de casos NDE) - 5: Crédito
+                        incobrable (ESPECÍFICO - 3% de casos) - 1: Devolución y Ajuste (RARO - 2% de
+                        casos) - 2,3,4: Conceptualmente contradictorios con NDE EJEMPLOS POR MOTIVO:
+                        - Motivo 6: "Costo envío urgente", "Seguro adicional", "Gestión cobranza" -
+                        Motivo 7: "Gastos bancarios", "Honorarios abogado", "Trámites judiciales" -
+                        Motivo 8: "Incremento combustible", "Ajuste tarifario", "Inflación" - Motivo
+                        5: "Gastos recuperación crédito", "Cargos administrativos" DETERMINA
+                        VALIDACIONES: - Tipo de ítems esperados (costos, gastos, ajustes) -
+                        Validaciones específicas de montos positivos - Documentación de
+                        justificación requerida - Base legal/contractual para cargos REGLAS DE
+                        NEGOCIO: - Motivos 6-8: Apropiados y esperados para NDE - Motivos 2-4:
+                        Generan advertencias (contradictorios) - Todos los cargos deben estar
+                        justificados - Debe existir base contractual o legal REGLA CRÍTICA: Debe ser
+                        coherente con el contenido de los ítems y justificación. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- dDesMotEmi - Descripción motivo (OBLIGATORIO) -->
+            <xs:element name="dDesMotEmi" type="tipoDescripcionMotivoEmisionDebito" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> dDesMotEmi: Descripción del motivo de emisión. CAMPO
+                        OBLIGATORIO que describe textualmente el motivo. Debe ser coherente con el
+                        valor de iMotEmi. VALORES ESTÁNDAR: - "Recupero de costo" (iMotEmi=6) - MÁS
+                        COMÚN en NDE - "Recupero de gasto" (iMotEmi=7) - MÁS COMÚN en NDE - "Ajuste
+                        de precio" (iMotEmi=8) - COMÚN en NDE - "Crédito incobrable" (iMotEmi=5) -
+                        ESPECÍFICO - "Devolución y Ajuste de precios" (iMotEmi=1) - RARO VALORES
+                        CONTRADICTORIOS PARA NDE: - "Devolución" (iMotEmi=2) - Contradictorio con
+                        NDE - "Descuento" (iMotEmi=3) - Contradictorio con NDE - "Bonificación"
+                        (iMotEmi=4) - Contradictorio con NDE GENERACIÓN AUTOMÁTICA: Este campo se
+                        genera automáticamente basado en iMotEmi para garantizar coherencia y evitar
+                        errores manuales. VALIDACIÓN DE LÓGICA: El sistema puede implementar
+                        validaciones adicionales: - Advertir sobre motivos contradictorios (2-4) -
+                        Requerir justificación especial para motivos raros - Validar coherencia con
+                        contenido de ítems PROPÓSITO: - Claridad en reportes e impresiones -
+                        Facilita auditorías y controles - Mejora la comprensión del documento -
+                        Usado en interfaces de usuario - Justificación legal de cargos adicionales
+                        VALIDACIONES: - Longitud: 8-30 caracteres - Coherencia estricta con iMotEmi
+                        - Solo caracteres alfanuméricos y espacios </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- VALIDACIONES Y RESTRICCIONES ADICIONALES                          -->
+    <!-- ================================================================== -->
+
+    <!--
+        VALIDACIONES CRUZADAS IMPLEMENTADAS A NIVEL DE APLICACIÓN:
+        
+        1. COHERENCIA MOTIVO-DESCRIPCIÓN:
+           - iMotEmi debe corresponder exactamente con dDesMotEmi
+           - Mapeo estricto entre códigos y descripciones
+        
+        2. DOCUMENTO ASOCIADO OBLIGATORIO:
+           - gCamDEAsoc debe estar presente y completo
+           - CDC de referencia debe ser válido (44 dígitos)
+           - Documento referenciado debe existir y ser válido
+        
+        3. COHERENCIA DE PARTES:
+           - Emisor NDE = Emisor documento original
+           - Receptor NDE = Receptor documento original
+           - RUCs deben coincidir exactamente
+        
+        4. VALIDACIONES DE MONTOS (ESPECÍFICAS NDE):
+           - Montos típicamente positivos (cargo al cliente)
+           - Total general debe ser positivo (aumenta valor)
+           - Cargos deben ser razonables y justificados
+           - IVA debe calcularse correctamente sobre montos positivos
+        
+        5. CONTEXTO DE NOTA DE DÉBITO:
+           - gCamNDE solo válido cuando iTiDE = "6"
+           - Siempre debe estar acompañado de gCamDEAsoc
+           - Ítems deben ser coherentes con el motivo
+           - Fecha emisión posterior al documento original
+           - Justificación legal/contractual requerida
+        
+        6. VALIDACIONES ESPECÍFICAS POR MOTIVO:
+           - Motivo 6 (Recupero costo): costos adicionales documentados
+           - Motivo 7 (Recupero gasto): gastos justificados y razonables
+           - Motivo 8 (Ajuste precio): incrementos con base tarifaria
+           - Motivo 5 (Crédito incobrable): procedimientos de cobranza
+           - Motivos 2-4: advertir sobre lógica contradictoria
+        
+        7. VALIDACIONES DE LÓGICA DE NEGOCIO:
+           - Base legal/contractual para cargos
+           - Montos razonables (no abusivos)
+           - Timing apropiado (no cargos retroactivos sin base)
+           - Documentación de soporte adecuada
+        
+        IMPLEMENTACIÓN EN CÓDIGO:
+        Estas validaciones se implementan en el validador de negocio
+        para mantener flexibilidad y proporcionar mensajes de error específicos.
+    -->
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE INTEGRACIÓN                                      -->
+    <!-- ================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON ROOT_ELEMENTS.XSD:
+        
+        Este tipo se usa en document_core/root_elements.xsd como:
+        
+        <xs:element name="gCamNDE" type="tipoGrupoCamposNotaDebito" minOccurs="0">
+            <xs:annotation>
+                <xs:documentation>
+                    Campos específicos para Nota de Débito Electrónica (iTiDE=6)
+                    Definido en: document_types/nota_debito_types.xsd
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        ACTIVACIÓN EN DE_v150.XSD:
+        
+        Para activar este módulo, descomentar en root_elements.xsd:
+        <xs:include schemaLocation="../document_types/nota_debito_types.xsd"/>
+        
+        DEPENDENCIAS REQUERIDAS:
+        
+        También se requiere activar:
+        <xs:include schemaLocation="../document_types/associated_document.xsd"/>
+        
+        PRUEBAS RECOMENDADAS:
+        
+        1. Validar estructura básica de gCamNDE
+        2. Probar motivos apropiados para NDE (6-8)
+        3. Validar advertencias para motivos contradictorios (2-4)
+        4. Verificar coherencia motivo-descripción
+        5. Testear integración con documento asociado
+        6. Validar montos positivos típicos de NDE
+        7. Probar casos de error específicos
+        8. Verificar integración con documento completo
+        
+        EJEMPLOS DE USO:
+        
+        NDE recupero de costo (más común)
+        <gCamNDE>
+            <iMotEmi>6</iMotEmi>
+            <dDesMotEmi>Recupero de costo</dDesMotEmi>
+        </gCamNDE>
+        
+        NDE recupero de gasto (muy común)
+        <gCamNDE>
+            <iMotEmi>7</iMotEmi>
+            <dDesMotEmi>Recupero de gasto</dDesMotEmi>
+        </gCamNDE>
+        
+        NDE ajuste de precio (común)
+        <gCamNDE>
+            <iMotEmi>8</iMotEmi>
+            <dDesMotEmi>Ajuste de precio</dDesMotEmi>
+        </gCamNDE>
+        
+        NDE casos específicos
+        <gCamNDE>
+            <iMotEmi>5</iMotEmi>
+            <dDesMotEmi>Crédito incobrable</dDesMotEmi>
+        </gCamNDE>
+        
+        VALIDACIONES IMPLEMENTADAS:
+        
+        1. Motivo de emisión obligatorio y válido (1-8)
+        2. Descripción coherente con motivo
+        3. Documento asociado presente y válido
+        4. Coherencia entre emisor/receptor con documento original
+        5. Validación de montos positivos (típico NDE)
+        6. Verificación de justificación de cargos
+        7. Base legal/contractual para cargos adicionales
+        
+        CASOS DE ERROR TÍPICOS:
+        
+        1. Motivo inválido (valor fuera de rango 1-8)
+        2. Descripción no coherente con motivo
+        3. Falta documento asociado (gCamDEAsoc)
+        4. CDC de referencia inválido
+        5. Montos negativos (contradictorio con NDE)
+        6. Cargos excesivos sin justificación
+        7. Falta base legal/contractual para cargos
+        8. Motivos contradictorios (2-4) sin justificación especial
+        
+        DIFERENCIAS CON NCE:
+        
+        1. PROPÓSITO: NCE reduce valor, NDE aumenta valor
+        2. MONTOS: NCE negativos, NDE positivos
+        3. MOTIVOS: NCE usa 1-4, NDE usa 6-8 principalmente
+        4. VALIDACIONES: NCE valida no superar original, NDE valida justificación
+        5. LÓGICA: NCE es crédito al cliente, NDE es cargo al cliente
+        
+        BENEFICIOS DE ESTE DISEÑO:
+        
+        - ✅ Estructura coherente con NCE pero específica para NDE
+        - ✅ Validaciones específicas para cargos adicionales
+        - ✅ Reutilización de tipos básicos existentes
+        - ✅ Flexibilidad para diferentes casos de uso
+        - ✅ Compatibilidad total con especificación SIFEN v150
+        - ✅ Preparado para validaciones de negocio complejas
+        - ✅ Facilita la implementación de lógica específica por motivo
+        - ✅ Base sólida para auditorías y controles
+        - ✅ Claridad en diferenciación con NCE
+    -->
+
+</xs:schema>

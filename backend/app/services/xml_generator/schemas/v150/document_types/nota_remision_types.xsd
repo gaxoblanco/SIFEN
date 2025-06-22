@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: document_types/nota_remision_types.xsd
+  Propósito: Definición de tipos específicos para Nota de Remisión Electrónica (NRE) SIFEN v150
+  
+  Este módulo define:
+  - gCamNRE: Grupo de campos específicos de Nota de Remisión Electrónica
+  - Validaciones específicas para documentos de transporte
+  - Motivos de traslado según normativa
+  - Información obligatoria de transporte y logística
+  
+  CASOS DE USO PRINCIPALES:
+  - Traslado entre sucursales de la misma empresa
+  - Envío por venta (antes de facturar)
+  - Traslado por consignación
+  - Exportación/Importación (trámites aduaneros)
+  - Traslado para reparación o transformación
+  - Exhibición en ferias o demostraciones
+  - Decomiso de mercaderías
+  - Traslado entre almacenes
+  
+  CARACTERÍSTICAS CRÍTICAS:
+  - DOCUMENTO SIN VALOR COMERCIAL (totales = 0)
+  - Datos de transporte obligatorios (gCamTrans)
+  - Información logística detallada requerida
+  - Fechas de inicio y fin de traslado
+  - Responsable del flete especificado
+  - Items sin precios unitarios (solo cantidades)
+  
+  DIFERENCIAS CON OTROS TIPOS:
+  - FE/AFE/NCE/NDE: Tienen valor comercial, montos, totales
+  - NRE: Solo logística, transporte, sin montos monetarios
+  - NRE: Enfoque en "DÓNDE" y "CUÁNDO" vs "CUÁNTO" de otros tipos
+  
+  ELEMENTOS ESPECÍFICOS:
+  - iMotTras: Motivo de traslado (1-14, 99)
+  - dDesMotTras: Descripción automática del motivo
+  - iRespFlete: Responsable del flete (1-3)
+  - cCondTras: Condición del transporte (1-3)
+  - dFecIniTras: Fecha inicio traslado
+  - dFecFinTras: Fecha fin estimado traslado
+  
+  VALIDACIONES CRÍTICAS:
+  - Datos de transporte obligatorios y completos
+  - Motivo de traslado válido y coherente
+  - Fechas de traslado lógicas (inicio < fin, futuras)
+  - Para motivo 7: emisor = receptor (traslado interno)
+  - NO debe tener sección de totales monetarios
+  - Items con datos de relevancia obligatorios
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos básicos)
+  - common/geographic_types.xsd (rutas, ubicaciones)
+  - transport/transport_types.xsd (datos de transporte) [pendiente]
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ IMPLEMENTACIÓN INICIAL COMPLETA
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipos básicos comunes -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos geográficos (rutas, ubicaciones) -->
+    <xs:include
+        schemaLocation="../common/geographic_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA NOTA DE REMISIÓN ELECTRÓNICA               -->
+    <!-- ================================================================== -->
+
+    <!-- Motivo de traslado -->
+    <xs:simpleType name="tipoMotivoTraslado">
+        <xs:annotation>
+            <xs:documentation> Motivo o razón del traslado de mercaderías. Valores válidos según
+                normativa SIFEN v150: - 1: Venta - Traslado por venta ya efectuada o por efectuar -
+                2: Consignación - Entrega en depósito para venta posterior - 3: Exportación -
+                Traslado para exportación - 4: Importación - Traslado de mercadería importada - 5:
+                Reparación - Traslado para reparación o servicio técnico - 6: Transformación -
+                Traslado para proceso industrial - 7: Traslado entre locales del mismo contribuyente
+                - 8: Exhibición o demostración - Ferias, showrooms, etc. - 9: Devolución de
+                mercadería - 10: Decomiso de mercadería - 11: Traslado entre almacenes - 12:
+                Préstamo o comodato - 13: Entrega de muestra gratuita - 14: Traslado por
+                administración - 99: Otros motivos (especificar en observaciones) CASOS TÍPICOS POR
+                MOTIVO: - Motivo 1: Delivery, envíos por venta (más común ~35%) - Motivo 7:
+                Traslados internos entre sucursales (~25%) - Motivo 2: Consignación a distribuidores
+                (~15%) - Motivo 5: Envío a taller, service técnico (~10%) - Motivo 8: Ferias,
+                exhibiciones (~5%) - Otros motivos: ~10% VALIDACIONES ESPECÍFICAS: - Motivo 7:
+                Emisor debe ser igual a receptor - Motivo 1: Puede requerir fecha futura de
+                facturación - Motivo 3/4: Pueden requerir documentos aduaneros - Motivo 10: Requiere
+                autorización especial IMPACTO EN VALIDACIONES: - Determina datos adicionales
+                requeridos - Influye en validaciones de fechas - Afecta coherencia emisor/receptor
+                Campo obligatorio para todas las notas de remisión. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Venta</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Consignación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Exportación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Importación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Reparación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="6">
+                <xs:annotation>
+                    <xs:documentation>Transformación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="7">
+                <xs:annotation>
+                    <xs:documentation>Traslado entre locales del mismo contribuyente</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="8">
+                <xs:annotation>
+                    <xs:documentation>Exhibición o demostración</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="9">
+                <xs:annotation>
+                    <xs:documentation>Devolución de mercadería</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="10">
+                <xs:annotation>
+                    <xs:documentation>Decomiso de mercadería</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="11">
+                <xs:annotation>
+                    <xs:documentation>Traslado entre almacenes</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="12">
+                <xs:annotation>
+                    <xs:documentation>Préstamo o comodato</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="13">
+                <xs:annotation>
+                    <xs:documentation>Entrega de muestra gratuita</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="14">
+                <xs:annotation>
+                    <xs:documentation>Traslado por administración</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="99">
+                <xs:annotation>
+                    <xs:documentation>Otros motivos</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción del motivo de traslado -->
+    <xs:simpleType
+        name="tipoDescripcionMotivoTraslado">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del motivo de traslado. Debe corresponder
+                exactamente con el valor de iMotTras: - "Venta" para iMotTras=1 - "Consignación"
+                para iMotTras=2 - "Exportación" para iMotTras=3 - "Importación" para iMotTras=4 -
+                "Reparación" para iMotTras=5 - "Transformación" para iMotTras=6 - "Traslado entre
+                locales del mismo contribuyente" para iMotTras=7 - "Exhibición o demostración" para
+                iMotTras=8 - "Devolución de mercadería" para iMotTras=9 - "Decomiso de mercadería"
+                para iMotTras=10 - "Traslado entre almacenes" para iMotTras=11 - "Préstamo o
+                comodato" para iMotTras=12 - "Entrega de muestra gratuita" para iMotTras=13 -
+                "Traslado por administración" para iMotTras=14 - "Otros motivos" para iMotTras=99
+                GENERACIÓN AUTOMÁTICA: Este campo se genera automáticamente basado en iMotTras para
+                garantizar coherencia entre código y descripción. Campo obligatorio, siempre
+                presente cuando hay iMotTras. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="4" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Responsable del flete -->
+    <xs:simpleType
+        name="tipoResponsableFlete">
+        <xs:annotation>
+            <xs:documentation> Responsable del pago del flete del transporte. Valores válidos según
+                normativa SIFEN: - 1: Emisor - El que emite la NRE paga el flete - 2: Receptor - El
+                que recibe la mercadería paga el flete - 3: Tercero - Otra persona/empresa paga el
+                flete CASOS TÍPICOS: - Valor 1: Envíos por venta (emisor paga envío) - Valor 2:
+                Compras (receptor paga flete) - Valor 3: Operaciones triangulares, seguros IMPACTO
+                EN DOCUMENTACIÓN: - Valor 3: Puede requerir identificación del tercero - Influye en
+                cálculo de costos logísticos - Determina responsabilidades contractuales Campo
+                obligatorio para todas las NRE. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Emisor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Receptor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Tercero</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Condición del transporte -->
+    <xs:simpleType
+        name="tipoCondicionTransporte">
+        <xs:annotation>
+            <xs:documentation> Condición o modalidad del transporte de mercaderías. Valores válidos
+                según normativa SIFEN: - 1: Transporte propio - Vehículos de la empresa emisora - 2:
+                Transporte contratado - Empresa de transporte externa - 3: Retiro por cuenta del
+                receptor - Cliente retira CASOS TÍPICOS: - Valor 1: Flota propia, delivery con
+                vehículos empresa (~40%) - Valor 2: Tercerización logística, empresas transporte
+                (~45%) - Valor 3: Retiro en depósito, autoservicio (~15%) IMPACTO EN VALIDACIONES: -
+                Valor 1: Vehículos deben estar a nombre de emisor - Valor 2: Requiere datos empresa
+                transportista - Valor 3: Puede no requerir datos de vehículo DOCUMENTACIÓN
+                REQUERIDA: - Valores 1-2: Datos completos de vehículo y conductor - Valor 3: Datos
+                mínimos, enfoque en receptor Campo obligatorio para todas las NRE. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Transporte propio</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Transporte contratado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Retiro por cuenta del receptor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- GRUPO PRINCIPAL: CAMPOS NOTA DE REMISIÓN ELECTRÓNICA (gCamNRE)    -->
+    <!-- ================================================================== -->
+
+    <xs:complexType
+        name="tipoGrupoCamposNotaRemision">
+        <xs:annotation>
+            <xs:documentation> Grupo de campos específicos para Nota de Remisión Electrónica (NRE).
+                Contiene los elementos distintivos que caracterizan una nota de remisión electrónica
+                según la normativa SIFEN v150. CARACTERÍSTICAS PRINCIPALES: - Documento de
+                transporte SIN VALOR COMERCIAL - Enfoque en logística, rutas, fechas, vehículos -
+                Obligatorio: datos de transporte completos - NO incluye montos monetarios (totales =
+                0) DIFERENCIAS CON OTROS TIPOS: - FE/AFE/NCE/NDE: Documentos comerciales con valores
+                - NRE: Documento logístico sin valores comerciales - Enfoque en "CUÁNDO y DÓNDE" vs
+                "CUÁNTO" ESTRUCTURA OBLIGATORIA: 1. Motivo de traslado (obligatorio) 2. Descripción
+                del motivo (obligatorio) 3. Responsable del flete (obligatorio) 4. Condición del
+                transporte (obligatorio) 5. Fecha inicio traslado (obligatorio) 6. Fecha fin
+                estimado traslado (obligatorio) ELEMENTOS RELACIONADOS OBLIGATORIOS: - gCamTrans:
+                Datos de transporte (vehículo, conductor) - Items sin precios unitarios (solo
+                cantidades) - Datos de relevancia en items (origen, destino) CASOS DE USO: -
+                Traslados internos entre sucursales - Envíos por venta (antes de facturar) -
+                Consignación a distribuidores - Traslados para reparación/servicio - Exhibiciones,
+                ferias, demostraciones - Operaciones de importación/exportación VALIDACIONES
+                AUTOMÁTICAS: - Coherencia entre motivo y tipo de operación - Fechas lógicas (inicio
+                - fin , futuras si aplica) - Para motivo 7: emisor= receptor (traslado interno) -
+                Datos de transporte completos y coherentes - Items sin montos comerciales USO EN
+                SCHEMA: Elemento dentro de gDtipDE cuando iTiDE="7" (Nota Remisión Electrónica)
+                ELEMENTOS SIEMPRE REQUERIDOS: - gCamTrans (datos de transporte) - gCamItem (items
+                sin precios) - NO gTotSub (sin totales monetarios) </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- =====================================================
+                 MOTIVO Y TIPO DE TRASLADO (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- iMotTras - Motivo de traslado (OBLIGATORIO) -->
+            <xs:element name="iMotTras" type="tipoMotivoTraslado" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> iMotTras: Motivo o razón del traslado de mercaderías. CAMPO
+                        OBLIGATORIO que especifica el propósito del traslado: - 1: Venta (más común
+                        ~35% - delivery, envíos) - 7: Traslado interno (~25% - entre sucursales) -
+                        2: Consignación (~15% - a distribuidores) - 5: Reparación (~10% - service
+                        técnico) - 8: Exhibición (~5% - ferias, showrooms) - Otros motivos: ~10%
+                        DETERMINA VALIDACIONES ESPECÍFICAS: - Motivo 7: Emisor = Receptor (mismo
+                        RUC) - Motivo 1: Puede requerir fecha futura facturación - Motivo 3/4:
+                        Documentos aduaneros para import/export - Motivo 10: Autorización especial
+                        para decomiso IMPACTO EN DOCUMENTACIÓN: - Influye en datos adicionales
+                        requeridos - Determina validaciones de fechas - Afecta coherencia entre
+                        partes - Define documentación de soporte necesaria EJEMPLOS POR MOTIVO: -
+                        Motivo 1: "Envío por venta online", "Delivery restaurant" - Motivo 7:
+                        "Traslado sucursal Centro a Mariano", "Reposición stock" - Motivo 2:
+                        "Consignación distribuidor Zona Norte" - Motivo 5: "Envío service técnico
+                        autorizado" REGLA CRÍTICA: Debe ser coherente con emisor/receptor y tipo de
+                        mercadería. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- dDesMotTras - Descripción motivo traslado (OBLIGATORIO) -->
+            <xs:element name="dDesMotTras" type="tipoDescripcionMotivoTraslado" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> dDesMotTras: Descripción del motivo de traslado. CAMPO
+                        OBLIGATORIO que describe textualmente el motivo. Debe ser coherente con el
+                        valor de iMotTras. VALORES ESTÁNDAR: - "Venta" (iMotTras=1) - "Consignación"
+                        (iMotTras=2) - "Exportación" (iMotTras=3) - "Importación" (iMotTras=4) -
+                        "Reparación" (iMotTras=5) - "Transformación" (iMotTras=6) - "Traslado entre
+                        locales del mismo contribuyente" (iMotTras=7) - "Exhibición o demostración"
+                        (iMotTras=8) - "Devolución de mercadería" (iMotTras=9) - "Decomiso de
+                        mercadería" (iMotTras=10) - "Traslado entre almacenes" (iMotTras=11) -
+                        "Préstamo o comodato" (iMotTras=12) - "Entrega de muestra gratuita"
+                        (iMotTras=13) - "Traslado por administración" (iMotTras=14) - "Otros
+                        motivos" (iMotTras=99) GENERACIÓN AUTOMÁTICA: Este campo se genera
+                        automáticamente basado en iMotTras para garantizar coherencia y evitar
+                        errores manuales. PROPÓSITO: - Claridad en reportes de logística - Facilita
+                        auditorías de transporte - Mejora trazabilidad de mercaderías - Usado en
+                        controles aduaneros - Base para estadísticas de transporte </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 RESPONSABILIDADES Y CONDICIONES (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- iRespFlete - Responsable del flete (OBLIGATORIO) -->
+            <xs:element name="iRespFlete" type="tipoResponsableFlete" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> iRespFlete: Responsable del pago del flete. CAMPO OBLIGATORIO
+                        que especifica quién paga el transporte: - 1: Emisor (quien envía paga) - 2:
+                        Receptor (quien recibe paga) - 3: Tercero (otra parte paga) CASOS TÍPICOS: -
+                        Valor 1: Ventas con envío gratis, traslados internos - Valor 2: Compras,
+                        retiros programados - Valor 3: Operaciones triangulares, seguros especiales
+                        IMPACTO EN COSTOS: - Determina quien asume costos logísticos - Influye en
+                        precios finales de productos - Define responsabilidades contractuales
+                        DOCUMENTACIÓN ADICIONAL: - Valor 3: Puede requerir identificación del
+                        tercero - Influye en términos de entrega (Incoterms) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- cCondTras - Condición del transporte (OBLIGATORIO) -->
+            <xs:element name="cCondTras" type="tipoCondicionTransporte" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> cCondTras: Condición o modalidad del transporte. CAMPO
+                        OBLIGATORIO que especifica el tipo de transporte: - 1: Transporte propio
+                        (vehículos empresa) - 2: Transporte contratado (tercerizado) - 3: Retiro por
+                        cuenta del receptor (autoservicio) DETERMINA VALIDACIONES: - Valor 1:
+                        Vehículos deben pertenecer al emisor - Valor 2: Requiere datos empresa
+                        transportista - Valor 3: Datos de vehículo pueden ser opcionales
+                        ESTADÍSTICAS DE USO: - Valor 1: ~40% (flota propia, pequeñas empresas) -
+                        Valor 2: ~45% (tercerización, grandes volúmenes) - Valor 3: ~15% (retiro en
+                        depósito, autoservicio) IMPACTO EN RESPONSABILIDADES: - Define quién es
+                        responsable de la mercadería en tránsito - Determina seguros y coberturas
+                        aplicables - Influye en tiempo de entrega y flexibilidad </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- =====================================================
+                 FECHAS DE TRASLADO (OBLIGATORIO)
+                 ===================================================== -->
+
+            <!-- dFecIniTras - Fecha inicio traslado (OBLIGATORIO) -->
+            <xs:element name="dFecIniTras" type="tipoFechaHora" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> dFecIniTras: Fecha y hora de inicio del traslado. CAMPO
+                        OBLIGATORIO con fecha/hora de salida de mercadería. FORMATO: ISO 8601
+                        (YYYY-MM-DDTHH:MM:SS) Ejemplo: 2025-06-23T08:30:00 VALIDACIONES: - Debe ser
+                        posterior a fecha de emisión del documento - Para algunos motivos: puede ser
+                        fecha futura - Debe ser anterior a dFecFinTras - Coherente con horarios de
+                        operación CASOS TÍPICOS: - Mismo día: traslados locales, entregas inmediatas
+                        - Día siguiente: operaciones programadas - Fecha futura: traslados
+                        planificados, reservas IMPORTANCIA LOGÍSTICA: - Base para tracking y
+                        seguimiento - Cálculo de tiempos de entrega - Programación de recursos
+                        (vehículos, personal) - Control de inventarios en tránsito </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- dFecFinTras - Fecha fin estimado traslado (OBLIGATORIO) -->
+            <xs:element name="dFecFinTras" type="tipoFechaHora" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> dFecFinTras: Fecha y hora estimada de finalización del
+                        traslado. CAMPO OBLIGATORIO con fecha/hora estimada de llegada. FORMATO: ISO
+                        8601 (YYYY-MM-DDTHH:MM:SS) Ejemplo: 2025-06-23T17:00:00 VALIDACIONES: - Debe
+                        ser posterior a dFecIniTras - Diferencia razonable según distancia -
+                        Coherente con horarios de recepción CÁLCULO TÍPICO: - Traslados urbanos: +2
+                        a 8 horas - Traslados interdepartamentales: +1 a 3 días - Incluye tiempo de
+                        carga/descarga - Considera horarios de operación destino PROPÓSITO: -
+                        Planificación de recepción - Gestión de expectativas cliente - Control de
+                        cumplimiento de plazos - Base para indicadores logísticos (KPIs) NOTA: Es
+                        una estimación, no compromiso contractual </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- VALIDACIONES Y RESTRICCIONES ADICIONALES                          -->
+    <!-- ================================================================== -->
+
+    <!--
+        VALIDACIONES CRUZADAS IMPLEMENTADAS A NIVEL DE APLICACIÓN:
+        
+        1. COHERENCIA MOTIVO-DESCRIPCIÓN:
+           - iMotTras debe corresponder exactamente con dDesMotTras
+           - Mapeo estricto entre códigos y descripciones
+        
+        2. VALIDACIONES ESPECÍFICAS POR MOTIVO:
+           - Motivo 7: Emisor = Receptor (mismo RUC para traslado interno)
+           - Motivo 1: Puede requerir fecha futura de facturación
+           - Motivo 3/4: Documentos aduaneros para import/export
+           - Motivo 10: Autorización especial para decomiso
+        
+        3. COHERENCIA DE FECHAS:
+           - dFecIniTras > fecha emisión documento
+           - dFecFinTras > dFecIniTras
+           - Diferencia razonable según distancia y tipo de transporte
+           - Coherencia con horarios operativos
+        
+        4. VALIDACIONES DE TRANSPORTE:
+           - cCondTras=1: Vehículos deben pertenecer al emisor
+           - cCondTras=2: Requiere datos empresa transportista
+           - cCondTras=3: Datos de vehículo pueden ser opcionales
+        
+        5. CONTEXTO DE NOTA DE REMISIÓN:
+           - gCamNRE solo válido cuando iTiDE = "7"
+           - Siempre debe estar acompañado de gCamTrans
+           - Items sin precios unitarios (solo cantidades)
+           - NO debe incluir gTotSub (sin totales monetarios)
+           - Datos de relevancia obligatorios en items
+        
+        6. VALIDACIONES DE LÓGICA DE NEGOCIO:
+           - Mercaderías deben estar identificadas correctamente
+           - Cantidades coherentes con capacidad de transporte
+           - Rutas y distancias razonables
+           - Documentación de soporte según motivo
+        
+        7. VALIDACIONES ESPECIALES:
+           - NRE es documento SIN VALOR COMERCIAL
+           - Totales siempre igual a cero
+           - Enfoque en logística, no en aspectos monetarios
+           - Items con datos de relevancia (origen, destino, etc.)
+        
+        IMPLEMENTACIÓN EN CÓDIGO:
+        Estas validaciones se implementan en el validador de negocio
+        para mantener flexibilidad y proporcionar mensajes de error específicos.
+    -->
+
+    <!-- ================================================================== -->
+    <!-- DOCUMENTACIÓN DE INTEGRACIÓN                                      -->
+    <!-- ================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON ROOT_ELEMENTS.XSD:
+        
+        Este tipo se usa en document_core/root_elements.xsd como:
+        
+        <xs:element name="gCamNRE" type="tipoGrupoCamposNotaRemision" minOccurs="0">
+            <xs:annotation>
+                <xs:documentation>
+                    Campos específicos para Nota de Remisión Electrónica (iTiDE=7)
+                    Definido en: document_types/nota_remision_types.xsd
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        ACTIVACIÓN EN DE_v150.XSD:
+        
+        Para activar este módulo, descomentar en root_elements.xsd:
+        <xs:include schemaLocation="../document_types/nota_remision_types.xsd"/>
+        
+        DEPENDENCIAS REQUERIDAS:
+        
+        También se requiere activar:
+        <xs:include schemaLocation="../transport/transport_types.xsd"/> [pendiente]
+        
+        PRUEBAS RECOMENDADAS:
+        
+        1. Validar estructura básica de gCamNRE
+        2. Probar todos los motivos de traslado (1-14, 99)
+        3. Validar coherencia motivo-descripción
+        4. Verificar validaciones específicas por motivo
+        5. Testear coherencia de fechas de traslado
+        6. Validar condiciones de transporte
+        7. Probar casos especiales (motivo 7: emisor=receptor)
+        8. Verificar integración con datos de transporte
+        9. Testear ausencia de valores monetarios
+        10. Verificar integración con documento completo
+        
+        EJEMPLOS DE USO:
+        
+        NRE traslado por venta (más común)
+        <gCamNRE>
+        <iMotTras>1</iMotTras>
+        <dDesMotTras>Venta</dDesMotTras>
+        <iRespFlete>1</iRespFlete>
+        <cCondTras>2</cCondTras>
+        <dFecIniTras>2025-06-23T08:00:00</dFecIniTras>
+        <dFecFinTras>2025-06-23T17:00:00</dFecFinTras>
+    </gCamNRE>
+
+    NRE traslado interno (emisor = receptor)
+        <gCamNRE>
+        <iMotTras>7</iMotTras>
+        <dDesMotTras>Traslado entre locales del mismo contribuyente</dDesMotTras>
+        <iRespFlete>1</iRespFlete>
+        <cCondTras>1</cCondTras>
+        <dFecIniTras>2025-06-24T09:00:00</dFecIniTras>
+        <dFecFinTras>2025-06-24T12:00:00</dFecFinTras>
+    </gCamNRE>
+
+    NRE consignación
+        <gCamNRE>
+        <iMotTras>2</iMotTras>
+        <dDesMotTras>Consignación</dDesMotTras>
+        <iRespFlete>2</iRespFlete>
+        <cCondTras>2</cCondTras>
+        <dFecIniTras>2025-06-25T07:30:00</dFecIniTras>
+        <dFecFinTras>2025-06-26T16:00:00</dFecFinTras>
+    </gCamNRE>
+
+    NRE exhibición/feria
+        <gCamNRE>
+        <iMotTras>8</iMotTras>
+        <dDesMotTras>Exhibición o demostración</dDesMotTras>
+        <iRespFlete>1</iRespFlete>
+        <cCondTras>1</cCondTras>
+        <dFecIniTras>2025-06-26T06:00:00</dFecIniTras>
+        <dFecFinTras>2025-06-26T18:00:00</dFecFinTras>
+    </gCamNRE> VALIDACIONES IMPLEMENTADAS: 1.
+    Motivo de traslado obligatorio y válido (1-14, 99) 2. Descripción coherente con motivo 3.
+    Responsable flete especificado (1-3) 4. Condición transporte definida (1-3) 5. Fechas de
+    traslado lógicas y coherentes 6. Validaciones específicas por motivo 7. Coherencia
+    emisor/receptor según motivo 8. Datos de transporte obligatorios (gCamTrans) 9. Ausencia de
+    valores monetarios CASOS DE ERROR TÍPICOS: 1. Motivo inválido (valor fuera de rango) 2.
+    Descripción no coherente con motivo 3. Fechas incorrectas (inicio > fin, pasadas) 4. Para motivo
+    7: emisor ≠ receptor 5. Falta datos de transporte (gCamTrans) 6. Presencia de valores monetarios
+    (contradictorio) 7. Condición transporte inconsistente con datos 8. Fechas de traslado poco
+    realistas DIFERENCIAS CON OTROS TIPOS: 1. PROPÓSITO: NRE es logística, otros son comerciales 2.
+    VALORES: NRE sin montos, otros con valores comerciales 3. ENFOQUE: NRE en "dónde/cuándo", otros
+    en "cuánto" 4. VALIDACIONES: NRE fechas/transporte, otros montos/totales 5. DOCUMENTOS: NRE
+    standalone, NCE/NDE requieren asociados CARACTERÍSTICAS ÚNICAS DE NRE: - ✅ Documento de
+    transporte sin valor comercial - ✅ Enfoque en logística y trazabilidad - ✅ Datos de transporte
+    obligatorios - ✅ Fechas de traslado críticas - ✅ Multiple motivos específicos (1-14, 99) - ✅
+    Validaciones especiales por motivo - ✅ Items sin precios (solo cantidades) - ✅ Totales siempre
+    cero BENEFICIOS DE ESTE DISEÑO: - ✅ Estructura específica para logística - ✅ Validaciones
+    apropiadas para transporte - ✅ Reutilización de tipos básicos existentes - ✅ Flexibilidad para
+    diferentes motivos - ✅ Compatibilidad total con especificación SIFEN v150 - ✅ Preparado para
+    validaciones de negocio complejas - ✅ Base sólida para trazabilidad de mercaderías - ✅ Facilita
+    controles logísticos y aduaneros - ✅ Separación clara entre logística y comercial -->
+</xs:schema>
