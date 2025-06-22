@@ -77,11 +77,23 @@ def factura_simple():
     )
 
 
+def save_xml_fragment(xml_content: str, test_name: str, output_dir: str = "xml_test_outputs"):
+    """
+    Guarda el fragmento XML en un archivo para inspección.
+    """
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, f"{test_name}.xml")
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(xml_content)
+
+
 def test_generate_simple_invoice_xml(factura_simple):
     """Test generación XML factura simple"""
     generator = XMLGenerator()
     xml = generator.generate_simple_invoice_xml(factura_simple)
-
+    # Guardar el XML generado para inspección manual
+    save_xml_fragment(xml, "test_generate_simple_invoice_xml")
     # Validaciones básicas del XML generado
     assert '<?xml version="1.0" encoding="UTF-8"?>' in xml
     assert 'xmlns="http://ekuatia.set.gov.py/sifen/xsd"' in xml

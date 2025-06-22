@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://ekuatia.set.gov.py/sifen/xsd DE_v150.xsd"
+     version="1.5.0">
+    <DE>
+        <gDE>
+            <dID>
+                <iTipDE>1</iTipDE>
+                <dNumID>001-001-0000001</dNumID>
+                <dFeEmiDE>2024-01-01T12:00:00</dFeEmiDE>
+            </dID>
+            <dDatG>
+                <dNumID>001-001-0000001</dNumID>
+                <dEst>1</dEst>
+                <dPunExp>1</dPunExp>
+                <dTipoID>1</dTipoID>
+                <dTipoEmi>1</dTipoEmi>
+                <dCodSeg>1</dCodSeg>
+                <dCSC>ABCD1234</dCSC>
+                <dFecFirma>2024-01-01T12:00:00</dFecFirma>
+                <cConVen>1</cConVen>
+                <cConOpe>1</cConOpe>
+                <cModTra>1</cModTra>
+                <cCatEmi>1</cCatEmi>
+                <cMon>PYG</cMon>
+                <dTipCam>1.00</dTipCam>
+            </dDatG>
+            <dEmi>
+                <iTipID>1</iTipID>
+                <dNumID>12345678</dNumID>
+                <dDV>9</dDV>
+                <dNomEmi>EMPRESA DE PRUEBA S.A.</dNomEmi>
+                <dDirEmi>Av. Principal</dDirEmi>
+                <dNumCas>123</dNumCas>
+                <cDepEmi>1</cDepEmi>
+                <cCiuEmi>1</cCiuEmi>
+                <dDesCiuEmi>ASUNCION</dDesCiuEmi>
+                <dTelEmi>021123456</dTelEmi>
+                <dEmailE>test@empresa.com</dEmailE>
+            </dEmi>
+            <dRec>
+                <iTipID>1</iTipID>
+                <dNumID>87654321</dNumID>
+                <dDV>0</dDV>
+                <dNomRec>CLIENTE DE PRUEBA S.A.</dNomRec>
+                <dDirRec>Av. Secundaria</dDirRec>
+                <dNumCas>456</dNumCas>
+                <cDepRec>1</cDepRec>
+                <cCiuRec>1</cCiuRec>
+                <dDesCiuRec>ASUNCION</dDesCiuRec>
+                <dTelRec>021654321</dTelRec>
+                <dEmailRec>test@cliente.com</dEmailRec>
+            </dRec>
+            <gItem>
+                <dCodPro>001</dCodPro>
+                <dDesPro>Producto 1</dDesPro>
+                <dCantPro>2</dCantPro>
+                <dPreUniPro>100000</dPreUniPro>
+                <dTotPro>200000</dTotPro>
+                <dPorIVA>10</dPorIVA>
+            </gItem>
+            <gItem>
+                <dCodPro>002</dCodPro>
+                <dDesPro>Producto 2</dDesPro>
+                <dCantPro>1</dCantPro>
+                <dPreUniPro>50000</dPreUniPro>
+                <dTotPro>50000</dTotPro>
+                <dPorIVA>10</dPorIVA>
+            </gItem>
+            <dTot>
+                <dTotGrav>250000</dTotGrav>
+                <dTotExe>0</dTotExe>
+                <dTotIVA>25000</dTotIVA>
+                <dTotGralOpe>275000</dTotGralOpe>
+            </dTot>
+        </gDE>
+    </DE>
+</rDE>
