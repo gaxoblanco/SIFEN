@@ -1,0 +1,967 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Archivo: operations/tax_calculations.xsd
+  Propósito: Validaciones fiscales y cálculos especiales para documentos electrónicos SIFEN v150
+  
+  ENFOQUE MODULAR ESPECIALIZADO:
+  Este módulo se enfoca en VALIDACIONES y casos especiales de cálculos fiscales,
+  complementando (no duplicando) la funcionalidad básica existente.
+  
+  RESPONSABILIDADES:
+  ✅ Validaciones de coherencia entre ítems y totales
+  ✅ Cálculos especiales (ajustes de redondeo, prorrateos)
+  ✅ Verificaciones según reglas SIFEN v150
+  ✅ Herramientas de validación fiscal automática
+  ✅ Manejo de tolerancias y precisión
+  
+  NO INCLUYE (ya está implementado):
+  ❌ Cálculos básicos de IVA por ítem (en items.xsd)
+  ❌ Totales y subtotales del documento (en totals_subtotals.xsd)
+  ❌ Estructuras básicas de montos (en currency_types.xsd)
+  
+  INTEGRACIÓN:
+  - Se importará en DE_v150.xsd después de los módulos operations/
+  - Proporciona herramientas de validación para generadores XML
+  - Complementa la funcionalidad fiscal existente
+  - Opcional: Solo se usa cuando se requieren validaciones avanzadas
+  
+  COBERTURA SIFEN v150:
+  ✅ Reglas de validación fiscal obligatorias
+  ✅ Tolerancias de redondeo según especificación
+  ✅ Verificaciones de coherencia matemática
+  ✅ Casos especiales de cálculo tributario
+  
+  Autor: Sistema SIFEN Paraguay  
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ MODULAR Y ESPECIALIZADO COMO HERRAMIENTA DE VALIDACIÓN
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE DEPENDENCIAS                                          -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos fundamentales -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos monetarios (para validaciones de montos) -->
+    <xs:include schemaLocation="../common/currency_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- HERRAMIENTAS DE VALIDACIÓN FISCAL                                    -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo principal de validación fiscal -->
+    <xs:complexType name="tipoGrupoValidacionFiscal">
+        <xs:annotation>
+            <xs:documentation> gValidFiscal - Grupo principal de validación fiscal. Proporciona
+                herramientas para verificar la coherencia matemática entre los cálculos de ítems y
+                los totales del documento según las reglas SIFEN v150. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Validación de coherencia -->
+            <xs:element name="gCoherencia" type="tipoGrupoCoherenciaFiscal" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Validaciones de coherencia entre ítems y totales del
+                        documento. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Cálculos especiales -->
+            <xs:element name="gCalculosEsp" type="tipoGrupoCalculosEspeciales" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cálculos especiales para casos complejos o ajustes.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Verificaciones SIFEN -->
+            <xs:element name="gVerifSIFEN" type="tipoGrupoVerificacionesSIFEN" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Verificaciones específicas según reglas SIFEN v150.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- VALIDACIONES DE COHERENCIA FISCAL                                    -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de coherencia fiscal -->
+    <xs:complexType name="tipoGrupoCoherenciaFiscal">
+        <xs:annotation>
+            <xs:documentation> gCoherencia - Validaciones de coherencia fiscal. Verifica que los
+                totales del documento coincidan con la suma de los ítems según las reglas
+                matemáticas de SIFEN. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Validación de totales IVA -->
+            <xs:element name="gValidTotIVA" type="tipoValidacionTotalesIVA">
+                <xs:annotation>
+                    <xs:documentation> Validación de coherencia en totales de IVA. Verifica: dTotIVA
+                        = Suma(dLiqIVAItem) de todos los ítems </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Validación de bases gravables -->
+            <xs:element name="gValidBases" type="tipoValidacionBasesGravables">
+                <xs:annotation>
+                    <xs:documentation> Validación de coherencia en bases gravables. Verifica: dSub10
+                        = Suma(dBasGravIVA) donde dTasaIVA = 0.10 dSub5 = Suma(dBasGravIVA) donde
+                        dTasaIVA = 0.05 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Validación de totales generales -->
+            <xs:element name="gValidTotGen" type="tipoValidacionTotalesGenerales">
+                <xs:annotation>
+                    <xs:documentation> Validación de coherencia en totales generales. Verifica:
+                        dTotOpe = dSubExe + dSubExo + dSub5 + dSub10 dTotGralOpe = dTotOpe + dTotIVA </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Validación de totales de IVA -->
+    <xs:complexType name="tipoValidacionTotalesIVA">
+        <xs:annotation>
+            <xs:documentation>Validación específica para totales de IVA.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Resultado de validación -->
+            <xs:element name="bValidacionOK" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation>True si la validación es exitosa, False si hay errores.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Diferencia detectada -->
+            <xs:element name="dDiferencia" type="tipoMontoConSigno">
+                <xs:annotation>
+                    <xs:documentation> Diferencia entre total calculado y total declarado. Positivo:
+                        total declarado mayor. Negativo: total calculado mayor. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tolerancia aplicada -->
+            <xs:element name="dTolerancia" type="tipoToleranciaFiscal">
+                <xs:annotation>
+                    <xs:documentation>Tolerancia máxima permitida para considerar válida la
+                        diferencia.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Total IVA calculado -->
+            <xs:element name="dTotIVACalculado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Total de IVA calculado sumando todos los ítems.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Total IVA declarado -->
+            <xs:element name="dTotIVADeclarado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Total de IVA declarado en gTotSub/dTotIVA.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Validación de bases gravables -->
+    <xs:complexType name="tipoValidacionBasesGravables">
+        <xs:annotation>
+            <xs:documentation>Validación específica para bases gravables por tasa de IVA.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Validación IVA 5% -->
+            <xs:element name="gValid5" type="tipoValidacionBasePorTasa">
+                <xs:annotation>
+                    <xs:documentation>Validación de base gravable IVA 5%.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Validación IVA 10% -->
+            <xs:element name="gValid10" type="tipoValidacionBasePorTasa">
+                <xs:annotation>
+                    <xs:documentation>Validación de base gravable IVA 10%.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Validación exentos -->
+            <xs:element name="gValidExe" type="tipoValidacionBasePorTasa">
+                <xs:annotation>
+                    <xs:documentation>Validación de montos exentos.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Validación de base por tasa específica -->
+    <xs:complexType name="tipoValidacionBasePorTasa">
+        <xs:annotation>
+            <xs:documentation>Validación de base gravable para una tasa específica de IVA.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Resultado de validación -->
+            <xs:element name="bValidacionOK" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation>True si la validación es exitosa.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tasa validada -->
+            <xs:element name="dTasaIVA" type="tipoPorcentajeIVA">
+                <xs:annotation>
+                    <xs:documentation>Tasa de IVA para esta validación (0, 5 o 10).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Base calculada -->
+            <xs:element name="dBaseCalculada" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Base gravable calculada sumando ítems con esta tasa.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Base declarada -->
+            <xs:element name="dBaseDeclarada" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Base gravable declarada en totales del documento.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Diferencia -->
+            <xs:element name="dDiferencia" type="tipoMontoConSigno">
+                <xs:annotation>
+                    <xs:documentation>Diferencia entre base calculada y declarada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Validación de totales generales -->
+    <xs:complexType name="tipoValidacionTotalesGenerales">
+        <xs:annotation>
+            <xs:documentation>Validación de totales generales del documento.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Validación total operación -->
+            <xs:element name="gValidTotOpe" type="tipoValidacionTotal">
+                <xs:annotation>
+                    <xs:documentation>Validación de dTotOpe = suma de subtotales.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Validación total general -->
+            <xs:element name="gValidTotGral" type="tipoValidacionTotal">
+                <xs:annotation>
+                    <xs:documentation>Validación de dTotGralOpe = dTotOpe + dTotIVA.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- CÁLCULOS ESPECIALES                                                  -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de cálculos especiales -->
+    <xs:complexType name="tipoGrupoCalculosEspeciales">
+        <xs:annotation>
+            <xs:documentation> gCalculosEsp - Cálculos especiales y ajustes fiscales. Maneja casos
+                especiales como ajustes de redondeo, prorrateos y cálculos complejos. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Ajustes de redondeo -->
+            <xs:element name="gAjustesRedondeo" type="tipoGrupoAjustesRedondeo" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Ajustes necesarios por redondeo según precisión SIFEN.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Prorrateos fiscales -->
+            <xs:element name="gProrrateos" type="tipoGrupoProrrateosFiscales" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Prorrateos para distribuir impuestos en operaciones mixtas.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Cálculos para casos especiales -->
+            <xs:element name="gCasosEsp" type="tipoGrupoCasosEspeciales" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cálculos para casos especiales de tributación.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de ajustes de redondeo -->
+    <xs:complexType name="tipoGrupoAjustesRedondeo">
+        <xs:annotation>
+            <xs:documentation>Ajustes necesarios por diferencias de redondeo.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Método de redondeo -->
+            <xs:element name="iMetodoRedondeo" type="tipoMetodoRedondeo">
+                <xs:annotation>
+                    <xs:documentation> Método de redondeo aplicado: 1=Matemático, 2=Hacia arriba,
+                        3=Hacia abajo, 4=Al par más cercano </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Precisión aplicada -->
+            <xs:element name="iPrecision" type="tipoPrecisionDecimal">
+                <xs:annotation>
+                    <xs:documentation>Número de decimales de precisión (0-4).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Ajuste total necesario -->
+            <xs:element name="dAjusteTotal" type="tipoMontoConSigno">
+                <xs:annotation>
+                    <xs:documentation> Ajuste total necesario para cuadrar diferencias de redondeo. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Detalles de ajustes por campo -->
+            <xs:element name="gDetalleAjustes" type="tipoGrupoDetalleAjustesRedondeo" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Detalle de ajustes aplicados por cada campo.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de prorrateos fiscales -->
+    <xs:complexType name="tipoGrupoProrrateosFiscales">
+        <xs:annotation>
+            <xs:documentation>Prorrateos para distribuir impuestos en operaciones complejas.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Tipo de prorrateo -->
+            <xs:element name="iTipoProrrateo" type="tipoTipoProrrateo">
+                <xs:annotation>
+                    <xs:documentation> Tipo de prorrateo: 1=Por monto, 2=Por cantidad, 3=Por
+                        porcentaje, 4=Manual </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Base de prorrateo -->
+            <xs:element name="dBaseProrrateo" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto base sobre el cual se calcula el prorrateo.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Detalles del prorrateo -->
+            <xs:element name="gDetalleProrrateo" type="tipoGrupoDetalleProrrateo"
+                maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>Detalle de la distribución prorrateada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- VERIFICACIONES SIFEN                                                 -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de verificaciones SIFEN -->
+    <xs:complexType name="tipoGrupoVerificacionesSIFEN">
+        <xs:annotation>
+            <xs:documentation> gVerifSIFEN - Verificaciones específicas según reglas SIFEN v150.
+                Implementa las validaciones exactas que realizará el sistema SIFEN al recibir el
+                documento. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Verificación de rangos -->
+            <xs:element name="gVerifRangos" type="tipoVerificacionRangos">
+                <xs:annotation>
+                    <xs:documentation>Verificación de que montos estén dentro de rangos válidos.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Verificación de precisión -->
+            <xs:element name="gVerifPrecision" type="tipoVerificacionPrecision">
+                <xs:annotation>
+                    <xs:documentation>Verificación de precisión en cálculos decimales.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Verificación de formatos -->
+            <xs:element name="gVerifFormatos" type="tipoVerificacionFormatos">
+                <xs:annotation>
+                    <xs:documentation>Verificación de formatos numéricos según SIFEN.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS SIMPLES ESPECIALIZADOS                                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Monto con signo (para diferencias) -->
+    <xs:simpleType name="tipoMontoConSigno">
+        <xs:annotation>
+            <xs:documentation> Monto que puede ser positivo o negativo, usado para diferencias y
+                ajustes. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="-999999999999999.9999" />
+            <xs:maxInclusive value="999999999999999.9999" />
+            <xs:totalDigits value="19" />
+            <xs:fractionDigits value="4" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tolerancia fiscal -->
+    <xs:simpleType name="tipoToleranciaFiscal">
+        <xs:annotation>
+            <xs:documentation> Tolerancia máxima permitida para diferencias fiscales. Rango: 0.01 a
+                10.00 guaraníes. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.01" />
+            <xs:maxInclusive value="10.00" />
+            <xs:fractionDigits value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Porcentaje de IVA -->
+    <xs:simpleType name="tipoPorcentajeIVA">
+        <xs:annotation>
+            <xs:documentation>Porcentajes de IVA válidos en Paraguay.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:enumeration value="0" />
+            <xs:enumeration value="5" />
+            <xs:enumeration value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Método de redondeo -->
+    <xs:simpleType name="tipoMetodoRedondeo">
+        <xs:annotation>
+            <xs:documentation>Métodos de redondeo soportados.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Redondeo matemático estándar</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Redondeo hacia arriba (ceiling)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Redondeo hacia abajo (floor)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Redondeo al par más cercano</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Precisión decimal -->
+    <xs:simpleType name="tipoPrecisionDecimal">
+        <xs:annotation>
+            <xs:documentation>Número de decimales de precisión (0-4).</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:nonNegativeInteger">
+            <xs:minInclusive value="0" />
+            <xs:maxInclusive value="4" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de prorrateo -->
+    <xs:simpleType name="tipoTipoProrrateo">
+        <xs:annotation>
+            <xs:documentation>Tipos de prorrateo soportados.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Prorrateo por monto</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Prorrateo por cantidad</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Prorrateo por porcentaje</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Prorrateo manual</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS COMPLEJOS AUXILIARES                                           -->
+    <!-- ===================================================================== -->
+
+    <!-- Validación genérica de total -->
+    <xs:complexType name="tipoValidacionTotal">
+        <xs:annotation>
+            <xs:documentation>Estructura genérica para validar un total específico.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <xs:element name="bValidacionOK" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation>True si la validación es exitosa.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dValorCalculado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Valor calculado mediante suma de componentes.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dValorDeclarado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Valor declarado en el documento.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dDiferencia" type="tipoMontoConSigno">
+                <xs:annotation>
+                    <xs:documentation>Diferencia entre valores (declarado - calculado).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Detalle de ajustes de redondeo -->
+    <xs:complexType name="tipoGrupoDetalleAjustesRedondeo">
+        <xs:annotation>
+            <xs:documentation>Detalle de ajustes aplicados por cada campo afectado.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <xs:element name="gAjusteCampo" type="tipoAjusteCampo" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>Ajuste aplicado a un campo específico.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Ajuste por campo específico -->
+    <xs:complexType name="tipoAjusteCampo">
+        <xs:annotation>
+            <xs:documentation>Ajuste aplicado a un campo específico del documento.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <xs:element name="dNombreCampo" type="tipoTextoCorto">
+                <xs:annotation>
+                    <xs:documentation>Nombre del campo ajustado (ej: "dTotIVA", "dSub10").</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dValorOriginal" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Valor original antes del ajuste.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dValorAjustado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Valor después del ajuste.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dAjuste" type="tipoMontoConSigno">
+                <xs:annotation>
+                    <xs:documentation>Monto del ajuste aplicado.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dMotivoAjuste" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Descripción del motivo del ajuste.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Detalle de prorrateo -->
+    <xs:complexType name="tipoGrupoDetalleProrrateo">
+        <xs:annotation>
+            <xs:documentation>Detalle de una distribución prorrateada.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <xs:element name="iNumItem" type="xs:positiveInteger">
+                <xs:annotation>
+                    <xs:documentation>Número del ítem al que se aplica este prorrateo.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dFactorProrrateo" type="tipoFactorProrrateo">
+                <xs:annotation>
+                    <xs:documentation>Factor de prorrateo aplicado (0.0001 a 1.0000).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dMontoProrateado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto resultante del prorrateo.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="dBaseProrrateo" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Base sobre la cual se calculó el prorrateo para este ítem.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Verificación de rangos -->
+    <xs:complexType name="tipoVerificacionRangos">
+        <xs:annotation>
+            <xs:documentation>Verificación de que todos los montos estén dentro de rangos válidos
+                SIFEN.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <xs:element name="bRangosOK" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation>True si todos los rangos son válidos.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="gViolacionesRango" type="tipoGrupoViolacionesRango" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Detalles de violaciones de rango detectadas.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Verificación de precisión -->
+    <xs:complexType name="tipoVerificacionPrecision">
+        <xs:annotation>
+            <xs:documentation>Verificación de precisión en cálculos decimales.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <xs:element name="bPrecisionOK" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation>True si la precisión es correcta en todos los campos.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="iPrecisionRequerida" type="tipoPrecisionDecimal">
+                <xs:annotation>
+                    <xs:documentation>Precisión requerida (número de decimales).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="gErroresPrecision" type="tipoGrupoErroresPrecision" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Detalles de errores de precisión detectados.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Verificación de formatos -->
+    <xs:complexType name="tipoVerificacionFormatos">
+        <xs:annotation>
+            <xs:documentation>Verificación de formatos numéricos según SIFEN.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <xs:element name="bFormatosOK" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation>True si todos los formatos son correctos.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="gErroresFormato" type="tipoGrupoErroresFormato" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Detalles de errores de formato detectados.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Factor de prorrateo -->
+    <xs:simpleType name="tipoFactorProrrateo">
+        <xs:annotation>
+            <xs:documentation>Factor de prorrateo (0.0001 a 1.0000).</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.0001" />
+            <xs:maxInclusive value="1.0000" />
+            <xs:fractionDigits value="4" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Grupos auxiliares simplificados -->
+    <xs:complexType name="tipoGrupoViolacionesRango">
+        <xs:annotation>
+            <xs:documentation>Lista de violaciones de rango detectadas.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dDescripcionViolacion" type="tipoTextoMedio" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>Descripción de cada violación detectada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="tipoGrupoErroresPrecision">
+        <xs:annotation>
+            <xs:documentation>Lista de errores de precisión detectados.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dDescripcionError" type="tipoTextoMedio" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>Descripción de cada error de precisión.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="tipoGrupoErroresFormato">
+        <xs:annotation>
+            <xs:documentation>Lista de errores de formato detectados.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dDescripcionError" type="tipoTextoMedio" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>Descripción de cada error de formato.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo simplificado para casos especiales -->
+    <xs:complexType name="tipoGrupoCasosEspeciales">
+        <xs:annotation>
+            <xs:documentation>Cálculos para casos especiales de tributación.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Casos de régimen especial -->
+            <xs:element name="gRegimenEspecial" type="tipoRegimenEspecial" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cálculos para contribuyentes en régimen especial.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Casos de exoneración -->
+            <xs:element name="gExoneraciones" type="tipoGrupoExoneraciones" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cálculos para productos o servicios exonerados.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Casos de operaciones no gravadas -->
+            <xs:element name="gNoGravadas" type="tipoGrupoNoGravadas" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cálculos para operaciones no gravadas.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipos simplificados para casos especiales -->
+    <xs:complexType name="tipoRegimenEspecial">
+        <xs:annotation>
+            <xs:documentation>Información de régimen tributario especial.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="iCodigoRegimen" type="xs:positiveInteger">
+                <xs:annotation>
+                    <xs:documentation>Código del régimen especial aplicado.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDescripcionRegimen" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Descripción del régimen especial.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="tipoGrupoExoneraciones">
+        <xs:annotation>
+            <xs:documentation>Información de exoneraciones aplicadas.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dTotalExonerado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Total de montos exonerados.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dBaseExoneracion" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Base legal de la exoneración.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="tipoGrupoNoGravadas">
+        <xs:annotation>
+            <xs:documentation>Información de operaciones no gravadas.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dTotalNoGravado" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Total de montos no gravados.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMotivoNoGravado" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Motivo por el cual no están gravados.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Elementos globales para validación independiente -->
+    <xs:element name="gValidFiscal" type="tipoGrupoValidacionFiscal">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de validaciones fiscales.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gCoherencia" type="tipoGrupoCoherenciaFiscal">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de coherencia fiscal.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gCalculosEsp" type="tipoGrupoCalculosEspeciales">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de cálculos especiales.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gVerifSIFEN" type="tipoGrupoVerificacionesSIFEN">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de verificaciones SIFEN.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE INTEGRACIÓN Y USO                                           -->
+    <!-- ===================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON DE_v150.xsd:
+        
+        Este módulo se importará en DE_v150.xsd de la siguiente manera:
+        
+        <xs:include schemaLocation="operations/tax_calculations.xsd" />
+        
+        COMPATIBILIDAD CON ARQUITECTURA EXISTENTE:
+        
+        ✅ Complementa (no duplica) funcionalidad de totals_subtotals.xsd e items.xsd
+        ✅ Proporciona herramientas de validación para generadores XML
+        ✅ Implementa reglas de verificación exactas de SIFEN v150
+        ✅ Maneja casos especiales y ajustes necesarios
+        ✅ Sigue patrones de naming del sistema modular
+        
+        CASOS DE USO ESPECÍFICOS:
+        
+        ✅ Validación automática antes de envío a SIFEN
+        ✅ Generación de documentos con cálculos precisos
+        ✅ Detección temprana de errores fiscales
+        ✅ Ajustes automáticos de redondeo
+        ✅ Prorrateos para operaciones complejas
+        
+        REGLAS DE VALIDACIÓN IMPLEMENTADAS:
+        
+        1. dTotIVA = Suma(dLiqIVAItem) de todos los ítems
+        2. dSub10 = Suma(dBasGravIVA) donde dTasaIVA = 0.10
+        3. dSub5 = Suma(dBasGravIVA) donde dTasaIVA = 0.05
+        4. dSubExe = Suma(dBasGravIVA) donde dTasaIVA = 0.00
+        5. dTotOpe = dSubExe + dSubExo + dSub5 + dSub10
+        6. dTotGralOpe = dTotOpe + dTotIVA
+        
+        TOLERANCIAS SEGÚN SIFEN:
+        
+        - Diferencia máxima permitida: ±1 Guaraní por ítem
+        - Precisión en cálculos: hasta 4 decimales
+        - Redondeo final: al guaraní más cercano
+        - Método de redondeo: matemático estándar (0.5 hacia arriba)
+        
+        PRÓXIMOS PASOS:
+        
+        1. Agregar import en DE_v150.xsd después de commercial_operations.xsd
+        2. Crear herramientas de validación que usen estos tipos
+        3. Implementar calculadoras automáticas con estas validaciones
+        4. Crear tests unitarios para cada tipo de validación
+        5. Documentar ejemplos de uso para desarrolladores
+        
+        INTEGRACIÓN OPCIONAL:
+        
+        Este módulo es OPCIONAL y se usa principalmente para:
+        - Validación avanzada en generadores XML
+        - Herramientas de desarrollo y testing
+        - Sistemas que requieren cálculos fiscales precisos
+        - Auditorías y verificaciones automáticas
+    -->
+
+</xs:schema>

@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Archivo: operations/payment_conditions.xsd
+  Propósito: Condiciones de pago específicas para documentos electrónicos SIFEN v150
+  
+  ENFOQUE MODULAR ESPECIALIZADO:
+  Este módulo se enfoca EXCLUSIVAMENTE en condiciones de pago (cómo se paga),
+  sin duplicar funcionalidad existente en operation_data.xsd.
+  
+  RESPONSABILIDADES:
+  ✅ Medios de pago específicos (efectivo, tarjeta, transferencia, cheque)
+  ✅ Detalles de pagos a crédito (cuotas, plazos, intereses)
+  ✅ Información bancaria para pagos electrónicos
+  ✅ Estructuras para pagos mixtos
+  
+  NO INCLUYE (ya está en operation_data.xsd):
+  ❌ Condiciones básicas de operación (contado/crédito)
+  ❌ Tipos de transacción comercial
+  ❌ Condiciones generales de operación
+  
+  COBERTURA SIFEN v150:
+  ✅ Campos E610-E630: Medios de pago específicos  
+  ✅ Campos E640-E650: Detalles de crédito y cuotas
+  ✅ Extensión para pagos complejos
+  
+  INTEGRACIÓN:
+  - Se importará en DE_v150.xsd junto con operations/items.xsd
+  - Complementa (no reemplaza) operation_data.xsd
+  - Reutiliza tipos de common/basic_types.xsd y common/currency_types.xsd
+  
+  Autor: Sistema SIFEN Paraguay  
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ MODULAR Y ESPECIALIZADO
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE DEPENDENCIAS                                          -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos fundamentales -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos monetarios (monedas, importes, tasas cambio) -->
+    <xs:include schemaLocation="../common/currency_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA MEDIOS DE PAGO ESPECÍFICOS                               -->
+    <!-- ===================================================================== -->
+
+    <!-- 
+    🎯 GRUPO PRINCIPAL: Medios de pago específicos
+    Estructura modular para detallar medios de pago cuando la condición básica
+    (definida en operation_data.xsd) requiere información adicional.
+    -->
+
+    <!-- Grupo de pago en efectivo -->
+    <xs:complexType name="tipoGrupoPagoEfectivo">
+        <xs:annotation>
+            <xs:documentation> gPagEfec - Detalles específicos para pagos en efectivo. Para
+                operaciones donde se utiliza dinero físico como medio de pago. CASOS DE USO: ✅
+                Ventas al mostrador ✅ Pagos en moneda extranjera ✅ Cambio de denominaciones ✅
+                Control de caja </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Monto en efectivo -->
+            <xs:element name="dMonEfec" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto total pagado en efectivo en la moneda especificada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Moneda del efectivo -->
+            <xs:element name="cMonEfec" type="tipoMonedaOperacion">
+                <xs:annotation>
+                    <xs:documentation>Código de moneda utilizada (PYG, USD, EUR, etc.)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tipo de cambio aplicado (opcional) -->
+            <xs:element name="dTipCamEfec" type="tipoTipoCambio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Tipo de cambio aplicado si la moneda del pago es diferente a
+                        la moneda del documento. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto entregado por el cliente (opcional) -->
+            <xs:element name="dMonEntregado" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Monto total entregado por el cliente (para calcular vuelto). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Vuelto entregado (opcional) -->
+            <xs:element name="dMonVuelto" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Vuelto entregado al cliente.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de pago con tarjeta de crédito -->
+    <xs:complexType name="tipoGrupoPagoTarjetaCredito">
+        <xs:annotation>
+            <xs:documentation> gPagTarjCred - Detalles específicos para pagos con tarjeta de
+                crédito. Incluye información requerida para auditoría fiscal y trazabilidad. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Denominación de la tarjeta -->
+            <xs:element name="iDenTarj" type="tipoDenominacionTarjeta">
+                <xs:annotation>
+                    <xs:documentation> Denominación de la tarjeta: 1=Visa, 2=MasterCard,
+                        3=AmericanExpress, 4=Dinners, 5=Otros, 9=Local </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción denominación -->
+            <xs:element name="dDesDenTarj" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Nombre comercial de la tarjeta utilizada (ej: "Visa Classic").</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Razón social emisor -->
+            <xs:element name="dRSocTarj" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Razón social de la entidad emisora de la tarjeta.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC emisor tarjeta -->
+            <xs:element name="dRUCTarj" type="tipoRUC">
+                <xs:annotation>
+                    <xs:documentation>RUC de la entidad emisora de la tarjeta.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de autorización -->
+            <xs:element name="dCodAuOpe" type="tipoCodigoAutorizacion">
+                <xs:annotation>
+                    <xs:documentation> Código de autorización proporcionado por la entidad emisora
+                        para validar la transacción. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto autorizado -->
+            <xs:element name="dMonTarj" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto autorizado y procesado con la tarjeta.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de cuotas (opcional) -->
+            <xs:element name="dCuotasTarj" type="tipoNumeroCuotasTarjeta" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Número de cuotas del financiamiento con tarjeta (si aplica). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de pago con tarjeta de débito -->
+    <xs:complexType name="tipoGrupoPagoTarjetaDebito">
+        <xs:annotation>
+            <xs:documentation> gPagTarjDeb - Detalles específicos para pagos con tarjeta de débito.
+                Similar a tarjeta de crédito pero con validaciones para débito inmediato. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Denominación de la tarjeta -->
+            <xs:element name="iDenTarj" type="tipoDenominacionTarjeta">
+                <xs:annotation>
+                    <xs:documentation>Denominación de la tarjeta de débito.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción denominación -->
+            <xs:element name="dDesDenTarj" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Nombre comercial de la tarjeta utilizada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Razón social banco -->
+            <xs:element name="dRSocBanco" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Razón social de la entidad bancaria emisora.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC banco -->
+            <xs:element name="dRUCBanco" type="tipoRUC">
+                <xs:annotation>
+                    <xs:documentation>RUC de la entidad bancaria emisora.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de autorización -->
+            <xs:element name="dCodAuOpe" type="tipoCodigoAutorizacion">
+                <xs:annotation>
+                    <xs:documentation>Código de autorización del débito bancario.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto debitado -->
+            <xs:element name="dMonTarjDeb" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto debitado de la cuenta bancaria.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de pago por transferencia bancaria -->
+    <xs:complexType name="tipoGrupoPagoTransferencia">
+        <xs:annotation>
+            <xs:documentation> gPagTransf - Detalles específicos para pagos por transferencia
+                bancaria. Para operaciones donde el pago se realiza entre cuentas bancarias. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Banco origen -->
+            <xs:element name="dRSocBancoOrig" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Razón social del banco de origen de la transferencia.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC banco origen -->
+            <xs:element name="dRUCBancoOrig" type="tipoRUC">
+                <xs:annotation>
+                    <xs:documentation>RUC del banco de origen.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Banco destino -->
+            <xs:element name="dRSocBancoDest" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Razón social del banco de destino.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC banco destino -->
+            <xs:element name="dRUCBancoDest" type="tipoRUC">
+                <xs:annotation>
+                    <xs:documentation>RUC del banco de destino.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de operación -->
+            <xs:element name="dNumOpeTransf" type="tipoNumeroOperacionBancaria">
+                <xs:annotation>
+                    <xs:documentation> Número de operación o referencia de la transferencia
+                        proporcionado por el banco. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto transferido -->
+            <xs:element name="dMonTransf" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto transferido.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de la transferencia -->
+            <xs:element name="dFecTransf" type="tipoFecha">
+                <xs:annotation>
+                    <xs:documentation>Fecha en que se realizó la transferencia.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de pago con cheque -->
+    <xs:complexType name="tipoGrupoPagoCheque">
+        <xs:annotation>
+            <xs:documentation> gPagCheque - Detalles específicos para pagos con cheque. Para
+                operaciones donde se utiliza cheque como medio de pago. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Número de cheque -->
+            <xs:element name="dNumCheque" type="tipoNumeroCheque">
+                <xs:annotation>
+                    <xs:documentation>Número del cheque utilizado.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Banco emisor del cheque -->
+            <xs:element name="dRSocBanco" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Razón social del banco emisor del cheque.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC banco emisor -->
+            <xs:element name="dRUCBanco" type="tipoRUC">
+                <xs:annotation>
+                    <xs:documentation>RUC del banco emisor del cheque.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto del cheque -->
+            <xs:element name="dMonCheque" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto del cheque.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de vencimiento del cheque (opcional) -->
+            <xs:element name="dFecVencCheque" type="tipoFecha" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Fecha de vencimiento del cheque (si es posfechado).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Nombre del librador -->
+            <xs:element name="dNomLibrador" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Nombre del librador del cheque.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA CONDICIONES DE CRÉDITO ESPECÍFICAS                       -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de detalles de crédito -->
+    <xs:complexType name="tipoGrupoDetallesCredito">
+        <xs:annotation>
+            <xs:documentation> gDetCred - Detalles específicos para operaciones a crédito. Extiende
+                la información básica de crédito con detalles financieros. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Plazo total en días -->
+            <xs:element name="dPlazoCred" type="tipoPlazoCredito">
+                <xs:annotation>
+                    <xs:documentation>Plazo total del crédito en días (1-3650).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de cuotas -->
+            <xs:element name="dCuotas" type="tipoNumeroCuotas">
+                <xs:annotation>
+                    <xs:documentation>Número de cuotas para el financiamiento (1-240).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto de entrada/anticipo (opcional) -->
+            <xs:element name="dMonEnt" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Monto de entrada o anticipo entregado al momento de la venta. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tasa de interés anual (opcional) -->
+            <xs:element name="dTasaInteres" type="tipoTasaInteres" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Tasa de interés anual aplicada al crédito (porcentaje).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Detalle de cuotas (opcional) -->
+            <xs:element name="gCuotas" type="tipoGrupoCuotasDetalle" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Detalle individual de cada cuota con fechas y montos
+                        específicos. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de detalle de cuotas -->
+    <xs:complexType name="tipoGrupoCuotasDetalle">
+        <xs:annotation>
+            <xs:documentation> gCuotas - Detalle individualizado de cuotas para créditos complejos. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Lista de cuotas -->
+            <xs:element name="gCuota" type="tipoDetalleCuota" maxOccurs="240">
+                <xs:annotation>
+                    <xs:documentation> Detalle individual de cada cuota. Máximo 240 cuotas. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Detalle individual de cuota -->
+    <xs:complexType name="tipoDetalleCuota">
+        <xs:annotation>
+            <xs:documentation>Información detallada de una cuota específica.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Número de cuota -->
+            <xs:element name="dNumCuota" type="tipoNumeroCuota">
+                <xs:annotation>
+                    <xs:documentation>Número secuencial de la cuota (1, 2, 3, ...).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de vencimiento -->
+            <xs:element name="dFecVencCuota" type="tipoFecha">
+                <xs:annotation>
+                    <xs:documentation>Fecha de vencimiento de esta cuota específica.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto de la cuota -->
+            <xs:element name="dMonCuota" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto a pagar en esta cuota.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto capital (opcional) -->
+            <xs:element name="dMonCapital" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Monto correspondiente a capital en esta cuota.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Monto interés (opcional) -->
+            <xs:element name="dMonInteres" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Monto correspondiente a intereses en esta cuota.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS SIMPLES ESPECÍFICOS                                            -->
+    <!-- ===================================================================== -->
+
+    <!-- Denominación de tarjeta -->
+    <xs:simpleType name="tipoDenominacionTarjeta">
+        <xs:annotation>
+            <xs:documentation> Denominaciones válidas para tarjetas según mercado paraguayo e
+                internacional. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Visa</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>MasterCard</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>American Express</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Dinners Club</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Otros internacionales</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="9">
+                <xs:annotation>
+                    <xs:documentation>Tarjetas locales paraguayas</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Plazo de crédito en días -->
+    <xs:simpleType name="tipoPlazoCredito">
+        <xs:annotation>
+            <xs:documentation> Plazo del crédito expresado en días. Rango: 1 a 3650 días (máximo 10
+                años). </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="3650" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de cuotas -->
+    <xs:simpleType name="tipoNumeroCuotas">
+        <xs:annotation>
+            <xs:documentation> Número de cuotas para operaciones a crédito. Rango: 1 a 240 cuotas
+                (máximo 20 años). </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="240" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de cuotas para tarjeta -->
+    <xs:simpleType name="tipoNumeroCuotasTarjeta">
+        <xs:annotation>
+            <xs:documentation> Número de cuotas para financiamiento con tarjeta. Rango: 1 a 60
+                cuotas. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="60" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de cuota individual -->
+    <xs:simpleType name="tipoNumeroCuota">
+        <xs:annotation>
+            <xs:documentation>Número secuencial de una cuota específica.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="240" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Código de autorización bancaria -->
+    <xs:simpleType name="tipoCodigoAutorizacion">
+        <xs:annotation>
+            <xs:documentation> Código de autorización para transacciones con tarjeta o
+                transferencias bancarias. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[A-Z0-9]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de operación bancaria -->
+    <xs:simpleType name="tipoNumeroOperacionBancaria">
+        <xs:annotation>
+            <xs:documentation> Número de operación o referencia de transferencia bancaria. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="30" />
+            <xs:pattern value="[A-Z0-9\-]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de cheque -->
+    <xs:simpleType name="tipoNumeroCheque">
+        <xs:annotation>
+            <xs:documentation>Número de cheque bancario.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[0-9]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tasa de interés -->
+    <xs:simpleType name="tipoTasaInteres">
+        <xs:annotation>
+            <xs:documentation> Tasa de interés anual expresada como porcentaje. Rango: 0% a 100%. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.00" />
+            <xs:maxInclusive value="100.00" />
+            <xs:fractionDigits value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Elementos globales para validación independiente -->
+    <xs:element name="gPagEfec" type="tipoGrupoPagoEfectivo">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de pagos en efectivo.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gPagTarjCred" type="tipoGrupoPagoTarjetaCredito">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de pagos con tarjeta de crédito.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gPagTarjDeb" type="tipoGrupoPagoTarjetaDebito">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de pagos con tarjeta de débito.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gPagTransf" type="tipoGrupoPagoTransferencia">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de pagos por transferencia.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gPagCheque" type="tipoGrupoPagoCheque">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de pagos con cheque.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gDetCred" type="tipoGrupoDetallesCredito">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de detalles de crédito.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE INTEGRACIÓN                                                 -->
+    <!-- ===================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON DE_v150.xsd:
+        
+        Este módulo se importará en DE_v150.xsd de la siguiente manera:
+        
+        <xs:include schemaLocation="operations/payment_conditions.xsd" />
+        
+        COMPATIBILIDAD CON ARQUITECTURA EXISTENTE:
+        
+        ✅ Reutiliza tipos de common/basic_types.xsd y common/currency_types.xsd
+        ✅ Complementa (no duplica) funcionalidad de operation_data.xsd
+        ✅ Se enfoca exclusivamente en medios de pago específicos
+        ✅ Sigue patrones de naming del sistema modular
+        ✅ Proporciona elementos globales para testing independiente
+        
+        CASOS DE USO CON SAMPLE DATA:
+        
+        ✅ Factura con pago en efectivo (gPagEfec)
+        ✅ Factura con tarjeta de crédito (gPagTarjCred)
+        ✅ Servicios a crédito con cuotas (gDetCred + gCuotas)
+        ✅ Pagos mixtos (múltiples medios)
+        
+        PRÓXIMOS PASOS:
+        
+        1. Agregar import en DE_v150.xsd
+        2. Integrar con root_elements.xsd cuando corresponda
+        3. Crear tests específicos para cada medio de pago
+        4. Validar contra sample data paraguayo
+    -->
+
+</xs:schema>

@@ -1,0 +1,937 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Archivo: operations/commercial_operations.xsd
+  Propósito: Extensiones comerciales avanzadas para documentos electrónicos SIFEN v150
+  
+  ENFOQUE MODULAR ESPECIALIZADO:
+  Este módulo EXTIENDE (no duplica) la funcionalidad básica de operation_data.xsd
+  con aspectos comerciales específicos para operaciones complejas.
+  
+  RESPONSABILIDADES:
+  ✅ Términos comerciales específicos (Incoterms, modalidades de venta)
+  ✅ Condiciones especiales de negocio (descuentos, recargos, bonificaciones)
+  ✅ Referencias comerciales (órdenes de compra, contratos, licitaciones)
+  ✅ Condiciones de entrega y logística
+  ✅ Información complementaria para B2B avanzado
+  
+  NO INCLUYE (ya está en operation_data.xsd):
+  ❌ Tipos básicos de transacción (venta, transferencia, consignación)
+  ❌ Naturaleza de operación básica
+  ❌ Formas de pago básicas
+  ❌ Presencia del comprador
+  
+  COBERTURA SIFEN v150:
+  ✅ Extensión de campos comerciales opcionales
+  ✅ Soporte para comercio internacional
+  ✅ Condiciones B2B avanzadas
+  ✅ Integración con sistemas ERP empresariales
+  
+  INTEGRACIÓN:
+  - Se importará en DE_v150.xsd después de operation_data.xsd
+  - Extiende tipos existentes sin conflictos
+  - Reutiliza tipos de common/ y operation_data.xsd
+  - Opcional: Solo se usa cuando se requiere funcionalidad avanzada
+  
+  Autor: Sistema SIFEN Paraguay  
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ MODULAR Y ESPECIALIZADO COMO EXTENSIÓN
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE DEPENDENCIAS                                          -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos fundamentales -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos monetarios (para descuentos, recargos) -->
+    <xs:include schemaLocation="../common/currency_types.xsd" />
+
+    <!-- Tipos geográficos (para lugares de entrega) -->
+    <xs:include schemaLocation="../common/geographic_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TÉRMINOS COMERCIALES INTERNACIONALES                                -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de términos comerciales (Incoterms) -->
+    <xs:complexType name="tipoGrupoTerminosComerciales">
+        <xs:annotation>
+            <xs:documentation> gTermCom - Grupo de términos comerciales internacionales. Para
+                operaciones de comercio exterior y B2B que requieren especificar responsabilidades,
+                riesgos y costos entre comprador y vendedor. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Código Incoterms -->
+            <xs:element name="cIncoterms" type="tipoCodigoIncoterms" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Código de términos comerciales internacionales (Incoterms
+                        2020). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción Incoterms -->
+            <xs:element name="dDesIncoterms" type="tipoTextoMedio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Descripción textual del término comercial aplicado.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Lugar de entrega/origen -->
+            <xs:element name="dLugarIncoterms" type="tipoTextoMedio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Lugar específico donde se aplica el término comercial
+                        (puerto, aeropuerto, ciudad, etc.). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- País del lugar -->
+            <xs:element name="cPaisIncoterms" type="tipoCodigoPais" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>País donde se ubica el lugar de aplicación del Incoterm.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- MODALIDADES DE VENTA ESPECÍFICAS                                     -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de modalidades comerciales -->
+    <xs:complexType name="tipoGrupoModalidadesComerciales">
+        <xs:annotation>
+            <xs:documentation> gModCom - Grupo de modalidades comerciales específicas. Extiende los
+                tipos básicos de transacción con modalidades comerciales particulares para casos
+                especiales de negocio. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Modalidad de venta específica -->
+            <xs:element name="iModalidadVenta" type="tipoModalidadVenta" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Modalidad específica de venta que complementa el tipo básico
+                        de transacción. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción modalidad -->
+            <xs:element name="dDesModalidadVenta" type="tipoTextoMedio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Descripción de la modalidad de venta aplicada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Período de prueba (para ventas a prueba) -->
+            <xs:element name="dPeriodoPrueba" type="tipoPeriodoDias" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Número de días del período de prueba (solo para modalidad
+                        "venta a prueba"). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Porcentaje de comisión (para ventas en comisión) -->
+            <xs:element name="dPorcComision" type="tipoPorcentajeComision" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Porcentaje de comisión aplicable (solo para modalidad "venta
+                        en comisión"). </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- CONDICIONES ESPECIALES DE NEGOCIO                                    -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de condiciones comerciales -->
+    <xs:complexType name="tipoGrupoCondicionesComerciales">
+        <xs:annotation>
+            <xs:documentation> gCondCom - Grupo de condiciones comerciales especiales. Define
+                descuentos, recargos, bonificaciones y otras condiciones particulares que afectan el
+                valor comercial de la operación. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Grupo de descuentos -->
+            <xs:element name="gDescuentos" type="tipoGrupoDescuentos" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Descuentos aplicados a nivel de documento (no por ítem).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Grupo de recargos -->
+            <xs:element name="gRecargos" type="tipoGrupoRecargos" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Recargos aplicados a nivel de documento.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Grupo de bonificaciones -->
+            <xs:element name="gBonificaciones" type="tipoGrupoBonificaciones" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Bonificaciones en especie o promocionales.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de descuentos comerciales -->
+    <xs:complexType name="tipoGrupoDescuentos">
+        <xs:annotation>
+            <xs:documentation>Descuentos comerciales aplicados al documento.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Descuento por pronto pago -->
+            <xs:element name="gDescProntoPago" type="tipoDescuentoProntoPago" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Descuento aplicado por pago anticipado o al contado.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descuento por volumen -->
+            <xs:element name="gDescVolumen" type="tipoDescuentoVolumen" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Descuento por cantidad o volumen de compra.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descuento comercial general -->
+            <xs:element name="gDescComercial" type="tipoDescuentoComercial" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Otros descuentos comerciales.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de recargos comerciales -->
+    <xs:complexType name="tipoGrupoRecargos">
+        <xs:annotation>
+            <xs:documentation>Recargos comerciales aplicados al documento.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Recargo por financiamiento -->
+            <xs:element name="gRecFinanc" type="tipoRecargoFinanciamiento" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Recargo por financiamiento o pago a crédito.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Recargo por servicio especial -->
+            <xs:element name="gRecServicio" type="tipoRecargoServicio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Recargo por servicios adicionales (instalación, capacitación,
+                        etc.).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Recargo por urgencia -->
+            <xs:element name="gRecUrgencia" type="tipoRecargoUrgencia" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Recargo por entrega urgente o fuera de horario.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de bonificaciones -->
+    <xs:complexType name="tipoGrupoBonificaciones">
+        <xs:annotation>
+            <xs:documentation>Bonificaciones en especie o promocionales.</xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Bonificación en especie -->
+            <xs:element name="gBonifEspecie" type="tipoBonificacionEspecie" minOccurs="0"
+                maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>Productos o servicios entregados gratuitamente.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Bonificación promocional -->
+            <xs:element name="gBonifPromocional" type="tipoBonificacionPromocional" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Descuentos especiales por promoción o campaña.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- REFERENCIAS COMERCIALES                                              -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de referencias comerciales -->
+    <xs:complexType name="tipoGrupoReferenciasComerciales">
+        <xs:annotation>
+            <xs:documentation> gRefCom - Grupo de referencias comerciales. Vincula el documento con
+                otros documentos comerciales relevantes como órdenes de compra, contratos,
+                licitaciones, etc. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Número de orden de compra -->
+            <xs:element name="dNumOrdenCompra" type="tipoNumeroOrden" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Número de orden de compra del cliente.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de orden de compra -->
+            <xs:element name="dFecOrdenCompra" type="tipoFecha" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Fecha de la orden de compra.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de contrato -->
+            <xs:element name="dNumContrato" type="tipoNumeroContrato" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Número del contrato marco que ampara la operación.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de licitación -->
+            <xs:element name="dNumLicitacion" type="tipoNumeroLicitacion" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Número de licitación pública que originó la venta.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de expediente -->
+            <xs:element name="dNumExpediente" type="tipoNumeroExpediente" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Número de expediente administrativo (para ventas al sector
+                        público).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de requisición -->
+            <xs:element name="dNumRequisicion" type="tipoNumeroRequisicion" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Número de requisición interna del cliente.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- CONDICIONES DE ENTREGA                                               -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo de condiciones de entrega -->
+    <xs:complexType name="tipoGrupoCondicionesEntrega">
+        <xs:annotation>
+            <xs:documentation> gCondEnt - Grupo de condiciones de entrega. Define aspectos
+                logísticos y de entrega de los productos o prestación de servicios. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Fecha programada de entrega -->
+            <xs:element name="dFecEntrega" type="tipoFecha" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Fecha programada para entrega de mercaderías o prestación de
+                        servicios.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Lugar de entrega -->
+            <xs:element name="dLugarEntrega" type="tipoTextoMedio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Dirección o lugar específico de entrega.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Modalidad de entrega -->
+            <xs:element name="iModalidadEntrega" type="tipoModalidadEntrega" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Modalidad de entrega (retiro en local, entrega a domicilio,
+                        etc.).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción modalidad entrega -->
+            <xs:element name="dDesModalidadEntrega" type="tipoTextoMedio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Descripción de la modalidad de entrega.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Costo de entrega -->
+            <xs:element name="dCostoEntrega" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Costo adicional por entrega (si no está incluido en el
+                        precio).</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Responsable de entrega -->
+            <xs:element name="dResponsableEntrega" type="tipoTextoMedio" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Nombre de la persona responsable de la entrega.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS SIMPLES ESPECÍFICOS                                            -->
+    <!-- ===================================================================== -->
+
+    <!-- Códigos Incoterms 2020 -->
+    <xs:simpleType name="tipoCodigoIncoterms">
+        <xs:annotation>
+            <xs:documentation> Códigos de términos comerciales internacionales (Incoterms 2020). </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="EXW">
+                <xs:annotation>
+                    <xs:documentation>Ex Works - En fábrica</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="FCA">
+                <xs:annotation>
+                    <xs:documentation>Free Carrier - Franco transportista</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CPT">
+                <xs:annotation>
+                    <xs:documentation>Carriage Paid To - Transporte pagado hasta</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CIP">
+                <xs:annotation>
+                    <xs:documentation>Carriage and Insurance Paid To - Transporte y seguro pagados
+                        hasta</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="DAP">
+                <xs:annotation>
+                    <xs:documentation>Delivered at Place - Entregado en lugar</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="DPU">
+                <xs:annotation>
+                    <xs:documentation>Delivered at Place Unloaded - Entregado en lugar descargado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="DDP">
+                <xs:annotation>
+                    <xs:documentation>Delivered Duty Paid - Entregado derechos pagados</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="FAS">
+                <xs:annotation>
+                    <xs:documentation>Free Alongside Ship - Franco al costado del buque</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="FOB">
+                <xs:annotation>
+                    <xs:documentation>Free On Board - Franco a bordo</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CFR">
+                <xs:annotation>
+                    <xs:documentation>Cost and Freight - Costo y flete</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CIF">
+                <xs:annotation>
+                    <xs:documentation>Cost, Insurance and Freight - Costo, seguro y flete</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Modalidades de venta específicas -->
+    <xs:simpleType name="tipoModalidadVenta">
+        <xs:annotation>
+            <xs:documentation> Modalidades específicas de venta que complementan los tipos básicos
+                de transacción. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Venta directa</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Venta por consignación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Venta a prueba</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Venta con reserva de dominio</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Venta en comisión</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="6">
+                <xs:annotation>
+                    <xs:documentation>Venta por suscripción</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="7">
+                <xs:annotation>
+                    <xs:documentation>Venta con pago diferido</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="9">
+                <xs:annotation>
+                    <xs:documentation>Otras modalidades</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Modalidades de entrega -->
+    <xs:simpleType name="tipoModalidadEntrega">
+        <xs:annotation>
+            <xs:documentation>Modalidades de entrega de productos o prestación de servicios.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Retiro en local del vendedor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Entrega a domicilio</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Entrega en sucursal del vendedor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Entrega en punto de retiro</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="5">
+                <xs:annotation>
+                    <xs:documentation>Entrega por transporte especializado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="6">
+                <xs:annotation>
+                    <xs:documentation>Prestación de servicio in-situ</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="7">
+                <xs:annotation>
+                    <xs:documentation>Entrega digital/electrónica</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="9">
+                <xs:annotation>
+                    <xs:documentation>Otras modalidades</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Período en días -->
+    <xs:simpleType name="tipoPeriodoDias">
+        <xs:annotation>
+            <xs:documentation>Período expresado en días (1-365).</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="365" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Porcentaje de comisión -->
+    <xs:simpleType name="tipoPorcentajeComision">
+        <xs:annotation>
+            <xs:documentation>Porcentaje de comisión (0.01% a 50.00%).</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.01" />
+            <xs:maxInclusive value="50.00" />
+            <xs:fractionDigits value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Números de referencia comercial -->
+    <xs:simpleType name="tipoNumeroOrden">
+        <xs:annotation>
+            <xs:documentation>Número de orden de compra.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="30" />
+            <xs:pattern value="[A-Z0-9\-]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoNumeroContrato">
+        <xs:annotation>
+            <xs:documentation>Número de contrato comercial.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="30" />
+            <xs:pattern value="[A-Z0-9\-/]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoNumeroLicitacion">
+        <xs:annotation>
+            <xs:documentation>Número de licitación pública.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="30" />
+            <xs:pattern value="[A-Z0-9\-/]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoNumeroExpediente">
+        <xs:annotation>
+            <xs:documentation>Número de expediente administrativo.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="30" />
+            <xs:pattern value="[A-Z0-9\-/]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoNumeroRequisicion">
+        <xs:annotation>
+            <xs:documentation>Número de requisición interna.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="30" />
+            <xs:pattern value="[A-Z0-9\-]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS DETALLADOS PARA DESCUENTOS Y RECARGOS                          -->
+    <!-- ===================================================================== -->
+
+    <!-- Descuento por pronto pago -->
+    <xs:complexType name="tipoDescuentoProntoPago">
+        <xs:annotation>
+            <xs:documentation>Descuento aplicado por pago anticipado o al contado.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dPorcDescPP" type="tipoPorcentajeDescuento">
+                <xs:annotation>
+                    <xs:documentation>Porcentaje de descuento por pronto pago.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMonDescPP" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto del descuento por pronto pago.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDiasVencPP" type="tipoPeriodoDias" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Días de plazo para aplicar el descuento.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Descuento por volumen -->
+    <xs:complexType name="tipoDescuentoVolumen">
+        <xs:annotation>
+            <xs:documentation>Descuento por cantidad o volumen de compra.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dPorcDescVol" type="tipoPorcentajeDescuento">
+                <xs:annotation>
+                    <xs:documentation>Porcentaje de descuento por volumen.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMonDescVol" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto del descuento por volumen.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dCantMinVol" type="xs:decimal" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cantidad mínima para aplicar descuento.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Descuento comercial general -->
+    <xs:complexType name="tipoDescuentoComercial">
+        <xs:annotation>
+            <xs:documentation>Otros descuentos comerciales.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dPorcDescCom" type="tipoPorcentajeDescuento">
+                <xs:annotation>
+                    <xs:documentation>Porcentaje de descuento comercial.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMonDescCom" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto del descuento comercial.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMotDescCom" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Motivo del descuento comercial.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Recargo por financiamiento -->
+    <xs:complexType name="tipoRecargoFinanciamiento">
+        <xs:annotation>
+            <xs:documentation>Recargo por financiamiento o pago a crédito.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dPorcRecFinanc" type="tipoPorcentajeRecargo">
+                <xs:annotation>
+                    <xs:documentation>Porcentaje de recargo por financiamiento.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMonRecFinanc" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto del recargo por financiamiento.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dTasaFinanc" type="xs:decimal" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Tasa de financiamiento aplicada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Recargo por servicio -->
+    <xs:complexType name="tipoRecargoServicio">
+        <xs:annotation>
+            <xs:documentation>Recargo por servicios adicionales.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dMonRecServ" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto del recargo por servicio.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDescRecServ" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Descripción del servicio adicional.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Recargo por urgencia -->
+    <xs:complexType name="tipoRecargoUrgencia">
+        <xs:annotation>
+            <xs:documentation>Recargo por entrega urgente.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dPorcRecUrg" type="tipoPorcentajeRecargo">
+                <xs:annotation>
+                    <xs:documentation>Porcentaje de recargo por urgencia.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMonRecUrg" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto del recargo por urgencia.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Bonificación en especie -->
+    <xs:complexType name="tipoBonificacionEspecie">
+        <xs:annotation>
+            <xs:documentation>Productos entregados gratuitamente.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dDescBonifEsp" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Descripción del producto bonificado.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dCantBonifEsp" type="xs:decimal">
+                <xs:annotation>
+                    <xs:documentation>Cantidad bonificada.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dValorBonifEsp" type="tipoMonto" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Valor comercial del producto bonificado.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Bonificación promocional -->
+    <xs:complexType name="tipoBonificacionPromocional">
+        <xs:annotation>
+            <xs:documentation>Descuentos especiales por promoción.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="dPorcBonifProm" type="tipoPorcentajeDescuento">
+                <xs:annotation>
+                    <xs:documentation>Porcentaje de bonificación promocional.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dMonBonifProm" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation>Monto de la bonificación promocional.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dDescPromocion" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation>Descripción de la promoción.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipos de porcentajes -->
+    <xs:simpleType name="tipoPorcentajeDescuento">
+        <xs:annotation>
+            <xs:documentation>Porcentaje de descuento (0.01% a 100.00%).</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.01" />
+            <xs:maxInclusive value="100.00" />
+            <xs:fractionDigits value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoPorcentajeRecargo">
+        <xs:annotation>
+            <xs:documentation>Porcentaje de recargo (0.01% a 200.00%).</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.01" />
+            <xs:maxInclusive value="200.00" />
+            <xs:fractionDigits value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Elementos globales para validación independiente -->
+    <xs:element name="gTermCom" type="tipoGrupoTerminosComerciales">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de términos comerciales.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gModCom" type="tipoGrupoModalidadesComerciales">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de modalidades comerciales.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gCondCom" type="tipoGrupoCondicionesComerciales">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de condiciones comerciales.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gRefCom" type="tipoGrupoReferenciasComerciales">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de referencias comerciales.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gCondEnt" type="tipoGrupoCondicionesEntrega">
+        <xs:annotation>
+            <xs:documentation>Elemento global para testing de condiciones de entrega.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE INTEGRACIÓN                                                 -->
+    <!-- ===================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON DE_v150.xsd:
+        
+        Este módulo se importará en DE_v150.xsd de la siguiente manera:
+        
+        <xs:include schemaLocation="operations/commercial_operations.xsd" />
+        
+        COMPATIBILIDAD CON ARQUITECTURA EXISTENTE:
+        
+        ✅ Extiende (no duplica) funcionalidad de operation_data.xsd
+        ✅ Reutiliza tipos de common/ (basic_types, currency_types, geographic_types)
+        ✅ Se enfoca exclusivamente en extensiones comerciales avanzadas
+        ✅ Sigue patrones de naming del sistema modular
+        ✅ Proporciona elementos globales para testing independiente
+        
+        RELACIÓN CON OTROS MÓDULOS:
+        
+        ✅ operation_data.xsd → Funcionalidad básica (tipos de transacción, formas de pago)
+        ✅ commercial_operations.xsd → Extensiones comerciales (Incoterms, descuentos, referencias)
+        ✅ payment_conditions.xsd → Medios de pago específicos
+        ✅ items.xsd → Productos y servicios
+        
+        CASOS DE USO ESPECÍFICOS:
+        
+        ✅ Comercio internacional con Incoterms
+        ✅ Ventas B2B con referencias a órdenes de compra y contratos
+        ✅ Operaciones con descuentos complejos por volumen
+        ✅ Ventas con condiciones especiales de entrega
+        ✅ Operaciones con modalidades de venta específicas
+        
+        INTEGRACIÓN OPCIONAL:
+        
+        Este módulo es OPCIONAL y solo se usa cuando se requiere funcionalidad
+        comercial avanzada. Las operaciones básicas funcionan perfectamente
+        solo con operation_data.xsd.
+        
+        PRÓXIMOS PASOS:
+        
+        1. Agregar import en DE_v150.xsd después de payment_conditions.xsd
+        2. Crear tests específicos para cada grupo comercial
+        3. Validar contra casos de uso B2B reales
+        4. Documentar ejemplos de integración con sistemas ERP
+    -->
+
+</xs:schema>

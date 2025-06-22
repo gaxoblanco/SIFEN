@@ -51,8 +51,12 @@
     <xs:include schemaLocation="../parties/issuer_types.xsd" />
     <xs:include schemaLocation="../parties/receiver_types.xsd" />
 
+
+    <!-- Módulos operations/ -->
+    <xs:include schemaLocation="../operations/items.xsd" />
+
     <!-- TODO: Agregar cuando existan:
-    <xs:include schemaLocation="../operations/items.xsd"/>
+    
     <xs:include schemaLocation="../document_types/factura_types.xsd"/>
     <xs:include schemaLocation="../document_types/nota_credito_types.xsd"/>
     <xs:include schemaLocation="../document_types/nota_debito_types.xsd"/>
@@ -65,50 +69,6 @@
     <!-- TIPOS TEMPORALES (hasta que existan los módulos)                  -->
     <!-- ================================================================== -->
 
-    <!-- Tipo temporal para ítems -->
-    <xs:complexType name="tipoGrupoItems">
-        <xs:annotation>
-            <xs:documentation> TEMPORAL: Grupo de ítems simplificado. Esta es una definición
-                temporal hasta que se implemente el módulo operations/items.xsd completo. Contiene
-                los campos mínimos necesarios para un ítem: - Descripción del producto/servicio -
-                Cantidad - Precio unitario - Precio total (cantidad * precio unitario) TODO:
-                Reemplazar por tipoGrupoItems de operations/items.xsd </xs:documentation>
-        </xs:annotation>
-        <xs:sequence>
-
-            <!-- Descripción del producto o servicio -->
-            <xs:element name="dDesProSer" type="tipoTextoMedio">
-                <xs:annotation>
-                    <xs:documentation> Descripción del producto o servicio. Campo E708 según
-                        documentación SIFEN v150. </xs:documentation>
-                </xs:annotation>
-            </xs:element>
-
-            <!-- Cantidad -->
-            <xs:element name="dCantProSer" type="xs:decimal">
-                <xs:annotation>
-                    <xs:documentation> Cantidad del producto o servicio. Permite decimales para
-                        productos fraccionables. </xs:documentation>
-                </xs:annotation>
-            </xs:element>
-
-            <!-- Precio unitario -->
-            <xs:element name="dPUniProSer" type="xs:decimal">
-                <xs:annotation>
-                    <xs:documentation> Precio unitario del producto o servicio. En guaraníes (PYG). </xs:documentation>
-                </xs:annotation>
-            </xs:element>
-
-            <!-- Precio total del ítem -->
-            <xs:element name="dTotBruOpeItem" type="xs:decimal">
-                <xs:annotation>
-                    <xs:documentation> Total bruto de la operación del ítem. Calculado: dCantProSer
-                        * dPUniProSer </xs:documentation>
-                </xs:annotation>
-            </xs:element>
-
-        </xs:sequence>
-    </xs:complexType>
 
     <!-- ================================================================== -->
     <!-- ELEMENTO PRINCIPAL: DOCUMENTO ELECTRÓNICO (A001)                  -->
@@ -194,15 +154,21 @@
                 </xs:annotation>
             </xs:element>
 
-            <!-- ⏳ GRUPOS TEMPORALES (hasta que existan los módulos) -->
-
+            <!-- ✅ GRUPOS IMPORTADOS DESDE OPERATIONS/ -->
             <!-- Campos de ítems, productos o servicios -->
             <xs:element name="gCamItem" type="tipoGrupoItems" minOccurs="1" maxOccurs="unbounded">
                 <xs:annotation>
-                    <xs:documentation> Grupo de campos de ítems, productos o servicios. TEMPORAL:
-                        Definición simplificada hasta que exista operations/items.xsd Puede
-                        repetirse múltiples veces (uno por cada ítem/producto/servicio). Al menos un
-                        grupo gCamItem es obligatorio en cualquier documento. </xs:documentation>
+                    <xs:documentation> Grupo de campos de ítems, productos o servicios. IMPORTADO
+                        desde operations/items.xsd - Implementación completa SIFEN v150 Contiene
+                        estructura completa de ítems: ✅ Identificación (códigos internos, NCM,
+                        partidas arancelarias) ✅ Características (descripción, unidad de medida,
+                        cantidad) ✅ Precios (precio unitario, totales calculados) ✅ Afectación IVA
+                        (gravado/exento/exonerado con cálculos) ✅ Origen (país de origen cuando
+                        corresponda) Puede repetirse múltiples veces (uno por cada
+                        ítem/producto/servicio). Al menos un grupo gCamItem es obligatorio en
+                        cualquier documento. Casos de uso soportados: - Productos físicos con NCM e
+                        IVA estándar - Servicios profesionales gravados - Medicamentos y productos
+                        exentos - Productos importados con país de origen </xs:documentation>
                 </xs:annotation>
             </xs:element>
 

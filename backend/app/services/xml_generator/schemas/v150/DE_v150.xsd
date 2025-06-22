@@ -41,6 +41,11 @@
     <!-- Este módulo ya incluye todas las dependencias necesarias -->
     <xs:include schemaLocation="document_core/root_elements.xsd" />
 
+    <!-- Módulos de operations/ -->
+    <xs:include schemaLocation="operations/items.xsd" />
+    <!-- <xs:include schemaLocation="operations/payment_conditions.xsd" />
+    <xs:include schemaLocation="operations/tax_calculations.xsd" />
+    <xs:include schemaLocation="operations/commercial_operations.xsd" /> -->
     <!-- 
     NOTA: root_elements.xsd ya importa automáticamente:
     - document_core/operation_data.xsd

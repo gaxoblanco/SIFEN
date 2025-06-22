@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: operations/items.xsd
+  Propósito: Tipos y estructuras para items, productos y servicios en documentos electrónicos SIFEN
+v150
+  
+  Este módulo define:
+  - Tipo principal tipoGrupoItems (reemplaza la definición temporal en root_elements.xsd)
+  - Campos de identificación de productos/servicios (códigos internos, NCM, partidas arancelarias)
+  - Características básicas (descripción, unidad de medida, cantidad, precio)
+  - Cálculos de IVA por ítem (afectación, tasas, bases gravables)
+  - Origen de productos (país de origen cuando corresponda)
+  - Valores calculados por ítem (totales brutos, impuestos)
+  
+  COBERTURA SIFEN v150:
+  ✅ Campos E701-E713: Identificación y características básicas
+  ✅ Campos E720: Precios unitarios
+  ✅ Campos E730-E737: Afectación y cálculos de IVA
+  ✅ Integración con totals_subtotals.xsd para consolidación
+  
+  CASOS DE USO CUBIERTOS:
+  ✅ Productos físicos con código NCM e IVA estándar
+  ✅ Servicios profesionales gravados con IVA
+  ✅ Medicamentos y productos exentos de IVA
+  ✅ Productos importados con país de origen
+  ✅ Items con diferentes unidades de medida
+  
+  Dependencias:
+  - common/basic_types.xsd (tipos fundamentales)
+  - common/currency_types.xsd (tipos monetarios)
+  - common/geographic_types.xsd (países de origen)
+  
+  Autor: Sistema SIFEN Paraguay  
+  Versión: 1.5.0
+  Fecha: 2025-06-22
+  Estado: ✅ IMPLEMENTACIÓN COMPLETA - Reemplaza definición temporal
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ================================================================== -->
+    <!-- IMPORTACIONES DE DEPENDENCIAS                                     -->
+    <!-- ================================================================== -->
+
+    <!-- Tipos básicos fundamentales -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos monetarios (montos, porcentajes) -->
+    <xs:include schemaLocation="../common/currency_types.xsd" />
+
+    <!-- Tipos geográficos (países de origen) -->
+    <xs:include schemaLocation="../common/geographic_types.xsd" />
+
+    <!-- ================================================================== -->
+    <!-- SECCIÓN 1: TIPOS SIMPLES PARA IDENTIFICACIÓN DE ITEMS             -->
+    <!-- ================================================================== -->
+
+    <!-- Código interno del ítem (asignado por el emisor) -->
+    <xs:simpleType name="tipoCodigoInterno">
+        <xs:annotation>
+            <xs:documentation> Código interno del ítem asignado por el emisor. Campo SIFEN: E701
+                (dCodInt) Características: - Alfanumérico de 1 a 20 caracteres - Único dentro del
+                catálogo del emisor - Opcional (puede no estar presente) - Útil para identificación
+                rápida en sistemas internos Ejemplos válidos: - "SER001" (servicios) - "FER-001"
+                (productos) - "CONS-2024-001" (códigos con fecha) - "A1B2C3" (códigos mixtos) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[A-Za-z0-9\-_\.]{1,20}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Partida arancelaria para productos -->
+    <xs:simpleType name="tipoPartidaArancelaria">
+        <xs:annotation>
+            <xs:documentation> Partida arancelaria según nomenclatura oficial. Campo SIFEN: E702
+                (dParAranc) Características: - Numérico de 2 a 10 dígitos - Clasifica productos para
+                efectos aduaneros - Opcional (principalmente para productos importados/exportados) -
+                Sigue nomenclatura del Sistema Armonizado Ejemplos: - "2523" (cemento Portland) -
+                "32082000" (pintura base agua) - "30049099" (medicamentos) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{2,10}" />
+            <xs:minLength value="2" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Código NCM (Nomenclatura Común del Mercosur) -->
+    <xs:simpleType name="tipoCodigoNCM">
+        <xs:annotation>
+            <xs:documentation> Código NCM para clasificación de productos. Campo SIFEN: E703 (dNCM)
+                Características: - Numérico de 2 a 8 dígitos - Clasificación estándar Mercosur -
+                Opcional pero recomendado para productos físicos - Relacionado con partida
+                arancelaria Ejemplos: - "25231000" (cemento Portland) - "32082000" (pintura látex) -
+                "30049099" (medicamentos diversos) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{2,8}" />
+            <xs:minLength value="2" />
+            <xs:maxLength value="8" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- SECCIÓN 2: TIPOS PARA UNIDADES DE MEDIDA                          -->
+    <!-- ================================================================== -->
+
+    <!-- Código de unidad de medida -->
+    <xs:simpleType name="tipoCodigoUnidadMedida">
+        <xs:annotation>
+            <xs:documentation> Código de unidad de medida según catálogo SIFEN. Campo SIFEN: E709
+                (cUniMed) Códigos frecuentes: - 1: Unidad - 2: Kilogramo - 3: Metro - 4: Litro - 5:
+                Metro cuadrado - 6: Metro cúbico - 7: Tonelada - 8: Servicio (servicios
+                profesionales) - 9: Hora (servicios por tiempo) - 10: Conjunto/Set Rango: 1 a 9999
+                (hasta 4 dígitos) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="9999" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción de unidad de medida -->
+    <xs:simpleType name="tipoDescripcionUnidadMedida">
+        <xs:annotation>
+            <xs:documentation> Descripción textual de la unidad de medida. Campo SIFEN: E710
+                (dDesUniMed) Características: - Texto de 1 a 20 caracteres - Debe ser consistente
+                con cUniMed - Legible para usuarios finales Ejemplos: - "Unidad", "Kilogramo",
+                "Metro", "Litro" - "Servicio", "Hora", "Conjunto" - "m²", "m³", "Ton" </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Cantidad de producto o servicio -->
+    <xs:simpleType name="tipoCantidadProducto">
+        <xs:annotation>
+            <xs:documentation> Cantidad del producto o servicio. Campo SIFEN: E711 (dCantProSer)
+                Características: - Decimal positivo con hasta 11 dígitos enteros y 6 decimales -
+                Formato: 99999999999.999999 - Permite fraccionables (ej: 2.5 metros, 1.25 servicios)
+                Ejemplos: - "1" (una unidad) - "2.5" (dos y medio metros) - "0.75" (tres cuartos de
+                hora) - "1000.000000" (mil unidades exactas) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.000001" />
+            <xs:maxInclusive value="99999999999.999999" />
+            <xs:fractionDigits value="6" />
+            <xs:totalDigits value="17" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- SECCIÓN 3: TIPOS PARA PRECIOS Y VALORES                           -->
+    <!-- ================================================================== -->
+
+    <!-- Precio unitario del producto/servicio -->
+    <xs:simpleType name="tipoPrecioUnitario">
+        <xs:annotation>
+            <xs:documentation> Precio unitario del producto o servicio en guaraníes. Campo SIFEN:
+                E720 (dPUniProSer) Características: - Decimal positivo hasta 15 dígitos enteros y 4
+                decimales - Moneda: Guaraníes paraguayos (PYG) - Formato: 999999999999999.9999
+                Ejemplos: - "800000.0000" (Gs. 800.000 por consultoría) - "45000.0000" (Gs. 45.000
+                por bolsa cemento) - "8500.0000" (Gs. 8.500 por medicamento) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoMonto">
+            <!-- Hereda restricciones de tipoMonto desde currency_types.xsd -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- SECCIÓN 4: TIPOS PARA AFECTACIÓN DE IVA                           -->
+    <!-- ================================================================== -->
+
+    <!-- Afectación de IVA -->
+    <xs:simpleType name="tipoAfectacionIVA">
+        <xs:annotation>
+            <xs:documentation> Código de afectación de IVA del ítem. Campo SIFEN: E730 (iAfecIVA)
+                Valores válidos: - 1: Gravado (sujeto a IVA) - 2: Exonerado (exonerado por ley
+                específica) - 3: Exento (exento por naturaleza del producto) Casos típicos: -
+                Servicios profesionales: 1 (Gravado al 10%) - Productos construcción: 1 (Gravado al
+                10%) - Medicamentos básicos: 3 (Exento) - Productos decreto específico: 2
+                (Exonerado) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Gravado - Sujeto a IVA</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Exonerado - Exonerado por disposición legal</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Exento - Exento por naturaleza</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción de afectación de IVA -->
+    <xs:simpleType name="tipoDescripcionAfectacionIVA">
+        <xs:annotation>
+            <xs:documentation> Descripción textual de la afectación de IVA. Campo SIFEN: E731
+                (dDesAfecIVA) Valores estándar: - "Gravado IVA" (para iAfecIVA = 1) - "Exonerado
+                IVA" (para iAfecIVA = 2) - "Exento IVA" (para iAfecIVA = 3) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:enumeration value="Gravado IVA" />
+            <xs:enumeration value="Exonerado IVA" />
+            <xs:enumeration value="Exento IVA" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Proporción/porcentaje de IVA -->
+    <xs:simpleType name="tipoPorcentajeIVA">
+        <xs:annotation>
+            <xs:documentation> Porcentaje de IVA aplicable al ítem. Campo SIFEN: E734 (dPropIVA)
+                Valores válidos en Paraguay: - 0: Para productos exentos o exonerados - 5: IVA
+                reducido (casos específicos) - 10: IVA estándar (mayoría de productos/servicios)
+                Casos típicos: - Servicios profesionales: 10 - Productos construcción: 10 -
+                Medicamentos básicos: 0 </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:enumeration value="0" />
+            <xs:enumeration value="5" />
+            <xs:enumeration value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tasa efectiva de IVA -->
+    <xs:simpleType name="tipoTasaIVA">
+        <xs:annotation>
+            <xs:documentation> Tasa efectiva de IVA (decimal). Campo SIFEN: E735 (dTasaIVA)
+                Conversión de porcentaje a decimal: - 0% = 0.00 - 5% = 0.05 - 10% = 0.10 Usado para
+                cálculos automáticos de IVA. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:enumeration value="0.00" />
+            <xs:enumeration value="0.05" />
+            <xs:enumeration value="0.10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Base gravable para IVA -->
+    <xs:simpleType name="tipoBaseGravableIVA">
+        <xs:annotation>
+            <xs:documentation> Base gravable para el cálculo de IVA del ítem. Campo SIFEN: E736
+                (dBasGravIVA) Cálculo: - dBasGravIVA = dCantProSer × dPUniProSer (si gravado) -
+                dBasGravIVA = 0 (si exento o exonerado) Características: - Decimal hasta 15 dígitos
+                enteros y 4 decimales - En guaraníes paraguayos - Base para calcular dLiqIVAItem </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoMonto">
+            <!-- Hereda restricciones de tipoMonto desde currency_types.xsd -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Liquidación de IVA del ítem -->
+    <xs:simpleType name="tipoLiquidacionIVAItem">
+        <xs:annotation>
+            <xs:documentation> Monto de IVA liquidado para el ítem. Campo SIFEN: E737 (dLiqIVAItem)
+                Cálculo: - dLiqIVAItem = dBasGravIVA × dTasaIVA - dLiqIVAItem = 0 (si exento o
+                exonerado) Ejemplo: - Base gravable: 800.000 Gs. - Tasa IVA: 0.10 (10%) -
+                Liquidación: 80.000 Gs. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoMonto">
+            <!-- Hereda restricciones de tipoMonto desde currency_types.xsd -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================== -->
+    <!-- SECCIÓN 5: TIPOS COMPLEJOS - GRUPOS DE DATOS                      -->
+    <!-- ================================================================== -->
+
+    <!-- Grupo de cálculos de IVA por ítem -->
+    <xs:complexType name="tipoGrupoIVAItem">
+        <xs:annotation>
+            <xs:documentation> Grupo que contiene todos los cálculos de IVA para un ítem específico.
+                Agrupa campos SIFEN: - E730: iAfecIVA (afectación) - E731: dDesAfecIVA (descripción
+                afectación) - E734: dPropIVA (porcentaje) - E735: dTasaIVA (tasa decimal) - E736:
+                dBasGravIVA (base gravable) - E737: dLiqIVAItem (IVA liquidado) Casos de uso: -
+                Productos gravados al 10%: Todos los campos con valores - Productos exentos:
+                iAfecIVA=3, dPropIVA=0, dBasGravIVA=0, dLiqIVAItem=0 - Servicios profesionales:
+                iAfecIVA=1, dPropIVA=10, cálculos completos </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Afectación de IVA -->
+            <xs:element name="iAfecIVA" type="tipoAfectacionIVA">
+                <xs:annotation>
+                    <xs:documentation>Código de afectación de IVA: 1-Gravado, 2-Exonerado, 3-Exento</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción de afectación -->
+            <xs:element name="dDesAfecIVA" type="tipoDescripcionAfectacionIVA">
+                <xs:annotation>
+                    <xs:documentation>Descripción textual de la afectación: "Gravado IVA", "Exento
+                        IVA", etc.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Porcentaje de IVA -->
+            <xs:element name="dPropIVA" type="tipoPorcentajeIVA">
+                <xs:annotation>
+                    <xs:documentation>Porcentaje de IVA: 0, 5 o 10</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tasa de IVA (decimal) -->
+            <xs:element name="dTasaIVA" type="tipoTasaIVA">
+                <xs:annotation>
+                    <xs:documentation>Tasa de IVA en formato decimal: 0.00, 0.05 o 0.10</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Base gravable -->
+            <xs:element name="dBasGravIVA" type="tipoBaseGravableIVA">
+                <xs:annotation>
+                    <xs:documentation>Base gravable para el cálculo de IVA (cantidad × precio
+                        unitario si gravado)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- IVA liquidado -->
+            <xs:element name="dLiqIVAItem" type="tipoLiquidacionIVAItem">
+                <xs:annotation>
+                    <xs:documentation>Monto de IVA liquidado para este ítem (base gravable × tasa)</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Grupo de valores calculados por ítem -->
+    <xs:complexType name="tipoGrupoValorItem">
+        <xs:annotation>
+            <xs:documentation> Grupo que contiene todos los valores y cálculos de un ítem. Incluye:
+                - Total bruto del ítem (cantidad × precio unitario) - Cálculos de IVA (grupo
+                completo de IVA) - Futuros: descuentos por ítem, recargos, etc. Este grupo se puede
+                expandir para incluir: - Descuentos aplicados al ítem - Recargos específicos - Otros
+                impuestos (cuando aplique) </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Total bruto del ítem -->
+            <xs:element name="dTotBruOpeItem" type="tipoMonto">
+                <xs:annotation>
+                    <xs:documentation> Total bruto de la operación del ítem. Cálculo: dTotBruOpeItem
+                        = dCantProSer × dPUniProSer Este es el valor base antes de aplicar
+                        impuestos. Equivale al subtotal del ítem sin IVA. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Grupo de IVA -->
+            <xs:element name="gCamIVA" type="tipoGrupoIVAItem">
+                <xs:annotation>
+                    <xs:documentation>Grupo completo de cálculos de IVA para este ítem</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- TODO: Futuros campos a implementar cuando se requieran
+            <xs:element name="gDescuentosItem" type="tipoGrupoDescuentosItem" minOccurs="0"/>
+            <xs:element name="gRecargosItem" type="tipoGrupoRecargosItem" minOccurs="0"/>
+            <xs:element name="gOtrosImpuestos" type="tipoGrupoOtrosImpuestosItem" minOccurs="0"/>
+            -->
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- SECCIÓN 6: TIPO PRINCIPAL - GRUPO DE ITEMS COMPLETO               -->
+    <!-- ================================================================== -->
+
+    <!-- Tipo principal: Grupo completo de ítems -->
+    <xs:complexType name="tipoGrupoItems">
+        <xs:annotation>
+            <xs:documentation> Tipo principal que define la estructura completa de un ítem (producto
+                o servicio). ✅ REEMPLAZA la definición temporal en document_core/root_elements.xsd
+                Cobertura SIFEN v150: ✅ Campos E701-E713: Identificación y características ✅ Campos
+                E720: Precios ✅ Campos E730-E737: Afectación y cálculos de IVA Casos de uso
+                cubiertos: ✅ Productos físicos con NCM (ferretería, farmacia) ✅ Servicios
+                profesionales (consultoría, contabilidad) ✅ Productos exentos (medicamentos básicos)
+                ✅ Productos importados con país de origen ✅ Items con diferentes unidades de medida
+                Flujo de datos: 1. Identificación del ítem (códigos, NCM) 2. Descripción y
+                características (unidad, cantidad) 3. Origen del producto (opcional) 4. Precio
+                unitario 5. Cálculos y valores (grupo completo) Validaciones automáticas: - Cantidad
+                > 0 - Precio unitario > 0 - Consistencia entre afectación IVA y cálculos -
+                Coherencia entre códigos de unidad medida </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- ============================================================ -->
+            <!-- SUBSECCIÓN: IDENTIFICACIÓN DEL ÍTEM                        -->
+            <!-- ============================================================ -->
+
+            <!-- Código interno del ítem (opcional) -->
+            <xs:element name="dCodInt" type="tipoCodigoInterno" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Código interno del ítem asignado por el emisor. Campo SIFEN:
+                        E701 Opcional pero recomendado para: - Trazabilidad interna - Integración
+                        con sistemas ERP - Identificación rápida en facturas Ejemplos del sample
+                        data: - "SER001" (consultoría contable) - "FER001" (cemento Portland) -
+                        "FAR001" (paracetamol) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Partida arancelaria (opcional) -->
+            <xs:element name="dParAranc" type="tipoPartidaArancelaria" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Partida arancelaria del producto. Campo SIFEN: E702 Requerido
+                        para: - Productos importados/exportados - Productos sujetos a aranceles
+                        específicos - Declaraciones aduaneras </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código NCM (opcional) -->
+            <xs:element name="dNCM" type="tipoCodigoNCM" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Código NCM (Nomenclatura Común del Mercosur). Campo SIFEN:
+                        E703 Recomendado para: - Productos físicos en general - Clasificación
+                        estadística - Identificación en reportes fiscales No aplica para servicios
+                        puros. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- ============================================================ -->
+            <!-- SUBSECCIÓN: DESCRIPCIÓN Y CARACTERÍSTICAS                  -->
+            <!-- ============================================================ -->
+
+            <!-- Descripción del producto o servicio -->
+            <xs:element name="dDesProSer" type="tipoTextoMedio">
+                <xs:annotation>
+                    <xs:documentation> Descripción del producto o servicio. Campo SIFEN: E708
+                        OBLIGATORIO: Siempre debe estar presente. Características: - Texto
+                        descriptivo hasta 255 caracteres - Debe ser comprensible para el receptor -
+                        Identificar claramente el producto/servicio Ejemplos del sample data: -
+                        "Consultoría contable mensual" - "Cemento Portland x bolsa 50kg" -
+                        "Paracetamol 500mg x 20 comprimidos" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de unidad de medida -->
+            <xs:element name="cUniMed" type="tipoCodigoUnidadMedida">
+                <xs:annotation>
+                    <xs:documentation> Código de unidad de medida. Campo SIFEN: E709 OBLIGATORIO:
+                        Define la unidad en que se mide/vende el ítem. Códigos frecuentes: - 1:
+                        Unidad (productos unitarios) - 8: Servicio (servicios profesionales) - 2:
+                        Kilogramo (productos a granel) - 4: Litro (líquidos) Debe ser consistente
+                        con dDesUniMed. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción de unidad de medida -->
+            <xs:element name="dDesUniMed" type="tipoDescripcionUnidadMedida">
+                <xs:annotation>
+                    <xs:documentation> Descripción textual de la unidad de medida. Campo SIFEN: E710
+                        OBLIGATORIO: Descripción legible de cUniMed. Ejemplos: - "Unidad" (para
+                        cUniMed=1) - "Servicio" (para cUniMed=8) - "Bolsa" (para productos
+                        empacados) - "Caja" (para medicamentos) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Cantidad del producto o servicio -->
+            <xs:element name="dCantProSer" type="tipoCantidadProducto">
+                <xs:annotation>
+                    <xs:documentation> Cantidad del producto o servicio. Campo SIFEN: E711
+                        OBLIGATORIO: Siempre debe ser > 0. Ejemplos: - "1" (una consultoría) - "2"
+                        (dos bolsas de cemento) - "1" (una caja de medicamento) - "2.5" (dos metros
+                        y medio) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- ============================================================ -->
+            <!-- SUBSECCIÓN: ORIGEN DEL PRODUCTO (OPCIONAL)                 -->
+            <!-- ============================================================ -->
+
+            <!-- País de origen (opcional) -->
+            <xs:element name="cPaisOrig" type="tipoCodigoPais" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Código del país de origen del producto. Campo SIFEN: E712
+                        Opcional: Principalmente para productos importados. Formato: Código ISO
+                        3166-1 alfa-3 (ej: "PRY", "BRA", "ARG") </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción del país de origen (opcional) -->
+            <xs:element name="dDesPaisOrig" type="tipoNombrePais" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Descripción del país de origen. Campo SIFEN: E713 Debe ser
+                        consistente con cPaisOrig. Ejemplos: "Paraguay", "Brasil", "Argentina" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- ============================================================ -->
+            <!-- SUBSECCIÓN: PRECIO UNITARIO                                -->
+            <!-- ============================================================ -->
+
+            <!-- Precio unitario -->
+            <xs:element name="dPUniProSer" type="tipoPrecioUnitario">
+                <xs:annotation>
+                    <xs:documentation> Precio unitario del producto o servicio. Campo SIFEN: E720
+                        OBLIGATORIO: Siempre debe ser > 0. Moneda: Guaraníes paraguayos (PYG)
+                        Ejemplos del sample data: - "800000.0000" (Gs. 800.000 consultoría) -
+                        "45000.0000" (Gs. 45.000 cemento) - "8500.0000" (Gs. 8.500 medicamento) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- ============================================================ -->
+            <!-- SUBSECCIÓN: VALORES Y CÁLCULOS                             -->
+            <!-- ============================================================ -->
+
+            <!-- Grupo de valores calculados -->
+            <xs:element name="gValorItem" type="tipoGrupoValorItem">
+                <xs:annotation>
+                    <xs:documentation> Grupo que contiene todos los valores calculados del ítem.
+                        Incluye: - Total bruto (cantidad × precio unitario) - Cálculos completos de
+                        IVA Los valores son calculados automáticamente basados en: - dCantProSer
+                        (cantidad) - dPUniProSer (precio unitario) - Configuración de IVA del ítem </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================== -->
+    <!-- SECCIÓN 7: ELEMENTOS GLOBALES PARA VALIDACIÓN                     -->
+    <!-- ================================================================== -->
+
+    <!-- Elemento global para validación independiente del grupo de ítems -->
+    <xs:element name="gCamItem" type="tipoGrupoItems">
+        <xs:annotation>
+            <xs:documentation> Elemento global para validación independiente de ítems. Útil para: -
+                Testing aislado de la estructura de ítems - Validación de fragmentos XML -
+                Desarrollo y debugging de schemas En documentos completos, este elemento se usa
+                dentro de la estructura principal del documento electrónico. </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN Y MIGRACIÓN                               -->
+    <!-- ================================================================== -->
+
+    <!--
+        MIGRACIÓN DESDE DEFINICIÓN TEMPORAL:
+        
+        ANTES (en root_elements.xsd):
+        ❌ tipoGrupoItems temporal con solo 4 campos básicos
+        ❌ Sin soporte para códigos de clasificación
+        ❌ Sin cálculos de IVA por ítem
+        ❌ Sin diferenciación productos/servicios
+        
+        DESPUÉS (este módulo):
+        ✅ tipoGrupoItems completo con 15+ campos
+        ✅ Soporte completo para códigos (NCM, partidas)
+        ✅ Cálculos automáticos de IVA por ítem
+        ✅ Clasificación y origen de productos
+        ✅ Integración con sample data paraguayo
+        
+        COMPATIBILIDAD CON SAMPLE DATA:
+        
+        ✅ PRODUCTOS SOPORTADOS:
+        - "SER001": Consultoría contable (servicio gravado 10%)
+        - "FER001": Cemento Portland (producto gravado 10%)
+        - "FAR001": Paracetamol (medicamento exento 0%)
+        - "TAL001": Servicios técnicos (servicio gravado 10%)
+        
+        ✅ SECTORES CUBIERTOS:
+        - servicios_profesionales (IVA 10%)
+        - ferreteria (productos construcción IVA 10%)
+        - farmacia (productos exentos + gravados mixto)
+        - servicios_tecnicos (servicios IVA 10%)
+        
+        ✅ CASOS DE USO VALIDADOS:
+        - Facturas simples (1 ítem)
+        - Facturas múltiples (2+ ítems)
+        - IVA mixto (exento + gravado)
+        - Diferentes unidades de medida
+        
+        TESTING REQUERIDO:
+        
+        1. Tests unitarios de tipos simples
+        2. Tests de grupos complejos (tipoGrupoIVAItem)
+        3. Tests del tipo principal (tipoGrupoItems)
+        4. Tests de integración con sample data
+        5. Tests de migración desde definición temporal
+        6. Tests de performance con múltiples ítems
+    -->
+
+</xs:schema>
