@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: transport/route_types.xsd
+  Propósito: Tipos relacionados con rutas y direcciones de transporte SIFEN v150
+  
+  RESPONSABILIDAD ESPECÍFICA:
+  - Definición de puntos origen y destino de transporte (gCamOrigen/gCamDestino)
+  - Direcciones específicas para logística y transporte
+  - Integración con códigos geográficos paraguayos existentes
+  - Información de contacto específica para puntos de entrega
+  
+  REUTILIZACIÓN DE TIPOS EXISTENTES:
+  - tipoCodigoDepartamento, tipoCodigoDistrito, tipoCodigoCiudad (common/geographic_types.xsd)
+  - tipoTelefono (common/contact_types.xsd)
+  - tipoTextoCorto, tipoTextoLargo (common/basic_types.xsd)
+  - Consistencia con validaciones geográficas ya implementadas
+  
+  ELEMENTOS PRINCIPALES EXPORTADOS:
+  - tipoGrupoOrigen (gCamOrigen)
+  - tipoGrupoDestino (gCamDestino)
+  
+  COBERTURA SIFEN v150:
+  - Campos E940-E950: Datos del origen del transporte
+  - Campos E960-E970: Datos del destino del transporte
+  - Validación jerárquica Departamento→Distrito→Ciudad
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: ✅ IMPLEMENTACIÓN MODULAR CON REUTILIZACIÓN
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE DEPENDENCIAS (reutilizar tipos existentes)           -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos fundamentales -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos geográficos (departamentos, distritos, ciudades paraguayas) -->
+    <xs:include schemaLocation="../common/geographic_types.xsd" />
+
+    <!-- Tipos de contacto (para teléfonos de origen/destino) -->
+    <xs:include schemaLocation="../common/contact_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- GRUPO ORIGEN (gCamOrigen) - E940-E950                               -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoGrupoOrigen">
+        <xs:annotation>
+            <xs:documentation> Grupo de datos del origen del transporte (gCamOrigen) CAMPOS SIFEN
+                v150: - E940 dDirOrigen: Dirección del origen - E941 dNumCasOrigen: Número de casa
+                origen - E942 dCompDir1: Complemento dirección 1 - E943 dCompDir2: Complemento
+                dirección 2 - E944 cDisOrigen: Código distrito origen - E945 cCiuOrigen: Código
+                ciudad origen - E946 dTelOrigen: Teléfono origen USO PRINCIPAL: Nota de Remisión
+                Electrónica (NRE) VALIDACIÓN JERÁRQUICA: Distrito→Ciudad debe ser coherente CASOS DE
+                USO: - Punto de recogida de mercadería - Almacén o depósito emisor - Local de
+                fabricación o producción - Centro de distribución origen </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- E940 - Dirección origen (obligatorio) -->
+            <xs:element name="dDirOrigen" type="tipoDireccionCompleta" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E940 - Dirección completa del punto de origen CONTENIDO: -
+                        Calle, avenida, ruta o camino - Referencias específicas de ubicación -
+                        Información suficiente para localización EJEMPLOS VÁLIDOS: - "Av. España
+                        1234" - "Ruta 2 Km 15.5, Margen derecho" - "Calle Palma c/ Chile" -
+                        "Industrial Park - Galpón 5" VALIDACIONES: - Mínimo 10 caracteres - Máximo
+                        255 caracteres - Debe ser dirección física real </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E941 - Número casa origen (opcional) -->
+            <xs:element name="dNumCasOrigen" type="tipoNumeroCasa" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E941 - Número de casa, local o edificio en el origen
+                        EJEMPLOS: - "1234", "456-B", "S/N", "Km 25" - "Piso 3 Oficina 301" - "Galpón
+                        12", "Local 45" OPCIONAL: Puede omitirse si está incluido en dDirOrigen
+                        FORMATO: Texto alfanumérico flexible </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E942 - Complemento dirección 1 (opcional) -->
+            <xs:element name="dCompDir1" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E942 - Complemento de dirección 1 USO: - Referencias
+                        adicionales de ubicación - Información para facilitar localización - Datos
+                        complementarios no incluidos en dirección principal EJEMPLOS: - "Entre
+                        Yegros y O'Leary" - "Frente al Shopping" - "Barrio San Vicente" - "Zona
+                        Industrial Norte" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E943 - Complemento dirección 2 (opcional) -->
+            <xs:element name="dCompDir2" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E943 - Complemento de dirección 2 USO: - Información
+                        adicional específica - Referencias para transportista - Instrucciones de
+                        acceso EJEMPLOS: - "Portón verde, timbre 3" - "Entrada por calle lateral" -
+                        "Horario 8-17 horas" - "Contactar antes de llegar" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E944 - Distrito origen (obligatorio) -->
+            <xs:element name="cDisOrigen" type="tipoCodigoDistrito" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E944 - Código del distrito de origen INTEGRACIÓN: Reutiliza
+                        tipoCodigoDistrito de geographic_types.xsd VALIDACIÓN: Debe corresponder a
+                        distrito válido en Paraguay RANGO: 1-999 según división política paraguaya
+                        RELACIÓN JERÁRQUICA: - Debe ser coherente con cCiuOrigen - Validación
+                        automática distrito→ciudad </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E945 - Ciudad origen (obligatorio) -->
+            <xs:element name="cCiuOrigen" type="tipoCodigoCiudad" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E945 - Código de la ciudad de origen INTEGRACIÓN: Reutiliza
+                        tipoCodigoCiudad de geographic_types.xsd VALIDACIÓN CRÍTICA SIFEN: - E949:
+                        Ciudad debe corresponder al distrito (E944) - Relación jerárquica
+                        obligatoria: Distrito→Ciudad IMPLEMENTACIÓN: - Validación automática con
+                        tablas geográficas SIFEN - Error E948/E949 si hay inconsistencia -
+                        Coherencia con códigos oficiales Paraguay </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E946 - Teléfono origen (opcional) -->
+            <xs:element name="dTelOrigen" type="tipoTelefono" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E946 - Teléfono del punto de origen INTEGRACIÓN: Reutiliza
+                        tipoTelefono de contact_types.xsd - Validación automática formato
+                        paraguayo/internacional - Acepta teléfonos fijos y móviles UTILIDAD: -
+                        Contacto para coordinación de recogida - Comunicación con responsable del
+                        origen - Confirmación de horarios y disponibilidad EJEMPLOS VÁLIDOS: -
+                        "021-123456" (fijo Asunción) - "0981-555123" (móvil) - "+595-21-123456"
+                        (internacional) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- GRUPO DESTINO (gCamDestino) - E960-E970                             -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoGrupoDestino">
+        <xs:annotation>
+            <xs:documentation> Grupo de datos del destino del transporte (gCamDestino) CAMPOS SIFEN
+                v150: - E960 dDirDestino: Dirección del destino - E961 dNumCasDestino: Número de
+                casa destino - E962 dCompDir1: Complemento dirección 1 - E963 dCompDir2: Complemento
+                dirección 2 - E964 cDisDestino: Código distrito destino - E965 cCiuDestino: Código
+                ciudad destino - E966 dTelDestino: Teléfono destino USO PRINCIPAL: Nota de Remisión
+                Electrónica (NRE) VALIDACIÓN JERÁRQUICA: Distrito→Ciudad debe ser coherente CASOS DE
+                USO: - Punto de entrega al receptor - Centro de distribución destino - Local del
+                receptor/comprador - Almacén de recepción </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- E960 - Dirección destino (obligatorio) -->
+            <xs:element name="dDirDestino" type="tipoDireccionCompleta" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E960 - Dirección completa del punto de destino CONTENIDO: -
+                        Dirección exacta de entrega - Referencias para localización - Información
+                        específica del receptor VALIDACIONES: - Debe ser dirección física real -
+                        Suficiente detalle para entrega - Coherente con datos del receptor EJEMPLOS:
+                        - "Mcal. López 2345, Torre Este" - "Ruta 1 Km 30, Villa Elisa" - "Industrial
+                        Park Luque - Nave 8" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E961 - Número casa destino (opcional) -->
+            <xs:element name="dNumCasDestino" type="tipoNumeroCasa" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E961 - Número de casa, oficina o local en destino FORMATO:
+                        Igual a origen, alfanumérico flexible </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E962 - Complemento dirección 1 (opcional) -->
+            <xs:element name="dCompDir1" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E962 - Complemento de dirección 1 para destino USO:
+                        Referencias adicionales para entrega </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E963 - Complemento dirección 2 (opcional) -->
+            <xs:element name="dCompDir2" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E963 - Complemento de dirección 2 para destino USO:
+                        Instrucciones específicas de entrega </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E964 - Distrito destino (obligatorio) -->
+            <xs:element name="cDisDestino" type="tipoCodigoDistrito" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E964 - Código del distrito de destino INTEGRACIÓN: Reutiliza
+                        tipoCodigoDistrito VALIDACIÓN: Coherencia con ciudad destino APLICACIÓN:
+                        Cálculo de distancias y rutas </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E965 - Ciudad destino (obligatorio) -->
+            <xs:element name="cCiuDestino" type="tipoCodigoCiudad" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E965 - Código de la ciudad de destino INTEGRACIÓN: Reutiliza
+                        tipoCodigoCiudad VALIDACIÓN CRÍTICA: Debe corresponder al distrito destino
+                        UTILIDAD: Planificación logística y tiempos entrega </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E966 - Teléfono destino (opcional) -->
+            <xs:element name="dTelDestino" type="tipoTelefono" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E966 - Teléfono del punto de destino INTEGRACIÓN: Reutiliza
+                        tipoTelefono UTILIDAD: - Coordinación de entrega - Confirmación de recepción
+                        - Contacto con receptor final RECOMENDACIÓN: Incluir siempre para facilitar
+                        logística </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA DIRECCIONES DE TRANSPORTE                    -->
+    <!-- ===================================================================== -->
+
+    <xs:simpleType name="tipoDireccionCompleta">
+        <xs:annotation>
+            <xs:documentation> Dirección completa para puntos de origen y destino Formato específico
+                para direcciones de transporte logístico CARACTERÍSTICAS: - Longitud suficiente para
+                direcciones detalladas - Caracteres especiales permitidos para referencias -
+                Validación de contenido mínimo útil DIFERENCIA CON DIRECCIONES GENERALES: - Énfasis
+                en precisión para localización - Incluye referencias logísticas específicas -
+                Orientado a facilitar trabajo de transportistas </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoLargo">
+            <xs:minLength value="10" />
+            <xs:maxLength value="255" />
+            <xs:pattern value="[A-Za-zÀ-ÿ0-9\s\.,\-\(\)/°#&amp;]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoNumeroCasa">
+        <xs:annotation>
+            <xs:documentation> Número de casa, local, oficina o identificación específica Formato
+                flexible para diferentes tipos de numeración CASOS CUBIERTOS: - Numeración estándar:
+                "123", "456" - Numeración con letras: "123-A", "456B" - Sin número: "S/N" -
+                Referencias kilometraje: "Km 15", "Km 23.5" - Identificaciones complejas: "Torre 2
+                Piso 5" VALIDACIÓN: - Acepta alfanumérico con caracteres especiales comunes -
+                Longitud razonable para referencias prácticas </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[A-Za-z0-9\s.\-/#]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING INDEPENDIENTE                       -->
+    <!-- ===================================================================== -->
+
+    <xs:element name="gCamOrigen" type="tipoGrupoOrigen">
+        <xs:annotation>
+            <xs:documentation> Elemento global del grupo origen para testing independiente Permite
+                validar puntos de origen sin contexto de documento completo USO EN TESTING: -
+                Validación independiente de direcciones origen - Testing de códigos geográficos
+                específicos - Verificación de formatos y restricciones </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gCamDestino" type="tipoGrupoDestino">
+        <xs:annotation>
+            <xs:documentation> Elemento global del grupo destino para testing independiente Permite
+                validar puntos de destino sin contexto de documento completo USO EN TESTING: -
+                Validación independiente de direcciones destino - Testing de coherencia geográfica
+                distrito→ciudad - Verificación de formatos específicos de entrega </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN                                              -->
+    <!-- ===================================================================== -->
+
+    <!--
+        REUTILIZACIÓN EXITOSA DE TIPOS EXISTENTES:
+        
+        ✅ tipoCodigoDistrito, tipoCodigoCiudad (common/geographic_types.xsd)
+           - Validación automática de códigos geográficos paraguayos
+           - Coherencia jerárquica distrito→ciudad ya implementada
+           - Errores SIFEN E948/E949 manejados centralmente
+        
+        ✅ tipoTelefono (common/contact_types.xsd)
+           - Formatos paraguayos e internacionales validados
+           - Consistencia con contacto de emisores/receptores
+           - No duplicamos lógica de validación telefónica
+        
+        ✅ tipoTextoCorto, tipoTextoLargo (common/basic_types.xsd)
+           - Longitudes y caracteres válidos consistentes
+           - Patrón base reutilizado con extensiones específicas
+        
+        TIPOS ESPECÍFICOS CREADOS:
+        
+        ✅ tipoDireccionCompleta
+           - Especializado para direcciones logísticas
+           - Acepta caracteres específicos de referencias geográficas
+           - Longitud optimizada para precisión de entrega
+        
+        ✅ tipoNumeroCasa
+           - Flexible para diferentes sistemas de numeración
+           - Acepta referencias kilometraje y códigos complejos
+           - Útil para zonas rurales e industriales
+        
+        VALIDACIONES GEOGRÁFICAS HEREDADAS:
+        
+        ✅ Relación jerárquica Distrito→Ciudad automática
+           - geographic_types.xsd ya implementa validaciones
+           - Errores SIFEN específicos ya manejados
+           - Tablas oficiales paraguayas ya integradas
+        
+        INTEGRACIÓN CON OTROS MÓDULOS:
+        
+        → vehicle_types.xsd: Este módulo puede importar rutas si necesita
+        → transport_conditions.xsd: Importará este módulo para orquestación
+        → DE_v150.xsd: Acceso a elementos globales gCamOrigen, gCamDestino
+        
+        CASOS DE USO CUBIERTOS:
+        
+        ✅ Transporte urbano (códigos ciudad específicos)
+        ✅ Transporte interdepartamental (validación cruzada)
+        ✅ Transporte industrial (direcciones complejas)
+        ✅ Entrega rural (referencias flexibles)
+        ✅ Logística empresarial (complementos dirección)
+        
+        PRÓXIMOS PASOS:
+        
+        1. Implementar transport_conditions.xsd (orquestador principal)
+        2. Integrar vehicle_types.xsd + route_types.xsd
+        3. Crear elemento principal gCamTrans completo
+        4. Testing de integración geográfica con datos reales paraguayos
+    -->
+
+</xs:schema>

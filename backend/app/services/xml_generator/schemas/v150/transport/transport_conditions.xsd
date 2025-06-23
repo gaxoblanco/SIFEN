@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: transport/transport_conditions.xsd
+  Propósito: Condiciones y modalidades de transporte - ORQUESTADOR PRINCIPAL del módulo transport
+  
+  RESPONSABILIDAD ESPECÍFICA:
+  - Elemento principal gCamTrans (orquestador de todo el transporte)
+  - Tipos y modalidades de transporte (terrestre, marítimo, aéreo)
+  - Condiciones comerciales (responsable flete, modalidades)
+  - Fechas y horarios de transporte
+  - Integración de vehículos, transportistas y rutas
+  
+  ARQUITECTURA MODULAR:
+  - Importa vehicle_types.xsd (vehículos y transportistas)
+  - Importa route_types.xsd (rutas origen/destino)
+  - Reutiliza tipos básicos y geográficos existentes
+  - Crea elemento principal exportable a DE_v150.xsd
+  
+  ELEMENTO PRINCIPAL EXPORTADO:
+  - tipoGrupoTransporte (gCamTrans) - ELEMENTO PRINCIPAL
+  
+  COBERTURA SIFEN v150:
+  - Campos E900-E999: Grupo completo de transporte
+  - Integración con Nota de Remisión Electrónica (NRE)
+  - Condiciones específicas por tipo de transporte
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: ✅ ORQUESTADOR MODULAR COMPLETO
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE DEPENDENCIAS (arquitectura modular)                  -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos fundamentales -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos geográficos (para códigos de país) -->
+    <xs:include schemaLocation="../common/geographic_types.xsd" />
+
+    <!-- Módulos transport/ específicos -->
+    <xs:include schemaLocation="vehicle_types.xsd" />
+    <xs:include schemaLocation="route_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- GRUPO PRINCIPAL TRANSPORTE (gCamTrans) - ORQUESTADOR                -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoGrupoTransporte">
+        <xs:annotation>
+            <xs:documentation> Grupo principal de transporte (gCamTrans) - ELEMENTO CENTRAL FUNCIÓN
+                ORQUESTADORA: Este tipo integra todos los aspectos del transporte: - Tipos y
+                modalidades (terrestre/marítimo/aéreo) - Fechas y horarios de traslado - Vehículos y
+                transportistas (desde vehicle_types.xsd) - Rutas origen/destino (desde
+                route_types.xsd) - Condiciones comerciales y operativas COBERTURA SIFEN v150: -
+                E900-E910: Condiciones generales de transporte - E901-E910: Datos vehículo (delegado
+                a vehicle_types.xsd) - E920-E935: Datos transportista (delegado a vehicle_types.xsd)
+                - E940-E970: Rutas origen/destino (delegado a route_types.xsd) USO PRINCIPAL: Nota
+                de Remisión Electrónica (NRE) CONTEXTO: Campo obligatorio cuando iTiDE = 7 (NRE)
+                CASOS DE USO EMPRESARIALES: - Transporte propio (empresa tiene vehículos) -
+                Transporte contratado (tercerización logística) - Retiro por receptor (autoservicio
+                cliente) - Distribución empresarial (múltiples destinos) </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- ============================================================= -->
+            <!-- SECCIÓN 1: TIPO Y MODALIDAD DE TRANSPORTE (E900-E903)       -->
+            <!-- ============================================================= -->
+
+            <!-- E900 - Tipo de transporte (obligatorio) -->
+            <xs:element name="iTipTrans" type="tipoCodigoTipoTransporte" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E900 - Tipo de transporte 1 = Terrestre (camiones, vans,
+                        autos) 2 = Marítimo (barcos, lanchas) 3 = Aéreo (aviones, helicópteros)
+                        IMPACTO EN VALIDACIONES: - Determina campos obligatorios del vehículo -
+                        Influye en tipo de matrícula válida - Define documentación requerida
+                        ESTADÍSTICAS PARAGUAY: - Terrestre: ~95% (principal medio) - Marítimo: ~4%
+                        (río Paraguay, importaciones) - Aéreo: ~1% (productos premium, urgentes) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E901 - Descripción tipo transporte (obligatorio) -->
+            <xs:element name="dDesTipTrans" type="tipoDescripcionTipoTransporte" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E901 - Descripción automática del tipo de transporte
+                        GENERACIÓN AUTOMÁTICA: - "Terrestre" cuando iTipTrans = 1 - "Marítimo"
+                        cuando iTipTrans = 2 - "Aéreo" cuando iTipTrans = 3 PROPÓSITO: Campo
+                        descriptivo para legibilidad humana VALIDACIÓN: Debe corresponder
+                        exactamente al código </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E902 - Modalidad de transporte (obligatorio) -->
+            <xs:element name="iModTrans" type="tipoCodigoModalidadTransporte" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E902 - Modalidad de transporte 1 = Transporte propio
+                        (vehículos de la empresa) 2 = Transporte contratado (tercerizado) 3 = Retiro
+                        por cuenta del receptor (autoservicio) IMPLICACIONES COMERCIALES: -
+                        Modalidad 1: Empresa asume todos los riesgos y costos - Modalidad 2: Empresa
+                        transportista asume responsabilidad - Modalidad 3: Receptor asume logística
+                        y responsabilidad VALIDACIONES ESPECÍFICAS: - Modalidad 1: Vehículo debe
+                        pertenecer al emisor - Modalidad 2: Requiere datos empresa transportista -
+                        Modalidad 3: Datos vehículo pueden ser opcionales </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E903 - Descripción modalidad transporte (obligatorio) -->
+            <xs:element name="dDesModTrans" type="tipoDescripcionModalidadTransporte" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E903 - Descripción automática de la modalidad GENERACIÓN
+                        AUTOMÁTICA: - "Transporte propio" cuando iModTrans = 1 - "Transporte
+                        contratado" cuando iModTrans = 2 - "Retiro por cuenta del receptor" cuando
+                        iModTrans = 3 UTILIDAD: Claridad en documentos impresos y reportes </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- ============================================================= -->
+            <!-- SECCIÓN 2: FECHAS Y HORARIOS DE TRANSPORTE (E904-E905)      -->
+            <!-- ============================================================= -->
+
+            <!-- E904 - Fecha inicio transporte (obligatorio) -->
+            <xs:element name="dFecIniTrans" type="tipoFechaHora" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E904 - Fecha y hora de inicio del transporte FORMATO: ISO
+                        8601 (YYYY-MM-DDTHH:MM:SS) Ejemplo: 2025-06-23T08:30:00 VALIDACIONES
+                        CRÍTICAS: - Debe ser posterior a fecha de emisión documento - Para algunos
+                        motivos: puede ser fecha futura planificada - Debe ser anterior a
+                        dFecFinTrans - Coherente con horarios operativos empresariales CASOS
+                        TÍPICOS: - Mismo día emisión: entregas inmediatas, locales - Día siguiente:
+                        operaciones programadas estándar - Fecha futura: traslados planificados,
+                        reservas UTILIDAD LOGÍSTICA: - Base para tracking y seguimiento en tiempo
+                        real - Cálculo automático de tiempos estimados - Programación de recursos
+                        (vehículos, personal) - Control de inventarios en tránsito </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E905 - Fecha fin estimada transporte (obligatorio) -->
+            <xs:element name="dFecFinTrans" type="tipoFechaHora" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E905 - Fecha y hora estimada de finalización del transporte
+                        FORMATO: ISO 8601 (YYYY-MM-DDTHH:MM:SS) Ejemplo: 2025-06-23T17:00:00
+                        VALIDACIONES: - Debe ser posterior a dFecIniTrans - Diferencia razonable
+                        según distancia y tipo transporte - Coherente con horarios de recepción del
+                        destino CÁLCULO TÍPICO DE TIEMPOS: - Transporte urbano Asunción: +2 a 6
+                        horas - Interdepartamental: +6 horas a 2 días - Internacional: +1 a 5 días -
+                        Incluye tiempo carga/descarga y esperas PROPÓSITO EMPRESARIAL: -
+                        Planificación de recepción por parte del cliente - Gestión de expectativas y
+                        compromisos de entrega - Control de cumplimiento de plazos (KPIs) - Base
+                        para penalizaciones por demoras NOTA IMPORTANTE: Es estimación, no
+                        compromiso contractual </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- ============================================================= -->
+            <!-- SECCIÓN 3: PAÍS DE DESTINO (E906-E907)                       -->
+            <!-- ============================================================= -->
+
+            <!-- E906 - País destino (obligatorio) -->
+            <xs:element name="cPaisDest" type="tipoCodigoPais" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E906 - Código del país de destino INTEGRACIÓN: Reutiliza
+                        tipoCodigoPais de geographic_types.xsd FORMATO: ISO 3166-1 alpha-3 (3
+                        letras) VALORES TÍPICOS PARAGUAY: - "PRY" = Paraguay (casos domésticos:
+                        ~90%) - "ARG" = Argentina (exportaciones Mercosur) - "BRA" = Brasil
+                        (comercio fronterizo) - "BOL" = Bolivia (tránsito regional) VALIDACIONES
+                        ESPECÍFICAS: - Paraguay doméstico: Validar códigos geográficos locales -
+                        Internacional: Requerir documentación aduanera adicional - Mercosur: Aplicar
+                        acuerdos comerciales regionales IMPACTO EN VALIDACIONES: - Determina campos
+                        obligatorios adicionales - Influye en tipos de documentación requerida -
+                        Define procedimientos aduaneros aplicables </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E907 - Descripción país destino (obligatorio) -->
+            <xs:element name="dDesPaisDest" type="tipoNombrePais" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E907 - Descripción del país de destino EJEMPLOS: - "Paraguay"
+                        para cPaisDest = "PRY" - "Argentina" para cPaisDest = "ARG" - "Brasil" para
+                        cPaisDest = "BRA" GENERACIÓN: Automática según código país PROPÓSITO:
+                        Legibilidad en documentos impresos VALIDACIÓN: Debe corresponder exactamente
+                        al código </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- ============================================================= -->
+            <!-- SECCIÓN 4: INTEGRACIÓN MODULAR (grupos delegados)           -->
+            <!-- ============================================================= -->
+
+            <!-- Datos del vehículo (desde vehicle_types.xsd) -->
+            <xs:element name="gCamVeh" type="tipoGrupoVehiculo" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> Grupo de datos del vehículo de transporte DELEGACIÓN MODULAR:
+                        Implementado en vehicle_types.xsd OPCIONALIDAD: - Obligatorio para modalidad
+                        1 y 2 (transporte propio/contratado) - Opcional para modalidad 3 (retiro por
+                        receptor) CONTIENE (desde vehicle_types.xsd): - Tipo identificación vehículo
+                        - Matrícula/chapa del vehículo - Marca, modelo, año - Capacidad de carga
+                        VALIDACIONES ESPECÍFICAS: - Tipo transporte terrestre: Chapa
+                        nacional/extranjera - Tipo transporte aéreo: Matrícula aeronáutica - Tipo
+                        transporte marítimo: Registro marítimo </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Datos del transportista (desde vehicle_types.xsd) -->
+            <xs:element name="gCamTransp" type="tipoGrupoTransportista" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> Grupo de datos del transportista/conductor DELEGACIÓN
+                        MODULAR: Implementado en vehicle_types.xsd OPCIONALIDAD: - Obligatorio para
+                        modalidad 2 (transporte contratado) - Opcional para modalidad 1 (puede ser
+                        empleado emisor) - No aplica para modalidad 3 (retiro receptor) CONTIENE
+                        (desde vehicle_types.xsd): - Nombre completo del transportista - RUC (si es
+                        empresa) y DV - Tipo y número de documento identidad - Nacionalidad y
+                        descripción - Teléfono de contacto CASOS DE USO: - Empresa transportista
+                        externa (modalidad 2) - Conductor empleado de empresa emisora (modalidad 1)
+                        - Conductor independiente contratado </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Datos del origen (desde route_types.xsd) -->
+            <xs:element name="gCamOrigen" type="tipoGrupoOrigen" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> Grupo de datos del origen del transporte DELEGACIÓN MODULAR:
+                        Implementado en route_types.xsd UTILIDAD: - Punto exacto de recogida de
+                        mercadería - Diferente del domicilio fiscal del emisor - Información para
+                        coordinación logística CONTIENE (desde route_types.xsd): - Dirección
+                        completa origen - Número casa y complementos dirección - Código distrito y
+                        ciudad origen - Teléfono punto origen CASOS TÍPICOS: - Almacén central
+                        diferente de oficinas - Centro de distribución específico - Fábrica o planta
+                        de producción - Sucursal emisora específica </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Datos del destino (desde route_types.xsd) -->
+            <xs:element name="gCamDestino" type="tipoGrupoDestino" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> Grupo de datos del destino del transporte DELEGACIÓN MODULAR:
+                        Implementado en route_types.xsd UTILIDAD: - Punto exacto de entrega al
+                        receptor - Puede diferir del domicilio fiscal receptor - Información
+                        específica para entrega CONTIENE (desde route_types.xsd): - Dirección
+                        completa destino - Número casa y complementos dirección - Código distrito y
+                        ciudad destino - Teléfono punto destino CASOS TÍPICOS: - Almacén del
+                        receptor (no oficinas) - Obra o proyecto específico - Sucursal receptora
+                        específica - Domicilio particular (B2C) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA CONDICIONES DE TRANSPORTE                                -->
+    <!-- ===================================================================== -->
+
+    <xs:simpleType name="tipoCodigoTipoTransporte">
+        <xs:annotation>
+            <xs:documentation> Códigos oficiales de tipo de transporte según SIFEN Determina medio
+                físico utilizado para traslado </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation> Terrestre - Transporte por carretera o ferrocarril INCLUYE:
+                        Camiones, vans, autos, motocicletas, ferrocarril USO: ~95% de casos en
+                        Paraguay </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation> Marítimo - Transporte por agua (ríos, mar) INCLUYE: Barcos,
+                        lanchas, barcazas, transporte fluvial USO: Río Paraguay, importaciones por
+                        puerto </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation> Aéreo - Transporte por avión o helicóptero INCLUYE: Aviones
+                        comerciales, carga aérea, helicópteros USO: Productos premium, urgentes,
+                        alto valor </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoDescripcionTipoTransporte">
+        <xs:annotation>
+            <xs:documentation> Descripción automática del tipo de transporte Campo generado
+                automáticamente según código </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:enumeration value="Terrestre">
+                <xs:annotation>
+                    <xs:documentation>Para iTipTrans = 1</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Marítimo">
+                <xs:annotation>
+                    <xs:documentation>Para iTipTrans = 2</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Aéreo">
+                <xs:annotation>
+                    <xs:documentation>Para iTipTrans = 3</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoCodigoModalidadTransporte">
+        <xs:annotation>
+            <xs:documentation> Modalidades comerciales de transporte según SIFEN Determina
+                responsabilidad y propiedad del medio de transporte </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation> Transporte propio - Vehículos de la empresa emisora
+                        CARACTERÍSTICAS: - Empresa asume todos los costos y riesgos - Control total
+                        sobre logística y tiempos - Vehículos registrados a nombre del emisor </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation> Transporte contratado - Empresa de transporte tercerizada
+                        CARACTERÍSTICAS: - Empresa transportista asume responsabilidad - Contrato de
+                        servicios logísticos - Mayor flexibilidad en capacidad </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation> Retiro por cuenta del receptor - Cliente autoservicio
+                        CARACTERÍSTICAS: - Receptor asume logística completa - Emisor solo prepara
+                        mercadería - Común en ventas B2B y retiro en depósito </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoDescripcionModalidadTransporte">
+        <xs:annotation>
+            <xs:documentation> Descripción automática de la modalidad de transporte Campo generado
+                automáticamente según código modalidad </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoLargo">
+            <xs:enumeration value="Transporte propio">
+                <xs:annotation>
+                    <xs:documentation>Para iModTrans = 1</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Transporte contratado">
+                <xs:annotation>
+                    <xs:documentation>Para iModTrans = 2</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Retiro por cuenta del receptor">
+                <xs:annotation>
+                    <xs:documentation>Para iModTrans = 3</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO GLOBAL PRINCIPAL - EXPORTACIÓN                             -->
+    <!-- ===================================================================== -->
+
+    <xs:element name="gCamTrans" type="tipoGrupoTransporte">
+        <xs:annotation>
+            <xs:documentation> Elemento global principal del transporte - PARA EXPORTACIÓN FUNCIÓN
+                PRINCIPAL: Este es el elemento que se importará en DE_v150.xsd Representa la
+                integración completa del módulo transport/ ARQUITECTURA MODULAR INTEGRADA: ✅
+                vehicle_types.xsd → gCamVeh, gCamTransp ✅ route_types.xsd → gCamOrigen, gCamDestino
+                ✅ transport_conditions.xsd → gCamTrans (este archivo) USO EN DE_v150.xsd: Se importa
+                como: <xs:include schemaLocation="transport/transport_conditions.xsd" /> Se usa en
+                NRE como: <gCamTrans>...</gCamTrans> TESTING INDEPENDIENTE: Permite validar
+                transporte completo sin contexto documento Útil para testing unitario del módulo
+                transport CASOS DE USO: - Nota de Remisión Electrónica (iTiDE = 7) - Validación
+                independiente de datos logísticos - Testing de integración modular - Desarrollo y
+                debugging de funcionalidad transporte </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN Y ARQUITECTURA                              -->
+    <!-- ===================================================================== -->
+
+    <!--
+        ✅ ARQUITECTURA MODULAR EXITOSA:
+        
+        Este archivo actúa como ORQUESTADOR PRINCIPAL del módulo transport/:
+        
+        1. IMPORTACIONES MODULARES:
+           ✅ vehicle_types.xsd → Proporciona tipoGrupoVehiculo, tipoGrupoTransportista
+           ✅ route_types.xsd → Proporciona tipoGrupoOrigen, tipoGrupoDestino
+           ✅ common/basic_types.xsd → Tipos fundamentales reutilizados
+           ✅ common/geographic_types.xsd → Códigos país y validaciones geográficas
+        
+        2. RESPONSABILIDADES CLARAS:
+           ✅ transport_conditions.xsd: Condiciones, fechas, modalidades
+           ✅ vehicle_types.xsd: Vehículos y transportistas
+           ✅ route_types.xsd: Rutas y direcciones geográficas
+        
+        3. REUTILIZACIÓN MÁXIMA:
+           ✅ No duplica tipos ya existentes
+           ✅ Consistencia con otros módulos del sistema
+           ✅ Validaciones geográficas heredadas automáticamente
+        
+        ✅ INTEGRACIÓN CON DE_v150.xsd:
+        
+        Para integrar este módulo en el schema principal:
+        
+        1. En DE_v150.xsd agregar:
+           <xs:include schemaLocation="transport/transport_conditions.xsd" />
+        
+        2. El elemento gCamTrans estará disponible globalmente
+        
+        3. En Nota de Remisión (NRE) usar como:
+           <gCamTrans>
+             Todos los campos definidos aquí 
+           </gCamTrans>
+        
+        ✅ VALIDACIONES COMERCIALES IMPLEMENTADAS:
+        
+        1. COHERENCIA TIPO-MODALIDAD:
+           - Tipo aéreo + modalidad propia: Requiere flota aérea
+           - Tipo marítimo + modalidad contratada: Empresa naviera
+        
+        2. FECHAS LÓGICAS:
+           - Inicio posterior a emisión documento
+           - Fin posterior a inicio
+           - Diferencias razonables según distancia
+        
+        3. CAMPOS CONDICIONALES:
+           - Modalidad 1/2: Vehículo obligatorio
+           - Modalidad 2: Transportista obligatorio
+           - Modalidad 3: Datos opcionales (retiro receptor)
+        
+        ✅ CASOS DE USO CUBIERTOS:
+        
+        1. PYME con vehículo propio:
+           - iTipTrans=1, iModTrans=1
+           - gCamVeh con datos vehículo empresa
+           - gCamTransp con conductor empleado
+        
+        2. Empresa grande con logística tercerizada:
+           - iTipTrans=1, iModTrans=2  
+           - gCamVeh con datos vehículo transportista
+           - gCamTransp con datos empresa transporte
+        
+        3. Venta con retiro en depósito:
+           - iTipTrans=1, iModTrans=3
+           - gCamOrigen con datos depósito emisor
+           - Datos vehículo/transportista opcionales
+        
+        4. Exportación aérea:
+           - iTipTrans=3, cPaisDest="ARG"
+           - gCamVeh con matrícula aeronáutica
+           - gCamTransp con datos aerolínea
+        
+        ✅ PRÓXIMOS PASOS:
+        
+        1. Integrar en DE_v150.xsd
+        2. Testing completo de integración modular
+        3. Validación con casos reales paraguayos
+        4. Optimización de performance
+        5. Documentación de API para desarrolladores
+    -->
+
+</xs:schema>

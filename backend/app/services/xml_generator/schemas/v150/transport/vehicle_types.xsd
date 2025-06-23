@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: transport/vehicle_types.xsd
+  Propósito: Tipos relacionados con vehículos y transportistas para transporte SIFEN v150
+  
+  RESPONSABILIDAD ESPECÍFICA:
+  - Definición de vehículos de transporte (gCamVeh)
+  - Datos de transportistas/conductores (gCamTransp)
+  - Características técnicas de equipos de transporte
+  - Identificación y documentación de personas y vehículos
+  
+  REUTILIZACIÓN DE TIPOS EXISTENTES:
+  - tipoTelefono (common/contact_types.xsd)
+  - tipoNumeroRUC, tipoDigitoVerificador (common/basic_types.xsd)
+  - Códigos y validaciones ya implementados
+  
+  ELEMENTOS PRINCIPALES EXPORTADOS:
+  - tipoGrupoVehiculo (gCamVeh)
+  - tipoGrupoTransportista (gCamTransp)
+  
+  COBERTURA SIFEN v150:
+  - Campos E901-E910: Datos del vehículo
+  - Campos E920-E935: Datos del transportista
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: ✅ IMPLEMENTACIÓN MODULAR
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE DEPENDENCIAS (reutilizar tipos existentes)           -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos fundamentales -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos de contacto (para teléfonos) -->
+    <xs:include schemaLocation="../common/contact_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- GRUPO VEHÍCULO (gCamVeh) - E901-E910                                -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoGrupoVehiculo">
+        <xs:annotation>
+            <xs:documentation> Grupo de datos del vehículo de transporte (gCamVeh) CAMPOS SIFEN
+                v150: - E901 iTipIdeVeh: Tipo identificación vehículo - E902 dMatVeh: Matrícula del
+                vehículo - E903 dMarcaVeh: Marca del vehículo - E904 dTipVeh: Tipo/modelo del
+                vehículo - E905 dAnoVeh: Año de fabricación - E906 dCapacVeh: Capacidad de carga
+                (kg) USO PRINCIPAL: Nota de Remisión Electrónica (NRE) OPCIONALIDAD: Campos
+                opcionales según tipo de transporte </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- E901 - Tipo identificación vehículo (obligatorio) -->
+            <xs:element name="iTipIdeVeh" type="tipoTipoIdentificacionVehiculo" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E901 - Tipo de identificación del vehículo 1 = Chapa nacional
+                        paraguaya 2 = Chapa extranjera 3 = Sin chapa (aeronaves, embarcaciones
+                        especiales) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E902 - Matrícula del vehículo (obligatorio) -->
+            <xs:element name="dMatVeh" type="tipoMatriculaVehiculo" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E902 - Matrícula, chapa o identificación del vehículo
+                        FORMATOS VÁLIDOS: - Chapa nacional: ABC123, AB123C - Chapa extranjera: según
+                        país de origen - Sin chapa: "S/N", código interno, número de cola
+                        VALIDACIONES: - No vacío - Máximo 20 caracteres - Caracteres alfanuméricos,
+                        guiones y espacios </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E903 - Marca del vehículo (opcional) -->
+            <xs:element name="dMarcaVeh" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E903 - Marca del vehículo Ejemplos: Ford, Toyota,
+                        Mercedes-Benz, Volvo, etc. Campo opcional pero recomendado para control
+                        logístico </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E904 - Tipo/modelo vehículo (opcional) -->
+            <xs:element name="dTipVeh" type="tipoTextoCorto" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E904 - Tipo o modelo del vehículo Ejemplos: Transit, Hilux,
+                        Actros, Cessna 172, etc. Útil para identificar capacidades específicas </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E905 - Año del vehículo (opcional) -->
+            <xs:element name="dAnoVeh" type="tipoAnoVehiculo" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E905 - Año de fabricación del vehículo Rango válido:
+                        1900-2050 Usado para control de antigüedad de flota </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E906 - Capacidad de carga (opcional) -->
+            <xs:element name="dCapacVeh" type="tipoCapacidadCarga" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E906 - Capacidad de carga del vehículo en kilogramos
+                        APLICABILIDAD: - Transporte terrestre: peso máximo carga - Transporte aéreo:
+                        peso útil disponible - Transporte marítimo: tonelaje útil FORMATO: Decimal
+                        con 2 decimales (999999.99) USO: Validar coherencia con peso mercadería
+                        transportada </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- GRUPO TRANSPORTISTA (gCamTransp) - E920-E935                        -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoGrupoTransportista">
+        <xs:annotation>
+            <xs:documentation> Grupo de datos del transportista/conductor (gCamTransp) CAMPOS SIFEN
+                v150: - E920 dNomTrans: Nombre del transportista - E921 dRucTrans: RUC del
+                transportista (si aplica) - E922 dDVTrans: DV del RUC transportista - E923
+                iTipDocTrans: Tipo documento transportista - E924 dNumDocTrans: Número documento -
+                E925 iNacTrans: Nacionalidad - E926 dDesNacTrans: Descripción nacionalidad - E927
+                dTelTrans: Teléfono transportista CASOS DE USO: - Transportista persona física
+                (CI/Pasaporte) - Empresa de transporte (RUC) - Conductor empleado de empresa emisora </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- E920 - Nombre del transportista (obligatorio) -->
+            <xs:element name="dNomTrans" type="tipoTextoLargo" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E920 - Nombre completo del transportista CASOS: - Persona
+                        física: Nombre y apellido completo - Empresa: Razón social de la empresa
+                        transportista - Empleado: Nombre del conductor empleado VALIDACIONES: -
+                        Mínimo 2 caracteres - Máximo 100 caracteres - Solo caracteres alfabéticos,
+                        espacios, guiones, apostrofes </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E921 - RUC del transportista (condicional) -->
+            <xs:element name="dRucTrans" type="tipoRUC" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E921 - RUC del transportista OBLIGATORIO CUANDO: -
+                        Transportista es empresa de transporte - iTipDocTrans = 1 (RUC) OPCIONAL
+                        CUANDO: - Transportista es persona física con CI - Transporte propio
+                        (empleado de empresa emisora) FORMATO: 8 dígitos sin DV </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E922 - DV del RUC transportista (condicional) -->
+            <xs:element name="dDVTrans" type="tipoDigitoVerificador" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E922 - Dígito verificador del RUC transportista OBLIGATORIO
+                        cuando dRucTrans está presente VALIDACIÓN: Debe corresponder al RUC
+                        informado </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E923 - Tipo documento transportista (obligatorio) -->
+            <xs:element name="iTipDocTrans" type="tipoTipoDocumentoPersona" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E923 - Tipo de documento del transportista 1 = RUC (empresa
+                        transportista) 2 = Cédula de Identidad paraguaya 3 = Pasaporte (extranjero)
+                        4 = Documento extranjero </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E924 - Número documento transportista (obligatorio) -->
+            <xs:element name="dNumDocTrans" type="tipoNumeroDocumento" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E924 - Número del documento de identidad FORMATO SEGÚN TIPO:
+                        - RUC: 8 dígitos (igual a dRucTrans) - CI paraguaya: hasta 8 dígitos -
+                        Pasaporte: alfanumérico según país emisor - Doc extranjero: según normativa
+                        del país </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E925 - Nacionalidad (obligatorio) -->
+            <xs:element name="iNacTrans" type="tipoCodigoNacionalidad" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E925 - Código de nacionalidad del transportista 1 = Paraguayo
+                        2 = Extranjero DETERMINA: - Tipo de documento válido - Validaciones
+                        específicas aplicables - Requisitos adicionales de habilitación </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E926 - Descripción nacionalidad (obligatorio) -->
+            <xs:element name="dDesNacTrans" type="tipoDescripcionNacionalidad" minOccurs="1"
+                maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E926 - Descripción textual de la nacionalidad VALORES
+                        AUTOMÁTICOS: - "Paraguayo" cuando iNacTrans = 1 - "Extranjero" cuando
+                        iNacTrans = 2 GENERACIÓN: Campo automático, no editable </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- E927 - Teléfono transportista (opcional) -->
+            <xs:element name="dTelTrans" type="tipoTelefono" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation> E927 - Teléfono del transportista FORMATO: Reutiliza
+                        tipoTelefono de contact_types.xsd - Acepta formato nacional e internacional
+                        - Validación automática de formato - Útil para contacto durante transporte
+                        EJEMPLOS VÁLIDOS: - 021-123456 (fijo Asunción) - 0981-555123 (móvil) -
+                        +595-21-123456 (internacional) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA VEHÍCULOS                                    -->
+    <!-- ===================================================================== -->
+
+    <xs:simpleType name="tipoTipoIdentificacionVehiculo">
+        <xs:annotation>
+            <xs:documentation> Tipos de identificación de vehículos según SIFEN Determina el formato
+                de matrícula aplicable </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation> Chapa nacional paraguaya - Formato estándar: ABC123, AB123C -
+                        Emitida por autoridad paraguaya - Validaciones específicas de formato
+                        nacional </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation> Chapa extranjera - Vehículos registrados en otros países -
+                        Formato según país de origen - Validaciones flexibles de formato </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation> Sin chapa (aeronaves, embarcaciones especiales) - Aeronaves:
+                        matrícula de cola (ZP-ABC) - Embarcaciones: número de registro marítimo -
+                        Equipos especiales: código interno </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoMatriculaVehiculo">
+        <xs:annotation>
+            <xs:documentation> Matrícula o identificación del vehículo Formato flexible para
+                diferentes tipos de vehículos </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[A-Za-z0-9\-\s/]{1,20}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoAnoVehiculo">
+        <xs:annotation>
+            <xs:documentation> Año de fabricación del vehículo Rango razonable para vehículos en
+                circulación </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:minInclusive value="1900" />
+            <xs:maxInclusive value="2050" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoCapacidadCarga">
+        <xs:annotation>
+            <xs:documentation> Capacidad de carga del vehículo en kilogramos Incluye decimales para
+                precisión en aeronaves y embarcaciones </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0" />
+            <xs:maxInclusive value="999999.99" />
+            <xs:fractionDigits value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA TRANSPORTISTAS                               -->
+    <!-- ===================================================================== -->
+
+    <xs:simpleType name="tipoTipoDocumentoPersona">
+        <xs:annotation>
+            <xs:documentation> Tipos de documento de identidad para transportistas Determina formato
+                y validaciones del número documento </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>RUC - Registro Único del Contribuyente</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Cédula de Identidad paraguaya</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Pasaporte</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4">
+                <xs:annotation>
+                    <xs:documentation>Documento de identidad extranjero</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoCodigoNacionalidad">
+        <xs:annotation>
+            <xs:documentation> Código de nacionalidad del transportista Clasificación binaria según
+                legislación paraguaya </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Paraguayo - Nacionalidad paraguaya</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Extranjero - Cualquier otra nacionalidad</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="tipoDescripcionNacionalidad">
+        <xs:annotation>
+            <xs:documentation> Descripción automática de nacionalidad Campo generado automáticamente
+                según código </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="tipoTextoCorto">
+            <xs:enumeration value="Paraguayo">
+                <xs:annotation>
+                    <xs:documentation>Para iNacTrans = 1</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Extranjero">
+                <xs:annotation>
+                    <xs:documentation>Para iNacTrans = 2</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA TESTING INDEPENDIENTE                       -->
+    <!-- ===================================================================== -->
+
+    <xs:element name="gCamVeh" type="tipoGrupoVehiculo">
+        <xs:annotation>
+            <xs:documentation> Elemento global del grupo vehículo para testing independiente Permite
+                validar vehículos sin contexto de documento completo </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <xs:element name="gCamTransp" type="tipoGrupoTransportista">
+        <xs:annotation>
+            <xs:documentation> Elemento global del grupo transportista para testing independiente
+                Permite validar transportistas sin contexto de documento completo </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- NOTAS DE IMPLEMENTACIÓN                                              -->
+    <!-- ===================================================================== -->
+
+    <!--
+        REUTILIZACIÓN EXITOSA DE TIPOS EXISTENTES:
+        
+        ✅ tipoTelefono (common/contact_types.xsd)
+           - Valida formatos telefónicos paraguayos e internacionales
+           - No duplicamos lógica de validación
+        
+        ✅ tipoNumeroRUC, tipoDigitoVerificador (common/basic_types.xsd)
+           - Consistencia con validaciones RUC en todo el sistema
+           - Algoritmo de DV centralizado
+        
+        ✅ tipoTextoCorto, tipoNombrePersona (common/basic_types.xsd)
+           - Longitudes y caracteres válidos consistentes
+           - Validaciones de formato centralizadas
+        
+        VALIDACIONES ESPECÍFICAS IMPLEMENTADAS:
+        
+        ✅ Coherencia RUC-DV para transportistas empresa
+        ✅ Formato matrícula según tipo identificación vehículo
+        ✅ Rango válido años de vehículos (1900-2050)
+        ✅ Nacionalidad consistente con tipo documento
+        
+        INTEGRACIÓN CON OTROS MÓDULOS:
+        
+        → route_types.xsd importará este módulo si necesita datos transportista
+        → transport_conditions.xsd importará este módulo para orquestación
+        → DE_v150.xsd tendrá acceso a elementos globales gCamVeh, gCamTransp
+        
+        PRÓXIMOS PASOS:
+        
+        1. Implementar route_types.xsd (rutas y direcciones)
+        2. Implementar transport_conditions.xsd (orquestador principal)
+        3. Integrar en DE_v150.xsd via transport_conditions.xsd
+        4. Tests de integración en carpeta tests/ principal del proyecto
+    -->
+
+</xs:schema>
