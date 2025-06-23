@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Response Envío Individual de Documentos
+  Archivo: resRecepDE_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/individual/
+  
+  PROPÓSITO:
+  - Define la estructura de respuesta del web service SiRecepDE
+  - Valida el formato de respuesta enviado por SIFEN
+  - Contiene resultado del procesamiento y validación del documento
+  
+  FLUJO DE RESPUESTA:
+  1. SIFEN recibe y valida documento
+  2. SIFEN procesa y verifica firma digital
+  3. SIFEN genera respuesta con este formato
+  4. Cliente procesa respuesta y toma acciones
+  
+  TIPOS DE RESPUESTA:
+  ✅ Aprobado (0260) - Documento aceptado y registrado
+  🟡 Aprobado con observación (1005) - Aceptado con warnings
+  ❌ Rechazado (04xx, 05xx) - Errores de validación
+  ⚠️ Error técnico (99xx) - Problemas sistema SIFEN
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ Protocolo SOAP 1.2
+  ✅ Estándar W3C XML Schema 1.0
+  ✅ Compatible con todos los procesadores XSD
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES Y DEPENDENCIAS                                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos del sistema modular -->
+    <xs:include schemaLocation="../../../modular/common/basic_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA CÓDIGOS DE RESPUESTA SIFEN                    -->
+    <!-- ===================================================================== -->
+
+    <!-- Códigos de resultado oficiales SIFEN -->
+    <xs:simpleType name="tipoCodigoResultado">
+        <xs:annotation>
+            <xs:documentation> Códigos de resultado oficiales del sistema SIFEN CATEGORÍAS DE
+                CÓDIGOS: - 0260: Aprobado sin observaciones - 1005: Aprobado con observaciones
+                menores - 04xx: Errores de validación de documento - 05xx: Errores de firma digital
+                o certificado - 99xx: Errores técnicos del sistema SIFEN CÓDIGOS MÁS COMUNES: ✅ 0260
+                - Documento aprobado exitosamente 🟡 1005 - Aprobado con observaciones ❌ 0401 -
+                Error en estructura XML ❌ 0402 - Error en datos obligatorios ❌ 0403 - Error en
+                cálculos matemáticos ❌ 0501 - Error en firma digital ❌ 0502 - Certificado inválido o
+                vencido ⚠️ 9901 - Error interno del servidor ⚠️ 9902 - Servicio temporalmente no
+                disponible REFERENCIA: Manual Técnico SIFEN v150, Anexo de Códigos </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <!-- Códigos de éxito -->
+            <xs:pattern value="0260|1005" />
+            <!-- Códigos de error de validación (04xx) -->
+            <xs:pattern value="04[0-9][0-9]" />
+            <!-- Códigos de error de firma/certificado (05xx) -->
+            <xs:pattern value="05[0-9][0-9]" />
+            <!-- Códigos de error técnico (99xx) -->
+            <xs:pattern value="99[0-9][0-9]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Mensajes de resultado descriptivos -->
+    <xs:simpleType name="tipoMensajeResultado">
+        <xs:annotation>
+            <xs:documentation> Mensaje descriptivo del resultado del procesamiento EJEMPLOS TÍPICOS:
+                - "Documento electrónico recibido satisfactoriamente" - "Documento aprobado con
+                observaciones menores" - "Error en validación de estructura XML" - "Firma digital
+                inválida o certificado vencido" - "Error interno del servidor, reintente más tarde"
+                CARACTERÍSTICAS: - Texto en español - Descripción clara del resultado - Orientación
+                para el desarrollador - Máximo 500 caracteres </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="10" />
+            <xs:maxLength value="500" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para fecha y hora de procesamiento -->
+    <xs:simpleType name="tipoFechaProcesamiento">
+        <xs:annotation>
+            <xs:documentation> Fecha y hora exacta cuando SIFEN procesó el documento FORMATO: ISO
+                8601 - YYYY-MM-DDTHH:mm:ss TIMEZONE: Hora local Paraguay (GMT-3) EJEMPLOS: -
+                2025-06-23T14:30:45 - 2025-12-15T09:15:30 IMPORTANCIA: - Timestamp oficial para
+                auditoría - Referencia para validez temporal - Ordenamiento cronológico </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}" />
+            <xs:length value="19" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de transacción o protocolo de autorización -->
+    <xs:simpleType name="tipoNumeroTransaccion">
+        <xs:annotation>
+            <xs:documentation> Número de transacción o protocolo de autorización generado por SIFEN
+                CARACTERÍSTICAS: - Único por documento procesado - Generado automáticamente por
+                SIFEN - Utilizado para consultas posteriores - Requerido para eventos (cancelación,
+                etc.) FORMATO: - Numérico largo - Entre 10 y 20 dígitos - Sin caracteres especiales
+                EJEMPLO: 12345678901234567890 USO POSTERIOR: - Consulta estado documento - Registro
+                de eventos - Soporte técnico - Auditorías </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{10,20}" />
+            <xs:minLength value="10" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ESTRUCTURA DE RESPUESTA PRINCIPAL                                    -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento raíz de la respuesta -->
+    <xs:element name="resRecepDE">
+        <xs:annotation>
+            <xs:documentation> Respuesta del sistema SIFEN para envío individual de documentos
+                ESTRUCTURA FUNCIONAL: - Información de control y identificación - Resultado del
+                procesamiento - Datos de autorización (si exitoso) - Información adicional y
+                observaciones CASOS DE USO POR RESULTADO: ✅ ÉXITO (0260): - dCodRes = "0260" -
+                dMsgRes = "Documento recibido satisfactoriamente" - dProtAut = número de
+                autorización - Documento queda aprobado y válido 🟡 ÉXITO CON OBSERVACIONES (1005):
+                - dCodRes = "1005" - dMsgRes = descripción de observaciones - dProtAut = número de
+                autorización - Documento aprobado pero con warnings ❌ ERROR DE VALIDACIÓN (04xx): -
+                dCodRes = código específico de error - dMsgRes = descripción detallada del error -
+                SIN dProtAut (no autorizado) - Documento rechazado, corregir y reenviar ❌ ERROR DE
+                FIRMA (05xx): - dCodRes = código de error de firma - dMsgRes = problema específico
+                con certificado - SIN dProtAut (no autorizado) - Verificar certificado y firma
+                digital ⚠️ ERROR TÉCNICO (99xx): - dCodRes = código de error técnico - dMsgRes =
+                descripción del problema técnico - SIN dProtAut (no procesado) - Reintentar envío
+                más tarde </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- ID de Control (correlación con request) -->
+                <xs:element name="dId" type="xs:long">
+                    <xs:annotation>
+                        <xs:documentation> Identificador de control que correlaciona con el request
+                            enviado PROPÓSITO: - Mismo valor que se envió en rEnviDe/dId - Permite
+                            correlacionar request-response - Facilita debugging y logs VALIDACIÓN: -
+                            Debe coincidir exactamente con el ID del request - Valor positivo mayor
+                            que 0 EJEMPLO: Request: rEnviDe/dId = 1719158400 Response:
+                            resRecepDE/dId = 1719158400 </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Código de Resultado -->
+                <xs:element name="dCodRes" type="tipoCodigoResultado">
+                    <xs:annotation>
+                        <xs:documentation> Código oficial del resultado del procesamiento
+                            INTERPRETACIÓN POR CATEGORÍA: 🟢 CÓDIGOS DE ÉXITO: - 0260: Documento
+                            aprobado sin observaciones - 1005: Documento aprobado con observaciones
+                            🔴 CÓDIGOS DE ERROR DE VALIDACIÓN (04xx): - 0401: Error en estructura
+                            XML del documento - 0402: Faltan datos obligatorios - 0403: Errores en
+                            cálculos matemáticos - 0404: Datos fuera de rangos válidos - 0405:
+                            Inconsistencias entre campos 🔴 CÓDIGOS DE ERROR DE FIRMA (05xx): -
+                            0501: Firma digital inválida - 0502: Certificado vencido o inválido -
+                            0503: Certificado no emitido por PSC autorizado - 0504: Error en cadena
+                            de certificación ⚠️ CÓDIGOS DE ERROR TÉCNICO (99xx): - 9901: Error
+                            interno del servidor SIFEN - 9902: Servicio temporalmente no disponible
+                            - 9903: Timeout en procesamiento ACCIÓN POR CÓDIGO: - 0260/1005:
+                            Continuar con proceso normal - 04xx: Corregir documento y reenviar -
+                            05xx: Verificar certificado y firma - 99xx: Reintentar después de un
+                            tiempo </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Mensaje de Resultado -->
+                <xs:element name="dMsgRes" type="tipoMensajeResultado">
+                    <xs:annotation>
+                        <xs:documentation> Mensaje descriptivo del resultado del procesamiento
+                            EJEMPLOS REALES: ✅ ÉXITO: - "Documento electrónico recibido
+                            satisfactoriamente" - "DE procesado y registrado correctamente" 🟡 ÉXITO
+                            CON OBSERVACIONES: - "Documento aprobado. Observación: fecha de emisión
+                            superior a la fecha actual" - "DE registrado con advertencias menores en
+                            campos opcionales" ❌ ERRORES DE VALIDACIÓN: - "Error en el campo E605
+                            dPUniProSer: valor fuera del rango permitido" - "CDC duplicado: ya
+                            existe un documento con este código de control" - "Total general no
+                            coincide con la sumatoria de items" ❌ ERRORES DE FIRMA: - "Firma digital
+                            inválida: certificado vencido el 2025-05-15" - "Certificado no emitido
+                            por PSC autorizado en Paraguay" ⚠️ ERRORES TÉCNICOS: - "Error interno
+                            del servidor. Reintente en unos minutos" - "Servicio de validación
+                            temporalmente no disponible" CARACTERÍSTICAS: - Texto en español -
+                            Información específica y accionable - Referencias a campos específicos
+                            cuando aplique - Orientación clara para resolución </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Fecha y Hora de Procesamiento -->
+                <xs:element name="dFecProc" type="tipoFechaProcesamiento">
+                    <xs:annotation>
+                        <xs:documentation> Fecha y hora exacta del procesamiento por SIFEN
+                            IMPORTANCIA: - Timestamp oficial para auditoría - Referencia temporal
+                            para validez - Base para cálculo de plazos legales - Ordenamiento
+                            cronológico de operaciones TIMEZONE: - Hora local de Paraguay (GMT-3) -
+                            Sin ajustes por horario de verano FORMATO: YYYY-MM-DDTHH:mm:ss EJEMPLO:
+                            2025-06-23T14:30:45 USO: - Logs de auditoría - Reportes temporales -
+                            Sincronización de sistemas - Cálculo de vencimientos </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Número de Transacción/Protocolo (opcional) -->
+                <xs:element name="dProtAut" type="tipoNumeroTransaccion" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation> Número de transacción o protocolo de autorización
+                            PRESENCIA: ✅ Presente cuando: dCodRes = 0260 o 1005 (aprobado) ❌ Ausente
+                            cuando: dCodRes = 04xx, 05xx, 99xx (rechazado/error) CARACTERÍSTICAS: -
+                            Único por documento aprobado - Generado automáticamente por SIFEN -
+                            Inmutable una vez asignado - Referencia para operaciones futuras USOS
+                            POSTERIORES: 1. Consulta de estado del documento 2. Registro de eventos
+                            (cancelación, inutilización) 3. Soporte técnico y debugging 4.
+                            Integración con sistemas contables 5. Auditorías y reportes oficiales
+                            EJEMPLO: 12345678901234567890 ALMACENAMIENTO: - Guardar en base de datos
+                            local - Asociar con CDC del documento - Incluir en logs de transacciones
+                            - Referenciar en documentos relacionados </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Información Adicional (opcional) -->
+                <xs:element name="dInfoAdicional" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation> Información adicional sobre el procesamiento CONTENIDO
+                            TÍPICO: - Detalles específicos de observaciones - Referencias a
+                            normativas aplicadas - Información de debugging para desarrolladores -
+                            Enlaces a documentación relevante EJEMPLOS: - "Verificar campo E605:
+                            precio unitario con más de 8 decimales" - "Referencia: Nota Técnica
+                            NT_E_KUATIA_012_MT_V150" - "Consultar manual técnico sección 4.2.3"
+                            FORMATO: - Texto libre - Máximo 1000 caracteres - Información
+                            complementaria no crítica </xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1" />
+                            <xs:maxLength value="1000" />
+                            <xs:whiteSpace value="preserve" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+
+            </xs:sequence>
+
+            <!-- Atributos del elemento respuesta -->
+            <xs:attribute name="version" type="xs:string" fixed="1.5.0">
+                <xs:annotation>
+                    <xs:documentation> Versión del schema de respuesta SIFEN utilizado VALOR FIJO:
+                        "1.5.0" PROPOSITO: Identificar versión para compatibilidad </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS AUXILIARES PARA PROCESAMIENTO                                  -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para análisis programático de respuesta -->
+    <xs:complexType name="tipoAnalisisRespuesta">
+        <xs:annotation>
+            <xs:documentation> Tipo auxiliar para análisis programático de respuestas USOS: -
+                Parsing automatizado de respuestas - Clasificación de resultados - Testing
+                automatizado - Generación de reportes </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="exitoso" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si el procesamiento fue exitoso true: dCodRes = 0260 o
+                        1005 false: dCodRes = 04xx, 05xx, 99xx </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="categoria" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation> Categoría del resultado: EXITO, ERROR_VALIDACION,
+                        ERROR_FIRMA, ERROR_TECNICO </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- VALIDACIONES Y RESTRICCIONES                                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento para validación de respuesta completa -->
+    <xs:element name="validacionRespuesta">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para validación de respuestas SIFEN PROPÓSITO: -
+                Testing automatizado de respuestas - Validación de estructura - Verificación de
+                consistencia VALIDACIONES IMPLEMENTADAS: - Estructura XML válida - Códigos de
+                resultado reconocidos - Fechas en formato correcto - Correlación ID request-response
+                COMPATIBILIDAD: XSD 1.0 (oficial SET Paraguay) </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="resRecepDE" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!--  ==== Estructura Principal ====
+        <resRecepDE version="1.5.0">
+            <dId>1719158400</dId>                     Correlación con request
+            <dCodRes>0260</dCodRes>                   Código resultado
+            <dMsgRes>Documento recibido...</dMsgRes>   Mensaje descriptivo
+            <dFecProc>2025-06-23T14:30:45</dFecProc>  Timestamp procesamiento
+            <dProtAut>12345678901234567890</dProtAut>  Número autorización (si aprobado)
+            <dInfoAdicional>...</dInfoAdicional>       Info adicional (opcional)
+        </resRecepDE>
+
+        ==== Implementación en Código Python ====
+        
+        def procesar_respuesta_sifen(response_xml: str) -> dict:
+            """Procesa respuesta de SIFEN y retorna resultado estructurado"""
+            root = ET.fromstring(response_xml)
+            
+            codigo = root.find('dCodRes').text
+            mensaje = root.find('dMsgRes').text
+            fecha_proc = root.find('dFecProc').text
+            protocolo = root.find('dProtAut')
+            
+            return {
+                'exitoso': codigo in ['0260', '1005'],
+                'aprobado': codigo == '0260',
+                'aprobado_con_observaciones': codigo == '1005',
+                'codigo': codigo,
+                'mensaje': mensaje,
+                'fecha_procesamiento': fecha_proc,
+                'numero_autorizacion': protocolo.text if protocolo is not None else None,
+                'categoria': clasificar_codigo(codigo)
+            }
+
+        def clasificar_codigo(codigo: str) -> str:
+            """Clasifica el código de respuesta en categorías"""
+            if codigo in ['0260', '1005']:
+                return 'EXITO'
+            elif codigo.startswith('04'):
+                return 'ERROR_VALIDACION'
+            elif codigo.startswith('05'):
+                return 'ERROR_FIRMA'
+            elif codigo.startswith('99'):
+                return 'ERROR_TECNICO'
+            else:
+                return 'DESCONOCIDO'
+     -->
+</xs:schema>

@@ -20,7 +20,7 @@ Tu arquitectura modular v150 es **EXCELENTE** y está bien diseñada:
 backend/app/services/xml_generator/schemas/v150/
 ├── 📋 DE_v150.xsd                           # ✅ Schema principal (YA TIENES)
 │
-├── 📁 modular/                              # 🆕 TU ARQUITECTURA MODULAR ACTUAL
+├── 📁 modular/
 │   ├── common/                              # ✅ MANTENER - tipos básicos modulares
 │   │   ├── basic_types.xsd                  # ✅ Implementado
 │   │   ├── currency_types.xsd               # ✅ Implementado  

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Request Envío Individual de Documentos
+  Archivo: siRecepDE_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/individual/
+  
+  PROPÓSITO:
+  - Define la estructura del request para envío individual de documentos a SIFEN
+  - Valida el formato de solicitud para el web service SiRecepDE
+  - Estructura SOAP envolvente para documentos electrónicos firmados
+  
+  FLUJO DE USO:
+  1. Sistema genera documento DE válido
+  2. Documento se firma digitalmente
+  3. Documento firmado se embebe en este request
+  4. Request se envía vía SOAP al endpoint SIFEN
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ Protocolo SOAP 1.2
+  ✅ Estándar W3C XML Schema
+  ✅ Integración con DE_v150.xsd modular
+  
+  VALIDACIONES AUTOMÁTICAS:
+  - ID control único y válido
+  - XML documento firmado embebido correctamente
+  - Estructura request SOAP conforme
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES REQUERIDAS                                             -->
+    <!-- ===================================================================== -->
+
+    <!-- Schema principal DE para referencia de tipos -->
+    <xs:include schemaLocation="../../../DE_v150.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA REQUEST ENVÍO                                 -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para ID de control del envío -->
+    <xs:simpleType name="tipoIdControl">
+        <xs:annotation>
+            <xs:documentation> Identificador único de control para el envío del documento
+                CARACTERÍSTICAS: - Único por request de envío - Utilizado para tracking y
+                correlación - Formato numérico largo (máximo xs:long) RANGO VÁLIDO: - Mínimo: 1 -
+                Máximo: 9,223,372,036,854,775,807 (Long.MAX_VALUE) GENERACIÓN SUGERIDA: - Timestamp
+                Unix en milisegundos: 1719158400000 - Timestamp Unix en segundos: 1719158400 -
+                Secuencial único por sistema - Combinación RUC + timestamp EJEMPLOS VÁLIDOS: -
+                1719158400 (timestamp segundos) - 1719158400000 (timestamp milisegundos) -
+                1001234567890 (secuencial personalizado) NOTA: Evitar números negativos o cero </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:long">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="9223372036854775807" />  <!-- Long.MAX_VALUE -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para documento electrónico firmado embebido -->
+    <xs:simpleType name="tipoDocumentoFirmado">
+        <xs:annotation>
+            <xs:documentation> Documento electrónico completo firmado digitalmente CONTENIDO: - XML
+                del documento DE completo - Incluye elemento Signature con firma digital válida -
+                Codificado como string XML REQUISITOS: - Documento válido contra DE_v150.xsd - Firma
+                digital W3C XMLDSig válida - Certificado PSC válido y vigente - Encoding UTF-8
+                PROCESO TÍPICO: 1. Generar documento DE válido 2. Firmar con certificado PSC 3.
+                Serializar a string XML 4. Embeber en este campo </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1000" />
+            <xs:maxLength value="10485760" />  <!-- 10MB máximo -->
+            <xs:whiteSpace value="preserve" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO REQUEST PRINCIPAL                                           -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento raíz del request de envío individual -->
+    <xs:element name="rEnviDe">
+        <xs:annotation>
+            <xs:documentation> Request para envío individual de documento electrónico a SIFEN
+                FUNCIONALIDAD: - Envío sincrónico de un documento individual - Respuesta inmediata
+                del resultado del procesamiento - Validación en tiempo real por SIFEN FLUJO
+                COMPLETO: 1. Cliente prepara documento DE firmado 2. Cliente crea request rEnviDe 3.
+                Cliente llama web service SiRecepDE 4. SIFEN valida y procesa documento 5. SIFEN
+                retorna respuesta resRecepDE CASOS DE USO: ✅ Facturas individuales ✅ Notas de
+                crédito/débito ✅ Documentos urgentes ❌ Envío masivo (usar lotes) </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- ID de Control del Envío -->
+                <xs:element name="dId" type="tipoIdControl">
+                    <xs:annotation>
+                        <xs:documentation> Identificador único de control para este envío específico
+                            PROPÓSITO: - Tracking del request en logs SIFEN - Correlación
+                            request-response - Debug y soporte técnico - Prevención duplicados
+                            IMPLEMENTACIÓN: ```python # Opción 1: Timestamp id_control =
+                            int(datetime.now().timestamp()) # Opción 2: Secuencial id_control =
+                            get_next_sequence_id() # Opción 3: UUID numérico id_control =
+                            int(uuid.uuid4().hex, 16) % (10**18) ``` NOTA: Este ID es diferente al
+                            CDC del documento </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Documento Electrónico Firmado -->
+                <xs:element name="xDe" type="tipoDocumentoFirmado">
+                    <xs:annotation>
+                        <xs:documentation> Documento electrónico completo firmado digitalmente
+                            CONTENIDO EXACTO: - Elemento raíz rDE completo - Todos los grupos SIFEN
+                            incluidos - Elemento Signature con firma válida - Sin modificaciones
+                            post-firma VALIDACIONES AUTOMÁTICAS EN SIFEN: ✅ Estructura contra
+                            DE_v150.xsd ✅ Firma digital válida ✅ Certificado PSC vigente ✅ Totales
+                            matemáticamente correctos ✅ CDC único no duplicado ✅ Fecha/hora dentro
+                            de rangos válidos ✅ RUC emisor habilitado EJEMPLO DE CONTENIDO: ```xml <rDE
+                                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                                <dVerFor>150</dVerFor>
+                                <DE>
+                                    <gOpeDE>...</gOpeDE>
+                                    <gTimb>...</gTimb>
+                                    <!-- ... resto del documento ... -->
+                                </DE>
+                                <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                                    <!-- ... firma digital ... -->
+                                </Signature>
+                            </rDE>
+                            ``` </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS AUXILIARES PARA INTEGRACIÓN                                    -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para validación de request completo -->
+    <xs:complexType name="tipoRequestEnvioIndividual">
+        <xs:annotation>
+            <xs:documentation> Tipo auxiliar para validación programática del request USOS: -
+                Validación en cliente antes de envío - Testing automatizado -
+                Serialización/deserialización - Documentación de contratos </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="rEnviDe" type="xs:anyType" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- RESTRICCIONES Y VALIDACIONES AVANZADAS                              -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento auxiliar para validación y testing -->
+    <xs:element name="validacionRequest">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para validación y testing del request PROPÓSITO: -
+                Testing automatizado de requests - Validación en desarrollo - Documentación de
+                estructura VALIDACIONES (implementar en código): - ID control único y positivo -
+                Documento bien formado XML - Tamaño apropiado del documento - Estructura conforme a
+                schema COMPATIBILIDAD: XSD 1.0 (oficial SET Paraguay) Las validaciones avanzadas se
+                realizan en código Python </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="rEnviDe" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

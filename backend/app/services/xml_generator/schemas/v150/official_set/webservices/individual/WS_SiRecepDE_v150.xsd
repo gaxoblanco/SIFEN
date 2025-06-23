@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Web Service Envío Individual de Documentos
+  Archivo: WS_SiRecepDE_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/individual/
+  
+  PROPÓSITO:
+  - Define la estructura completa del web service SiRecepDE
+  - Orquesta la interacción request-response del envío individual
+  - Especifica los tipos de datos para la comunicación SOAP
+  - Valida la estructura completa del servicio web
+  
+  ARQUITECTURA DEL WEB SERVICE:
+  1. Operación: SiRecepDE (envío individual)
+  2. Input: siRecepDE (request con documento firmado)
+  3. Output: resRecepDE (response con resultado)
+  4. Protocol: SOAP 1.2 sobre HTTPS/TLS 1.2
+  5. Authentication: Mutual TLS con certificados PSC
+  
+  ENDPOINTS OFICIALES:
+  - Producción: https://sifen.set.gov.py/de/ws/sync/recibe.wsdl
+  - Test: https://sifen-test.set.gov.py/de/ws/sync/recibe.wsdl
+  
+  FLUJO COMPLETO:
+  1. Cliente prepara documento DE firmado
+  2. Cliente crea request siRecepDE con documento
+  3. Cliente invoca operación SiRecepDE vía SOAP
+  4. SIFEN valida, procesa y firma digitalmente
+  5. SIFEN retorna response resRecepDE con resultado
+  6. Cliente procesa respuesta y actualiza estado
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ SOAP 1.2 / WSDL 2.0
+  ✅ TLS 1.2 con autenticación mutua
+  ✅ Certificados PSC Paraguay
+  ✅ XML Schema 1.0 estándar
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES DE SCHEMAS DEPENDIENTES                                -->
+    <!-- ===================================================================== -->
+
+    <!-- Request y Response del envío individual -->
+    <xs:include schemaLocation="siRecepDE_v150.xsd" />
+    <xs:include schemaLocation="resRecepDE_v150.xsd" />
+
+    <!-- Tipos básicos del sistema -->
+    <xs:include schemaLocation="../../../modular/common/basic_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA WEB SERVICE                                   -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para identificación del servicio -->
+    <xs:simpleType name="tipoIdentificadorServicio">
+        <xs:annotation>
+            <xs:documentation> Identificador único del servicio web SIFEN VALORES VÁLIDOS: -
+                "SiRecepDE": Servicio de envío individual - Version: "1.5.0" PROPÓSITO: -
+                Identificación unívoca del servicio - Versionado para compatibilidad - Routing
+                interno en SIFEN - Logs y auditoría </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SiRecepDE">
+                <xs:annotation>
+                    <xs:documentation>Servicio de Recepción de Documentos Electrónicos Individual</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para versión del protocolo -->
+    <xs:simpleType name="tipoVersionProtocolo">
+        <xs:annotation>
+            <xs:documentation> Versión del protocolo de comunicación utilizado VERSIÓN ACTUAL:
+                "1.5.0" COMPATIBILIDAD: Backward compatible con versiones menores EVOLUCIÓN: -
+                v1.0.0: Implementación inicial - v1.2.0: Mejoras en validaciones - v1.5.0: Versión
+                actual con todas las características </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1.5.0" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- DEFINICIÓN DE OPERACIONES DEL WEB SERVICE                            -->
+    <!-- ===================================================================== -->
+
+    <!-- Operación principal: SiRecepDE -->
+    <xs:element name="SiRecepDE">
+        <xs:annotation>
+            <xs:documentation> Operación principal del web service para envío individual de
+                documentos FUNCIONALIDAD: - Recibe documento electrónico firmado digitalmente -
+                Valida estructura, contenido y firma digital - Procesa y registra en sistema SIFEN -
+                Retorna resultado del procesamiento CARACTERÍSTICAS: - Procesamiento síncrono
+                (respuesta inmediata) - Timeout máximo: 60 segundos - Un documento por invocación -
+                Validación completa en tiempo real PARÁMETROS DE ENTRADA: - dId: Identificador único
+                de control - xDe: Documento electrónico firmado (XML completo) RESULTADO: - Código
+                de resultado (éxito/error) - Mensaje descriptivo - Número de autorización (si
+                aprobado) - Fecha/hora de procesamiento CASOS DE USO: ✅ Facturas urgentes que
+                necesitan aprobación inmediata ✅ Documentos individuales con validación en tiempo
+                real ✅ Integración con sistemas POS/ERP en línea ❌ Envío masivo de documentos (usar
+                servicio de lotes) </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Request de envío individual -->
+                <xs:element ref="rEnviDe">
+                    <xs:annotation>
+                        <xs:documentation> Request de envío individual que contiene: - dId: ID de
+                            control único - xDe: Documento electrónico firmado completo VALIDACIONES
+                            AUTOMÁTICAS: - Estructura XML bien formada - Namespace SIFEN correcto -
+                            Documento firmado digitalmente - Certificado PSC válido y vigente -
+                            Todos los campos obligatorios presentes </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+
+            <!-- Atributos de la operación -->
+            <xs:attribute name="servicio" type="tipoIdentificadorServicio" fixed="SiRecepDE">
+                <xs:annotation>
+                    <xs:documentation>Identificador del servicio web invocado</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+            <xs:attribute name="version" type="tipoVersionProtocolo" fixed="1.5.0">
+                <xs:annotation>
+                    <xs:documentation>Versión del protocolo de comunicación</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Respuesta de la operación SiRecepDE -->
+    <xs:element name="SiRecepDEResponse">
+        <xs:annotation>
+            <xs:documentation> Respuesta de la operación SiRecepDE CONTENIDO: - Resultado del
+                procesamiento del documento - Información de autorización o error - Metadatos del
+                procesamiento ESTRUCTURA: - dId: Mismo ID del request (correlación) - dCodRes:
+                Código de resultado oficial - dMsgRes: Mensaje descriptivo - dFecProc: Timestamp del
+                procesamiento - dProtAut: Número de autorización (si exitoso) INTERPRETACIÓN POR
+                CÓDIGO: ✅ 0260: Documento aprobado y registrado 🟡 1005: Aprobado con observaciones
+                menores ❌ 04xx: Error de validación - corregir y reenviar ❌ 05xx: Error de firma -
+                verificar certificado ⚠️ 99xx: Error técnico - reintentar más tarde </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Response del procesamiento -->
+                <xs:element ref="resRecepDE">
+                    <xs:annotation>
+                        <xs:documentation> Response completo del procesamiento que incluye: - Código
+                            y mensaje de resultado - Fecha/hora de procesamiento - Número de
+                            autorización (si aprobado) - Información adicional relevante </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA MANEJO DE ERRORES Y EXCEPCIONES                          -->
+    <!-- ===================================================================== -->
+
+    <!-- Fault/Error del web service -->
+    <xs:element name="SifenFault">
+        <xs:annotation>
+            <xs:documentation> Definición de errores/faults del web service SIFEN CATEGORÍAS DE
+                ERRORES: 1. Errores de protocolo SOAP 2. Errores de autenticación/autorización 3.
+                Errores de validación de entrada 4. Errores internos del servidor 5. Errores de
+                timeout o conectividad MANEJO: - Los errores se retornan como SOAP Faults - Código y
+                mensaje descriptivo incluidos - Información para debugging cuando sea posible -
+                Orientación para resolución del problema </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Código del error -->
+                <xs:element name="faultCode" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation> Código específico del error ocurrido CÓDIGOS COMUNES: -
+                            SOAP-ENV:Client - Error en el cliente - SOAP-ENV:Server - Error en el
+                            servidor - AUTH:InvalidCertificate - Certificado inválido -
+                            SIFEN:ValidationError - Error de validación - SIFEN:ProcessingError -
+                            Error de procesamiento </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Mensaje del error -->
+                <xs:element name="faultString" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation> Mensaje descriptivo del error en español EJEMPLOS: -
+                            "Certificado digital vencido o inválido" - "Documento XML mal formado" -
+                            "Timeout en comunicación con servidor" - "Servicio temporalmente no
+                            disponible" </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Detalles adicionales del error -->
+                <xs:element name="faultDetail" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation> Detalles técnicos adicionales del error CONTENIDO: -
+                            Stack trace (en ambiente de desarrollo) - Referencias a documentación -
+                            Sugerencias de resolución - Información de contacto de soporte </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:any namespace="##any" processContents="lax" minOccurs="0"
+                                maxOccurs="unbounded" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- DEFINICIÓN DE HEADERS SOAP REQUERIDOS                               -->
+    <!-- ===================================================================== -->
+
+    <!-- Header de autenticación -->
+    <xs:element name="SifenAuthentication">
+        <xs:annotation>
+            <xs:documentation> Header SOAP para autenticación con SIFEN PROPÓSITO: - Identificación
+                del sistema cliente - Validación de certificados PSC - Control de acceso y
+                autorización - Auditoría de accesos IMPLEMENTACIÓN: - Incluir en SOAP Header de cada
+                request - Certificado client SSL para mutual TLS - Información del sistema emisor
+                SEGURIDAD: - TLS 1.2 obligatorio - Certificados PSC Paraguay válidos - Validación de
+                cadena de certificación - Control de revocación (CRL/OCSP) </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Identificación del sistema -->
+                <xs:element name="sistemaEmisor" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation> Identificación del sistema que envía el documento
+                            FORMATO: Nombre del sistema + versión EJEMPLO: "MiSistemaERP v2.1.5"
+                            PROPÓSITO: - Identificación en logs SIFEN - Estadísticas de uso por
+                            sistema - Soporte técnico especializado </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Versión del cliente -->
+                <xs:element name="versionCliente" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation> Versión específica del cliente SIFEN FORMATO: Número de
+                            versión semántica EJEMPLO: "1.5.0" USO: - Compatibilidad de versiones -
+                            Debugging de problemas - Notificaciones de actualizaciones </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS AUXILIARES PARA INTEGRACIÓN                                    -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para configuración del web service -->
+    <xs:complexType name="tipoConfiguracionWS">
+        <xs:annotation>
+            <xs:documentation> Configuración para integración con el web service PARÁMETROS DE
+                CONFIGURACIÓN: - URL del endpoint (producción/test) - Timeout de conexión -
+                Certificados de autenticación - Configuración de retry - Configuración de logging </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="endpointURL" type="xs:anyURI">
+                <xs:annotation>
+                    <xs:documentation> URL del endpoint del web service PRODUCCIÓN:
+                        https://sifen.set.gov.py/de/ws/sync/recibe.wsdl TEST:
+                        https://sifen-test.set.gov.py/de/ws/sync/recibe.wsdl </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="timeoutSegundos" type="xs:int">
+                <xs:annotation>
+                    <xs:documentation> Timeout en segundos para la operación RECOMENDADO: 60
+                        segundos MÁXIMO: 120 segundos MÍNIMO: 30 segundos </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <xs:element name="reintentos" type="xs:int">
+                <xs:annotation>
+                    <xs:documentation> Número de reintentos automáticos en caso de error técnico
+                        RECOMENDADO: 3 reintentos INTERVALO: Exponencial (1s, 2s, 4s) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- VALIDACIONES DEL WEB SERVICE                                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento para testing del web service completo -->
+    <xs:element name="testWebService">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para testing del web service completo PROPÓSITO: -
+                Validación de estructura request-response - Testing de conectividad - Verificación
+                de configuración - Debugging de integración TESTS INCLUIDOS: - Estructura de
+                operación SiRecepDE - Validación de headers SOAP - Verificación de tipos de datos -
+                Compatibilidad de versiones COMPATIBILIDAD: XSD 1.0 (oficial SET Paraguay) </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Test de operación completa -->
+                <xs:element name="operacionTest">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="SiRecepDE" />
+                            <xs:element ref="SiRecepDEResponse" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Test de configuración -->
+                <xs:element name="configuracionTest" type="tipoConfiguracionWS" />
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 
+     ==== Operación Principal: SiRecepDE ====
+        <SiRecepDE servicio="SiRecepDE" version="1.5.0">
+            <rEnviDe>
+                <dId>1719158400</dId>
+                <xDe> Documento DE firmado completo </xDe>
+            </rEnviDe>
+        </SiRecepDE>
+
+
+     ====  Respuesta Estructurada ====
+        <SiRecepDEResponse>
+            <resRecepDE version="1.5.0">
+                <dId>1719158400</dId>
+                <dCodRes>0260</dCodRes>
+                <dMsgRes>Documento recibido satisfactoriamente</dMsgRes>
+                <dFecProc>2025-06-23T14:30:45</dFecProc>
+                <dProtAut>12345678901234567890</dProtAut>
+            </resRecepDE>
+        </SiRecepDEResponse>   
+
+     ==== Headers de Autenticación ====
+        <soap:Header>
+            <SifenAuthentication>
+                <sistemaEmisor>MiSistemaERP v2.1.5</sistemaEmisor>
+                <versionCliente>1.5.0</versionCliente>
+            </SifenAuthentication>
+        </soap:Header>
+
+
+     ==== Manejo de Errores SOAP ====
+        <soap:Fault>
+            <SifenFault>
+                <faultCode>SIFEN:ValidationError</faultCode>
+                <faultString>Error en validación de documento</faultString>
+                <faultDetail> Detalles específicos </faultDetail>
+            </SifenFault>
+        </soap:Fault>
+
+     ====  Implementación en Código Python ==== 
+        from zeep import Client
+        from requests import Session
+        from requests.auth import HTTPBasicAuth
+        import ssl
+
+        class SifenWebServiceClient:
+            """Cliente para el Web Service SiRecepDE de SIFEN"""
+            
+            def __init__(self, ambiente="test", cert_path=None, cert_password=None):
+                self.ambiente = ambiente
+                self.wsdl_url = self._get_wsdl_url()
+                self.client = self._create_client(cert_path, cert_password)
+            
+            def _get_wsdl_url(self):
+                """Obtiene URL del WSDL según ambiente"""
+                if self.ambiente == "production":
+                    return "https://sifen.set.gov.py/de/ws/sync/recibe.wsdl"
+                else:
+                    return "https://sifen-test.set.gov.py/de/ws/sync/recibe.wsdl"
+            
+            def _create_client(self, cert_path, cert_password):
+                """Crea cliente SOAP con autenticación mutual TLS"""
+                session = Session()
+                
+                # Configurar certificado client para mutual TLS
+                if cert_path:
+                    session.cert = (cert_path, cert_password)
+                
+                # Configurar TLS 1.2
+                session.verify = True
+                
+                return Client(
+                    wsdl=self.wsdl_url,
+                    transport=Transport(session=session),
+                    settings=Settings(strict=False, xml_huge_tree=True)
+                )
+            
+            def enviar_documento(self, xml_de_firmado: str, id_control: int = None):
+                """Envía documento electrónico vía SiRecepDE"""
+                
+                if id_control is None:
+                    id_control = int(datetime.now().timestamp())
+                
+                # Preparar request según schema WS_SiRecepDE_v150.xsd
+                request_data = {
+                    'rEnviDe': {
+                        'dId': id_control,
+                        'xDe': xml_de_firmado
+                    }
+                }
+                
+                # Headers de autenticación
+                headers = {
+                    'SifenAuthentication': {
+                        'sistemaEmisor': 'MiSistemaERP v2.1.5',
+                        'versionCliente': '1.5.0'
+                    }
+                }
+                
+                try:
+                    # Invocar operación SiRecepDE
+                    response = self.client.service.SiRecepDE(
+                        **request_data,
+                        _soapheaders=headers
+                    )
+                    
+                    return self._procesar_respuesta(response)
+                    
+                except Exception as e:
+                    return self._procesar_error(e)
+            
+            def _procesar_respuesta(self, response):
+                """Procesa respuesta según schema resRecepDE_v150.xsd"""
+                return {
+                    'success': response.dCodRes in ['0260', '1005'],
+                    'codigo': response.dCodRes,
+                    'mensaje': response.dMsgRes,
+                    'fecha_procesamiento': response.dFecProc,
+                    'numero_autorizacion': getattr(response, 'dProtAut', None),
+                    'aprobado': response.dCodRes == '0260',
+                    'con_observaciones': response.dCodRes == '1005'
+                }
+    -->
+</xs:schema>

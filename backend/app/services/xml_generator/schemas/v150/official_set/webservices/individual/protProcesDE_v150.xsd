@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Protocolo de Procesamiento de Documentos Electrónicos
+  Archivo: protProcesDE_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/individual/
+  
+  PROPÓSITO:
+  - Define el protocolo completo de procesamiento de documentos en SIFEN
+  - Especifica estados del documento durante su ciclo de vida
+  - Estructura para seguimiento y auditoría del procesamiento
+  - Protocolo de comunicación para consultas de estado
+  
+  CICLO DE VIDA DEL DOCUMENTO:
+  1. RECIBIDO: Documento llega a SIFEN
+  2. EN_VALIDACION: Validando estructura y firma
+  3. APROBADO: Documento válido y registrado
+  4. RECHAZADO: Documento con errores, no registrado
+  5. CANCELADO: Documento cancelado por evento posterior
+  6. INUTILIZADO: Documento inutilizado por el emisor
+  
+  FUNCIONALIDADES:
+  - Tracking completo del estado del documento
+  - Historial de cambios de estado
+  - Protocolo de consulta de estado
+  - Información de procesamiento detallada
+  - Metadatos para auditoría y debugging
+  
+  INTEGRACIÓN:
+  - Complementa siRecepDE_v150.xsd (request)
+  - Complementa resRecepDE_v150.xsd (response)
+  - Base para consultas posteriores del estado
+  - Fundamento para eventos (cancelación, etc.)
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ XML Schema 1.0 estándar
+  ✅ Protocolo REST para consultas
+  ✅ Integración con web services SIFEN
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES DE SCHEMAS DEPENDIENTES                                -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos del sistema -->
+    <xs:include schemaLocation="../../../modular/common/basic_types.xsd" />
+
+    <!-- Request y Response para referencia -->
+    <xs:include schemaLocation="siRecepDE_v150.xsd" />
+    <xs:include schemaLocation="resRecepDE_v150.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- ENUMERACIONES DE ESTADOS Y CÓDIGOS                                   -->
+    <!-- ===================================================================== -->
+
+    <!-- Estados del documento en el protocolo -->
+    <xs:simpleType name="tipoEstadoDocumento">
+        <xs:annotation>
+            <xs:documentation> Estados oficiales del documento durante su procesamiento en SIFEN
+                FLUJO NORMAL: RECIBIDO → EN_VALIDACION → APROBADO FLUJO CON ERROR: RECIBIDO →
+                EN_VALIDACION → RECHAZADO FLUJO CON EVENTOS POSTERIORES: APROBADO → CANCELADO (por
+                evento de cancelación) APROBADO → INUTILIZADO (por evento de inutilización)
+                DESCRIPCIÓN DE ESTADOS: 🟡 RECIBIDO: - Documento llegó a SIFEN correctamente - Está
+                en cola de procesamiento - Validaciones básicas superadas - Tiempo típico: 1-5
+                segundos 🟠 EN_VALIDACION: - SIFEN está validando estructura y firma - Verificación
+                de certificados PSC - Validaciones de reglas de negocio - Tiempo típico: 5-30
+                segundos ✅ APROBADO: - Documento válido y registrado oficialmente - CDC asignado y
+                activo - Disponible para consultas públicas - Estado final positivo ❌ RECHAZADO: -
+                Documento con errores no subsanables - No registrado en sistema SIFEN - Requiere
+                corrección y reenvío - Estado final negativo 🚫 CANCELADO: - Documento previamente
+                aprobado, ahora cancelado - Cancelación por evento posterior del emisor - CDC
+                mantiene registro histórico - No válido para efectos tributarios ⚪ INUTILIZADO: -
+                Documento inutilizado por el emisor - Número de documento "quemado" - No puede
+                reutilizarse el número - Registro de control interno </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="RECIBIDO">
+                <xs:annotation>
+                    <xs:documentation>Documento recibido correctamente en SIFEN</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="EN_VALIDACION">
+                <xs:annotation>
+                    <xs:documentation>Documento en proceso de validación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="APROBADO">
+                <xs:annotation>
+                    <xs:documentation>Documento aprobado y registrado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="RECHAZADO">
+                <xs:annotation>
+                    <xs:documentation>Documento rechazado por errores</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CANCELADO">
+                <xs:annotation>
+                    <xs:documentation>Documento cancelado por evento posterior</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="INUTILIZADO">
+                <xs:annotation>
+                    <xs:documentation>Documento inutilizado por el emisor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipos de procesamiento -->
+    <xs:simpleType name="tipoProcesamiento">
+        <xs:annotation>
+            <xs:documentation> Tipos de procesamiento disponibles en SIFEN MODALIDADES: 📱
+                INDIVIDUAL: - Un documento por request - Procesamiento síncrono - Respuesta
+                inmediata - Ideal para: POS, sistemas en línea, facturas urgentes 📦 LOTE: -
+                Múltiples documentos por request (hasta 50) - Procesamiento asíncrono - Consulta
+                posterior de resultados - Ideal para: sistemas ERP, facturación masiva 🔄 REPUBLICA:
+                - Reenvío de documentos previamente procesados - Para corrección de errores técnicos
+                - Mantiene CDC original - Uso excepcional con autorización SET ⚡ URGENTE: -
+                Procesamiento prioritario - Para casos excepcionales - Requiere justificación - Uso
+                limitado por contribuyente </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="INDIVIDUAL" />
+            <xs:enumeration value="LOTE" />
+            <xs:enumeration value="REPUBLICA" />
+            <xs:enumeration value="URGENTE" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ESTRUCTURA DEL PROTOCOLO DE PROCESAMIENTO                            -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento raíz del protocolo -->
+    <xs:element name="protProcesDE">
+        <xs:annotation>
+            <xs:documentation> Protocolo completo de procesamiento de documentos electrónicos
+                PROPÓSITO: - Seguimiento completo del ciclo de vida del documento - Auditoría
+                detallada del procesamiento - Base para consultas de estado - Información para
+                debugging y soporte INFORMACIÓN INCLUIDA: - Identificación del documento y request -
+                Estado actual y historial de estados - Tiempos de procesamiento detallados -
+                Información de validaciones realizadas - Metadatos técnicos del procesamiento -
+                Enlaces para consultas adicionales USOS: 1. Consulta de estado de documentos 2.
+                Auditoría de procesamiento 3. Debugging de problemas 4. Reportes de actividad 5.
+                Integración con sistemas de monitoreo </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- Identificación del protocolo -->
+                <xs:element name="gIdentificacion">
+                    <xs:annotation>
+                        <xs:documentation>Grupo de identificación del protocolo</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+
+                            <!-- ID del protocolo (único por documento) -->
+                            <xs:element name="dIdProtocolo" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation> Identificador único del protocolo de
+                                        procesamiento CARACTERÍSTICAS: - Único por documento
+                                        procesado - Generado automáticamente por SIFEN - Formato:
+                                        UUID o secuencial - Inmutable durante todo el ciclo de vida
+                                        EJEMPLO: "PROT-2025-06-23-001234567" USO: - Referencia para
+                                        consultas - Correlación en logs - Soporte técnico -
+                                        Auditorías oficiales </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- CDC del documento -->
+                            <xs:element name="dCDC" type="tipoCDC">
+                                <xs:annotation>
+                                    <xs:documentation> Código de Control del Documento asociado
+                                        RELACIÓN: - Uno a uno con el documento original - Referencia
+                                        principal para identificación - Usado en consultas públicas
+                                        - Clave para eventos posteriores FORMATO: 44 dígitos
+                                        numéricos EJEMPLO:
+                                        "01234567890123456789012345678901234567890123" </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- ID de control del request -->
+                            <xs:element name="dIdControl" type="xs:long">
+                                <xs:annotation>
+                                    <xs:documentation> ID de control del request original
+                                        (correlación) PROPÓSITO: - Correlaciona con el ID enviado en
+                                        rEnviDe/dId - Permite seguimiento request → protocolo -
+                                        Facilita debugging y logs - Referencia para el cliente
+                                        EJEMPLO: 1719158400 </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Tipo de procesamiento aplicado -->
+                            <xs:element name="dTipoProceso" type="tipoProcesamiento">
+                                <xs:annotation>
+                                    <xs:documentation> Tipo de procesamiento que se aplicó al
+                                        documento VALORES: - INDIVIDUAL: Envío individual estándar -
+                                        LOTE: Procesamiento en lote - REPUBLICA: Reenvío por
+                                        corrección - URGENTE: Procesamiento prioritario </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Estado y seguimiento -->
+                <xs:element name="gEstado">
+                    <xs:annotation>
+                        <xs:documentation>Grupo de información de estado del documento</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+
+                            <!-- Estado actual -->
+                            <xs:element name="dEstadoActual" type="tipoEstadoDocumento">
+                                <xs:annotation>
+                                    <xs:documentation> Estado actual del documento en SIFEN
+                                        INTERPRETACIÓN: ✅ APROBADO: Documento válido y registrado ❌
+                                        RECHAZADO: Documento con errores 🟡 EN_VALIDACION:
+                                        Procesando actualmente 🟠 RECIBIDO: En cola de procesamiento
+                                        🚫 CANCELADO: Cancelado por evento ⚪ INUTILIZADO:
+                                        Inutilizado por emisor ACCIÓN POR ESTADO: - APROBADO:
+                                        Documento listo para uso - RECHAZADO: Corregir y reenviar -
+                                        EN_VALIDACION: Esperar resultado - RECIBIDO: Monitorear
+                                        progreso - CANCELADO: Verificar evento de cancelación -
+                                        INUTILIZADO: Documento no utilizable </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Código de resultado -->
+                            <xs:element name="dCodigoResultado" type="tipoCodigoResultado">
+                                <xs:annotation>
+                                    <xs:documentation> Código específico del resultado del
+                                        procesamiento SINCRONIZACIÓN: - Mismo valor que
+                                        resRecepDE/dCodRes - Consistente en todo el protocolo - Base
+                                        para lógica de negocio EJEMPLOS: - 0260: Aprobado sin
+                                        observaciones - 1005: Aprobado con observaciones - 0401:
+                                        Error en estructura XML - 0501: Error en firma digital </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Mensaje descriptivo -->
+                            <xs:element name="dMensajeResultado" type="tipoMensajeResultado">
+                                <xs:annotation>
+                                    <xs:documentation> Mensaje descriptivo del estado/resultado
+                                        actual CARACTERÍSTICAS: - Texto en español - Información
+                                        específica y clara - Orientación para el usuario -
+                                        Actualizado con cada cambio de estado </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Fecha del último cambio de estado -->
+                            <xs:element name="dFechaUltimoCambio" type="tipoFechaProcesamiento">
+                                <xs:annotation>
+                                    <xs:documentation> Fecha y hora del último cambio de estado
+                                        PROPÓSITO: - Timestamp del último cambio - Base para
+                                        cálculos de tiempo - Auditoría de cambios - SLA y métricas
+                                        de performance FORMATO: YYYY-MM-DDTHH:mm:ss TIMEZONE: Hora
+                                        local Paraguay (GMT-3) </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Historial de procesamiento -->
+                <xs:element name="gHistorial" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation> Historial completo de cambios de estado CONTENIDO: -
+                            Secuencia cronológica de todos los estados - Timestamps de cada
+                            transición - Información adicional por estado - Trazabilidad completa
+                            del procesamiento </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+
+                            <!-- Entrada del historial (repetible) -->
+                            <xs:element name="dEntradaHistorial" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <!-- Secuencia de la entrada -->
+                                        <xs:element name="dSecuencia" type="xs:int">
+                                            <xs:annotation>
+                                                <xs:documentation> Número secuencial de la entrada
+                                                    en el historial ORDEN: 1. RECIBIDO 2.
+                                                    EN_VALIDACION 3. APROBADO/RECHAZADO 4.
+                                                    CANCELADO/INUTILIZADO (opcional) </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                        <!-- Estado registrado -->
+                                        <xs:element name="dEstado" type="tipoEstadoDocumento">
+                                            <xs:annotation>
+                                                <xs:documentation>Estado registrado en esta entrada
+                                                    del historial</xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                        <!-- Fecha/hora del cambio -->
+                                        <xs:element name="dFechaHora" type="tipoFechaProcesamiento">
+                                            <xs:annotation>
+                                                <xs:documentation>Timestamp exacto del cambio de
+                                                    estado</xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                        <!-- Información adicional -->
+                                        <xs:element name="dObservaciones" type="xs:string"
+                                            minOccurs="0">
+                                            <xs:annotation>
+                                                <xs:documentation> Observaciones adicionales sobre
+                                                    este cambio de estado EJEMPLOS: - "Validación
+                                                    exitosa en 15.3 segundos" - "Error detectado en
+                                                    campo E605" - "Cancelado por evento registrado" </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Información técnica del procesamiento -->
+                <xs:element name="gInfoTecnica" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Información técnica detallada del procesamiento</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+
+                            <!-- Servidor que procesó -->
+                            <xs:element name="dServidorProceso" type="xs:string" minOccurs="0">
+                                <xs:annotation>
+                                    <xs:documentation> Identificación del servidor SIFEN que procesó
+                                        el documento FORMATO: "SIFEN-SRV-01" o similar USO:
+                                        Debugging y balanceamiento de carga </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Tiempo total de procesamiento -->
+                            <xs:element name="dTiempoProceso" type="xs:decimal" minOccurs="0">
+                                <xs:annotation>
+                                    <xs:documentation> Tiempo total de procesamiento en segundos
+                                        MÉTRICAS: - Tiempo desde recepción hasta estado final -
+                                        Incluye todas las validaciones - Base para SLA y
+                                        optimizaciones EJEMPLO: 23.456 (23.456 segundos) </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Versión del motor de validación -->
+                            <xs:element name="dVersionValidador" type="xs:string" minOccurs="0">
+                                <xs:annotation>
+                                    <xs:documentation> Versión del motor de validación utilizado
+                                        FORMATO: "SIFEN-VALIDATOR-v1.5.0" USO: Compatibilidad y
+                                        debugging </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Enlaces y referencias -->
+                <xs:element name="gReferencias" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Enlaces y referencias para consultas adicionales</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+
+                            <!-- URL de consulta pública -->
+                            <xs:element name="dUrlConsultaPublica" type="xs:anyURI" minOccurs="0">
+                                <xs:annotation>
+                                    <xs:documentation> URL para consulta pública del documento (si
+                                        está aprobado) FORMATO:
+                                        https://ekuatia.set.gov.py/consultas/qr?nVersion=150&amp;Id=01234567890123456789012345678901234567890123&amp;...
+                                        DISPONIBILIDAD: - Solo para documentos en estado APROBADO -
+                                        Accesible sin autenticación - Información básica del
+                                        documento </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- URL de consulta detallada -->
+                            <xs:element name="dUrlConsultaDetallada" type="xs:anyURI" minOccurs="0">
+                                <xs:annotation>
+                                    <xs:documentation> URL para consulta detallada (requiere
+                                        autenticación) ACCESO: - Requiere certificado PSC -
+                                        Información completa del documento - Historial de eventos -
+                                        Solo para emisor y receptor </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+
+            <!-- Atributos del protocolo -->
+            <xs:attribute name="version" type="xs:string" fixed="1.5.0">
+                <xs:annotation>
+                    <xs:documentation>Versión del protocolo de procesamiento</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+            <xs:attribute name="generado" type="tipoFechaProcesamiento">
+                <xs:annotation>
+                    <xs:documentation>Fecha y hora de generación del protocolo</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS AUXILIARES PARA CONSULTAS                                  -->
+    <!-- ===================================================================== -->
+
+    <!-- Request para consulta de protocolo -->
+    <xs:element name="consultaProtocolo">
+        <xs:annotation>
+            <xs:documentation> Request para consultar el protocolo de procesamiento de un documento
+                PARÁMETROS: - CDC o ID de protocolo - Tipo de consulta (básica/detallada) -
+                Credenciales de autenticación </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Identificador del documento -->
+                <xs:choice>
+                    <xs:element name="dCDC" type="tipoCDC">
+                        <xs:annotation>
+                            <xs:documentation>CDC del documento a consultar</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="dIdProtocolo" type="xs:string">
+                        <xs:annotation>
+                            <xs:documentation>ID del protocolo a consultar</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:choice>
+
+                <!-- Tipo de consulta -->
+                <xs:element name="dTipoConsulta">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="BASICA" />      <!-- Solo estado actual -->
+                            <xs:enumeration value="DETALLADA" />   <!-- Historial completo -->
+                            <xs:enumeration value="TECNICA" />     <!-- Info técnica adicional -->
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Response de consulta de protocolo -->
+    <xs:element name="consultaProtocoloResponse">
+        <xs:annotation>
+            <xs:documentation>Response de consulta de protocolo</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Resultado de la consulta -->
+                <xs:element name="dResultado">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="ENCONTRADO" />
+                            <xs:enumeration value="NO_ENCONTRADO" />
+                            <xs:enumeration value="SIN_PERMISOS" />
+                            <xs:enumeration value="ERROR" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+
+                <!-- Protocolo (si encontrado) -->
+                <xs:element ref="protProcesDE" minOccurs="0" />
+
+                <!-- Mensaje de error (si aplica) -->
+                <xs:element name="dMensajeError" type="xs:string" minOccurs="0" />
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- VALIDACIONES DEL PROTOCOLO                                           -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento para testing del protocolo -->
+    <xs:element name="testProtocolo">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para testing del protocolo completo PROPÓSITO: -
+                Validación de estructura del protocolo - Testing de estados y transiciones -
+                Verificación de consistencia de datos - Debugging de problemas de protocolo
+                COMPATIBILIDAD: XSD 1.0 (oficial SET Paraguay) </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="protProcesDE" />
+                <xs:element ref="consultaProtocolo" />
+                <xs:element ref="consultaProtocoloResponse" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 
+        ====  Estados del Documento ====
+        <gEstado>
+            <dEstadoActual>APROBADO</dEstadoActual>
+            <dCodigoResultado>0260</dCodigoResultado>
+            <dMensajeResultado>Documento recibido satisfactoriamente</dMensajeResultado>
+            <dFechaUltimoCambio>2025-06-23T14:30:45</dFechaUltimoCambio>
+        </gEstado>
+
+        ====  Historial Completo ====
+        <gHistorial>
+            <dEntradaHistorial>
+                <dSecuencia>1</dSecuencia>
+                <dEstado>RECIBIDO</dEstado>
+                <dFechaHora>2025-06-23T14:30:00</dFechaHora>
+                <dObservaciones>Documento recibido correctamente</dObservaciones>
+            </dEntradaHistorial>
+            <dEntradaHistorial>
+                <dSecuencia>2</dSecuencia>
+                <dEstado>EN_VALIDACION</dEstado>
+                <dFechaHora>2025-06-23T14:30:15</dFechaHora>
+                <dObservaciones>Iniciando validación estructural</dObservaciones>
+            </dEntradaHistorial>
+            <dEntradaHistorial>
+                <dSecuencia>3</dSecuencia>
+                <dEstado>APROBADO</dEstado>
+                <dFechaHora>2025-06-23T14:30:45</dFechaHora>
+                <dObservaciones>Validación exitosa en 15.3 segundos</dObservaciones>
+            </dEntradaHistorial>
+        </gHistorial>
+
+        ==== Implementación Completa en Python ====
+        def consultar_estado_documento(cdc: str) -> dict:
+            """Consulta el estado actual de un documento en SIFEN"""
+            
+            request_data = {
+                'consultaProtocolo': {
+                    'dCDC': cdc,
+                    'dTipoConsulta': 'DETALLADA'
+                }
+            }
+            
+            try:
+                response = sifen_client.service.ConsultarProtocolo(**request_data)
+                
+                if response.dResultado == 'ENCONTRADO':
+                    protocolo = response.protProcesDE
+                    
+                    return {
+                        'encontrado': True,
+                        'cdc': protocolo.gIdentificacion.dCDC,
+                        'estado_actual': protocolo.gEstado.dEstadoActual,
+                        'codigo_resultado': protocolo.gEstado.dCodigoResultado,
+                        'mensaje': protocolo.gEstado.dMensajeResultado,
+                        'fecha_ultimo_cambio': protocolo.gEstado.dFechaUltimoCambio,
+                        'historial': [
+                            {
+                                'secuencia': entrada.dSecuencia,
+                                'estado': entrada.dEstado,
+                                'fecha_hora': entrada.dFechaHora,
+                                'observaciones': entrada.dObservaciones
+                            }
+                            for entrada in protocolo.gHistorial.dEntradaHistorial
+                        ],
+                        'url_consulta_publica': getattr(protocolo.gReferencias, 'dUrlConsultaPublica', None)
+                    }
+                else:
+                    return {
+                        'encontrado': False,
+                        'error': response.dMensajeError
+                    }
+                    
+            except Exception as e:
+                return {
+                    'encontrado': False,
+                    'error': f"Error en consulta: {str(e)}"
+                }
+
+        class SifenEnvioIndividualCompleto:
+            """Cliente completo para envío individual con seguimiento"""
+            
+            def __init__(self, ambiente="test", cert_path=None, cert_password=None):
+                self.client = SifenWebServiceClient(ambiente, cert_path, cert_password)
+            
+            def enviar_documento_completo(self, xml_de_firmado: str) -> dict:
+                """Envío completo con seguimiento automático"""
+                
+                # 1. Enviar documento
+                resultado_envio = self.client.enviar_documento(xml_de_firmado)
+                
+                if not resultado_envio['success']:
+                    return {
+                        'exito': False,
+                        'fase': 'ENVIO',
+                        'error': resultado_envio['mensaje'],
+                        'codigo': resultado_envio['codigo']
+                    }
+                
+                # 2. Si fue exitoso, consultar protocolo
+                if resultado_envio['numero_autorizacion']:
+                    # Extraer CDC del documento enviado
+                    cdc = self._extraer_cdc(xml_de_firmado)
+                    
+                    # Consultar estado detallado
+                    estado = consultar_estado_documento(cdc)
+                    
+                    return {
+                        'exito': True,
+                        'fase': 'COMPLETADO',
+                        'envio': resultado_envio,
+                        'protocolo': estado,
+                        'recomendacion': self._generar_recomendacion(estado)
+                    }
+                
+                return resultado_envio
+            
+            def _extraer_cdc(self, xml_documento: str) -> str:
+                """Extrae CDC del documento XML"""
+                try:
+                    root = ET.fromstring(xml_documento)
+                    # El CDC está en el atributo Id del elemento DE
+                    de_element = root.find('.//{http://ekuatia.set.gov.py/sifen/xsd}DE')
+                    return de_element.get('Id') if de_element is not None else None
+                except:
+                    return None
+            
+            def _generar_recomendacion(self, estado: dict) -> str:
+                """Genera recomendación basada en el estado"""
+                if not estado['encontrado']:
+                    return "Verificar CDC y reintentar consulta"
+                
+                estado_actual = estado['estado_actual']
+                
+                recomendaciones = {
+                    'APROBADO': "✅ Documento aprobado. Listo para uso comercial.",
+                    'RECHAZADO': "❌ Corregir errores indicados y reenviar documento.",
+                    'EN_VALIDACION': "🟡 Documento procesándose. Consultar en unos minutos.",
+                    'RECIBIDO': "🟠 Documento en cola. Monitorear progreso.",
+                    'CANCELADO': "🚫 Documento cancelado. Verificar evento de cancelación.",
+                    'INUTILIZADO': "⚪ Documento inutilizado. No utilizable."
+                }
+                
+                return recomendaciones.get(estado_actual, "Estado desconocido")
+    
+    -->
+</xs:schema>
