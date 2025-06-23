@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ========================================================================
+    SIFEN Paraguay - Sistema Integrado de Facturación Electrónica Nacional
+    ========================================================================
+    
+    Schema: SiResultLoteDE_v150.xsd
+    Versión: 1.50 (Septiembre 2019)
+    
+    Propósito:
+    - Define la estructura para consultar resultados de lotes procesados
+    - Permite obtener el estado final de cada documento en el lote
+    - Usado después de recibir confirmación de recepción exitosa (código 0300)
+    
+    Namespace: http://ekuatia.set.gov.py/sifen/xsd
+    Encoding: UTF-8
+    
+    Flujo de Uso:
+    1. Enviar lote con SiRecepLoteDE_v150.xsd
+    2. Recibir confirmación con resRecepLoteDE_v150.xsd (código 0300)
+    3. Esperar procesamiento (3-15 minutos)
+    4. Consultar resultados con este schema
+    5. Obtener estados finales con resResultLoteDE_v150.xsd
+    
+    Timing Recomendado:
+    - Primera consulta: 3 minutos después de recepción
+    - Consultas subsequentes: cada 2 minutos
+    - Timeout máximo: 20 minutos
+    - Máximo reintentos: 10 consultas
+    
+    Uso:
+    - Web Service: /de/ws/consultas/consulta-lote.wsdl
+    - Método: SiResultLoteDE
+    - Tipo: Request (Petición de consulta)
+    
+    ========================================================================
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="150">
+
+    <!--
+        ================================================================
+        ELEMENTO RAÍZ - CONSULTA DE RESULTADOS DE LOTE
+        ================================================================
+    -->
+
+    <xs:element name="rEnviConsLoteDe" type="tEnviConsLoteDe">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para la consulta de resultados de lotes. Estructura: -
+                dId: Identificador de control de la consulta - dProtAut: Número de protocolo del
+                lote a consultar Prerequisitos: - Tener el número de protocolo (dProtAut) del lote -
+                El lote debe haber sido recibido exitosamente (código 0300) - Esperar al menos 3
+                minutos desde la recepción Estados esperables: - 0360: Lote en procesamiento (seguir
+                consultando) - 0361: Procesamiento finalizado con errores parciales - 0362:
+                Procesamiento finalizado exitosamente Uso típico: 1. Realizar primera consulta
+                después de 3 minutos 2. Si estado = 0360, esperar 2 minutos y consultar nuevamente
+                3. Si estado = 0361/0362, procesar resultados individuales 4. Implementar timeout de
+                20 minutos máximo </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!--
+        ================================================================
+        TIPO PRINCIPAL - ESTRUCTURA DE LA CONSULTA
+        ================================================================
+    -->
+
+    <xs:complexType name="tEnviConsLoteDe">
+        <xs:annotation>
+            <xs:documentation> Tipo principal que define la estructura de la consulta de resultados.
+                Es deliberadamente simple para optimizar performance de consultas. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- ID de control de la consulta -->
+            <xs:element name="dId" type="tIdConsulta">
+                <xs:annotation>
+                    <xs:documentation> Identificador único de control para la consulta. Propósito: -
+                        Correlación entre request y response de consulta - Trazabilidad de consultas
+                        múltiples del mismo lote - Debugging y auditoría de consultas - Control de
+                        consultas duplicadas Características: - Entero positivo de 1 a 15 dígitos -
+                        Diferente del dId usado en el envío original del lote - Único por cada
+                        consulta (no reutilizar) - Recomendable usar secuencia incremental
+                        Estrategias de generación: - Timestamp + secuencial: 20241220143501 - UUID
+                        truncado: 123456789012345 - Contador simple: 1, 2, 3, 4... - Hash del
+                        protocolo + timestamp Ejemplos válidos: - 1 (consulta simple) - 123456789
+                        (timestamp-based) - 20241220143001 (fecha + hora + secuencial) IMPORTANTE: -
+                        No confundir con el dId del envío original - Usar diferente ID para cada
+                        intento de consulta - Guardar para correlación con respuesta </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Protocolo del lote a consultar -->
+            <xs:element name="dProtAut" type="tProtocoloLoteConsulta">
+                <xs:annotation>
+                    <xs:documentation> Número de protocolo del lote obtenido en la respuesta de
+                        recepción. Origen: - Elemento dProtAut de resRecepLoteDE_v150.xsd - Solo
+                        disponible cuando recepción fue exitosa (código 0300) - Asignado
+                        automáticamente por SIFEN - Inmutable durante toda la vida del lote Formato:
+                        LOT + 9 dígitos Ejemplo: LOT123456789 Validaciones críticas: ✅ Debe
+                        coincidir exactamente con el protocolo recibido ✅ Formato LOT[0-9]{9}
+                        estricto ✅ No puede ser modificado o truncado ✅ Case-sensitive (LOT en
+                        mayúsculas) Errores comunes: ❌ lot123456789 (minúsculas) ❌ LOT12345678 (8
+                        dígitos en lugar de 9) ❌ LOT1234567890 (10 dígitos en lugar de 9) ❌
+                        LTE123456789 (prefijo incorrecto) ❌ LOT123456789 (espacios adicionales)
+                        Estados del protocolo durante consulta: INICIAL (0-3 min): - Lote recién
+                        recibido, en cola de procesamiento - Consulta puede devolver "aún no
+                        iniciado" - Recomendación: esperar 3 minutos antes de primera consulta
+                        PROCESANDO (3-15 min): - SIFEN validando documentos individualmente - Código
+                        0360: "Lote en procesamiento" - Acción: continuar consultando cada 2 minutos
+                        FINALIZADO (15+ min): - Código 0361: "Procesamiento finalizado con errores"
+                        - Código 0362: "Procesamiento finalizado exitosamente" - Acción: procesar
+                        resultados individuales TIMEOUT (20+ min): - Si no hay respuesta final
+                        después de 20 minutos - Posible problema en SIFEN o lote muy complejo -
+                        Acción: contactar soporte técnico SET Uso en aplicaciones: 1. Almacenar
+                        protocolo al recibir confirmación 2. Usar para todas las consultas del lote
+                        3. Incluir en logs para trazabilidad 4. Referenciar en casos de soporte
+                        técnico 5. Mantener hasta obtener resultados finales </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!--
+        ================================================================
+        TIPOS BÁSICOS Y RESTRICCIONES
+        ================================================================
+    -->
+
+    <!-- Identificador de consulta -->
+    <xs:simpleType name="tIdConsulta">
+        <xs:annotation>
+            <xs:documentation> Identificador único para cada consulta de resultados. Diferencias con
+                otros IDs: - dId (envío lote): ID del lote original - dId (consulta): ID de cada
+                consulta individual - dProtAut: Protocolo asignado por SIFEN Buenas prácticas: 1.
+                Usar secuencia incremental simple: 1, 2, 3... 2. O incluir timestamp:
+                20241220143001, 20241220143201... 3. No reutilizar el mismo ID en consultas
+                simultáneas 4. Correlacionar con logs para debugging Rango permitido: - Mínimo: 1 -
+                Máximo: 999999999999999 (15 dígitos) Consideraciones técnicas: - Almacenar como
+                entero largo (64-bit) - Validar rango antes de envío - Usar para correlación en
+                respuestas asíncronas - Incluir en logs de auditoría Ejemplos de estrategias: SIMPLE
+                (recomendado para pocas consultas): consulta_1: dId = 1 consulta_2: dId = 2
+                consulta_3: dId = 3 TIMESTAMP (recomendado para alto volumen): consulta_1: dId =
+                20241220143001 consulta_2: dId = 20241220143201 consulta_3: dId = 20241220143401
+                HASH (para sistemas complejos): consulta_1: dId = hash(protocolo + timestamp) %
+                999999999999999 </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:long">
+            <xs:minInclusive value="1">
+                <xs:annotation>
+                    <xs:documentation> Valor mínimo: 1 No se permiten IDs negativos o cero. </xs:documentation>
+                </xs:annotation>
+            </xs:minInclusive>
+            <xs:maxInclusive value="999999999999999">
+                <xs:annotation>
+                    <xs:documentation> Valor máximo: 999999999999999 (15 dígitos) Límite técnico
+                        para compatibilidad con sistemas legacy. </xs:documentation>
+                </xs:annotation>
+            </xs:maxInclusive>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Protocolo de lote para consulta -->
+    <xs:simpleType name="tProtocoloLoteConsulta">
+        <xs:annotation>
+            <xs:documentation> Número de protocolo del lote asignado por SIFEN. Debe coincidir
+                exactamente con el recibido en resRecepLoteDE_v150.xsd. Validación estricta del
+                formato: - Prefijo: "LOT" (exactamente 3 caracteres, mayúsculas) - Sufijo: 9 dígitos
+                numéricos consecutivos - Total: 12 caracteres exactos - Sin espacios, guiones o
+                caracteres adicionales Algoritmo de validación recomendado: 1. Verificar longitud =
+                12 caracteres 2. Verificar primeros 3 caracteres = "LOT" 3. Verificar últimos 9
+                caracteres son dígitos 4. No permitir ceros consecutivos al inicio: LOT000000000
+                Manejo de errores de formato: - Protocolo inválido → Error inmediato - Protocolo no
+                encontrado → Verificar si existe el lote - Protocolo expirado → Verificar timestamps
+                Casos de uso especiales: CONSULTA INMEDIATA (0-3 min después de envío): - Puede
+                devolver "lote no encontrado temporalmente" - Es normal, SIFEN puede tardar en
+                indexar - Solución: esperar 3 minutos y reintentar CONSULTA NORMAL (3-15 min después
+                de envío): - Debe devolver estado de procesamiento - 0360: Aún procesando -
+                0361/0362: Procesamiento completado CONSULTA TARDÍA (15+ min después de envío): -
+                Mayoría de lotes deben estar procesados - Si aún en procesamiento, puede indicar
+                problemas - Considerar escalación a soporte técnico CONSULTA MUY TARDÍA (24+ horas):
+                - Resultados pueden haber sido archivados - Consultar políticas de retención de
+                SIFEN - Usar otros medios para verificar estado Implementación robusta: ```python
+                def validar_protocolo_lote(protocolo): if not protocolo: raise ValueError("Protocolo
+                no puede estar vacío") if len(protocolo) != 12: raise ValueError(f"Protocolo debe
+                tener 12 caracteres, tiene {len(protocolo)}") if not protocolo.startswith("LOT"):
+                raise ValueError("Protocolo debe comenzar con 'LOT'") sufijo = protocolo[3:] if not
+                sufijo.isdigit(): raise ValueError("Últimos 9 caracteres deben ser dígitos") if
+                sufijo == "000000000": raise ValueError("Protocolo no puede ser todo ceros") return
+                True ``` </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:pattern value="LOT[0-9]{9}">
+                <xs:annotation>
+                    <xs:documentation> Patrón exacto: LOT seguido de exactamente 9 dígitos
+                        numéricos. Componentes del patrón: - LOT: Prefijo literal obligatorio
+                        (case-sensitive) - [0-9]: Cualquier dígito del 0 al 9 - {9}: Exactamente 9
+                        repeticiones (no más, no menos) Ejemplos que coinciden: ✅ LOT123456789 ✅
+                        LOT000000001 ✅ LOT999999999 Ejemplos que NO coinciden: ❌ lot123456789
+                        (minúsculas) ❌ LOT12345678 (8 dígitos) ❌ LOT1234567890 (10 dígitos) ❌
+                        LTE123456789 (prefijo incorrecto) ❌ LOT12345678A (carácter no numérico) ❌
+                        LOT 123456789 (espacio) Validación adicional en aplicación: - Verificar que
+                        no sea protocolo de prueba - Verificar que corresponda al RUC del emisor -
+                        Verificar que no esté expirado - Mantener histórico para auditoría </xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!--
+        ================================================================
+        DOCUMENTACIÓN ADICIONAL Y MEJORES PRÁCTICAS
+        ================================================================
+    -->
+
+    <xs:annotation>
+        <xs:documentation> ================================================================ EJEMPLOS
+            COMPLETOS DE CONSULTAS ================================================================
+            Ejemplo 1: Primera consulta (3 minutos después de envío)
+            -------------------------------------------------------- <rEnviConsLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dId>1</dId>
+                <dProtAut>LOT123456789</dProtAut>
+            </rEnviConsLoteDe> ➤ Uso: Primera
+            verificación del estado del lote ➤ Timing: 3 minutos después de recibir confirmación
+            Ejemplo 2: Consulta de seguimiento (5 minutos después)
+            ------------------------------------------------------ <rEnviConsLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dId>2</dId>
+                <dProtAut>LOT123456789</dProtAut>
+            </rEnviConsLoteDe> ➤ Uso: Verificación
+            si aún está procesando ➤ Timing: 2 minutos después de la primera consulta Ejemplo 3:
+            Consulta con ID timestamp ------------------------------------ <rEnviConsLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dId>20241220143001</dId>
+                <dProtAut>LOT987654321</dProtAut>
+            </rEnviConsLoteDe> ➤ Uso: ID incluye
+            fecha/hora para mejor trazabilidad ➤ Formato: YYYYMMDDHHMMSS + secuencial
+            ================================================================ ESTRATEGIA DE CONSULTAS
+            POLLING ================================================================ Algoritmo
+            recomendado para consultas automáticas: ```python import time from datetime import
+            datetime, timedelta def consultar_resultados_lote(protocolo_lote, max_intentos=10): """
+            Consulta resultados de lote con polling inteligente """ inicio = datetime.now() timeout
+            = timedelta(minutes=20) for intento in range(1, max_intentos + 1): # Preparar consulta
+            consulta = { "dId": intento, "dProtAut": protocolo_lote } print(f"🔍 Consulta {intento}:
+            {protocolo_lote}") # Enviar consulta respuesta = enviar_consulta_sifen(consulta) #
+            Evaluar respuesta if respuesta.dCodResLot == "0362": print("✅ Lote procesado
+            exitosamente") return procesar_resultados_finales(respuesta) elif respuesta.dCodResLot
+            == "0361": print("⚠️ Lote procesado con errores") return
+            procesar_resultados_con_errores(respuesta) elif respuesta.dCodResLot == "0360": print("⏳
+            Lote aún en procesamiento...") # Verificar timeout if datetime.now() - inicio > timeout:
+            print("⏰ Timeout: Lote tomó más de 20 minutos") break # Calcular delay inteligente if
+            intento mayo= 3: delay = 120 # 2 minutos para primeras consultas elif intento mayo= 6:
+            delay = 180 # 3 minutos para consultas medias else: delay = 300 # 5 minutos para
+            consultas tardías print(f"⏸️ Esperando {delay} segundos antes de siguiente consulta")
+            time.sleep(delay) else: print(f"❌ Error inesperado: {respuesta.dCodResLot}") break # Si
+            llegamos aquí, algo salió mal raise TimeoutError(f"Lote {protocolo_lote} no se procesó
+            en tiempo esperado") ```
+            ================================================================ MANEJO DE ERRORES EN
+            CONSULTAS ================================================================ Errores
+            comunes y soluciones: ERROR: "Protocolo de lote no encontrado" ➤ Causa: Protocolo
+            incorrecto o lote muy reciente ➤ Solución: Verificar protocolo y esperar 3+ minutos
+            ERROR: "Lote no existe" ➤ Causa: Protocolo inválido o expirado ➤ Solución: Verificar
+            logs de envío original ERROR: "Consulta muy frecuente" ➤ Causa: Consultas con menos de 1
+            minuto de diferencia ➤ Solución: Implementar rate limiting de consultas ERROR: "Servicio
+            temporalmente no disponible" ➤ Causa: Mantenimiento o alta carga en SIFEN ➤ Solución:
+            Implementar backoff exponencial
+            ================================================================ OPTIMIZACIONES DE
+            PERFORMANCE ================================================================ 1. RATE
+            LIMITING: - Máximo 1 consulta por minuto por protocolo - Usar queue para consultas
+            múltiples - Implementar circuit breaker para errores 2. CACHING INTELIGENTE: - Cachear
+            resultados finales (0361/0362) - No cachear estados intermedios (0360) - TTL de cache:
+            24 horas para resultados finales 3. BATCH CONSULTAS: - Agrupar consultas de múltiples
+            lotes - Usar threading para consultas paralelas - Respetar límites de rate limiting 4.
+            MONITOREO: - Medir tiempo de respuesta de consultas - Alertar si lotes tardan > 15
+            minutos - Estadísticas de distribución de tiempos
+            ================================================================ INTEGRACIÓN CON
+            SISTEMAS DE AUDITORÍA ================================================================
+            Información para auditoría de consultas: LOGS DE CONSULTA: - Timestamp de cada consulta
+            - Protocolo consultado - ID de consulta usado - Código de respuesta obtenido - Tiempo de
+            respuesta - Número de intento MÉTRICAS DE NEGOCIO: - Tiempo promedio de procesamiento
+            por lote - Distribución de estados finales (éxito vs error) - Frecuencia de consultas
+            por lote - Identificación de lotes problemáticos ALERTAS OPERACIONALES: - Lotes que
+            tardan > 20 minutos - Tasa de error en consultas > 5% - Protocolos que devuelven "no
+            encontrado" - Servicios de consulta no disponibles REPORTES EJECUTIVOS: - Tiempo
+            promedio de procesamiento por día/semana - Tasa de éxito de lotes por período -
+            Identificación de patrones de errores - Comparación de performance vs SLA de SET </xs:documentation>
+    </xs:annotation>
+
+</xs:schema>

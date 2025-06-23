@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ========================================================================
+    SIFEN Paraguay - Sistema Integrado de Facturación Electrónica Nacional
+    ========================================================================
+    
+    Schema: resRecepLoteDE_v150.xsd
+    Versión: 1.50 (Septiembre 2019)
+    
+    Propósito:
+    - Define la estructura de respuesta para la recepción de lotes
+    - Respuesta inmediata al envío de lote (no incluye procesamiento)
+    - Confirma recepción y proporciona número de protocolo para consultas
+    
+    Namespace: http://ekuatia.set.gov.py/sifen/xsd
+    Encoding: UTF-8
+    
+    Flujo de Procesamiento:
+    1. Cliente envía lote (SiRecepLoteDE_v150.xsd)
+    2. SIFEN responde inmediatamente (este schema)
+    3. SIFEN procesa lote asíncronamente (3-15 minutos)
+    4. Cliente consulta resultados (SiResultLoteDE_v150.xsd)
+    
+    Uso:
+    - Web Service: /de/ws/async/recibe-lote.wsdl
+    - Método: SiRecepLoteDE
+    - Tipo: Response (Respuesta de recepción)
+    
+    ========================================================================
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="150">
+
+    <!--
+        ================================================================
+        ELEMENTO RAÍZ - RESPUESTA DE RECEPCIÓN DE LOTE
+        ================================================================
+    -->
+
+    <xs:element name="rRetEnviLoteDe" type="tRetEnviLoteDe">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para la respuesta de recepción de lotes. Contenido: -
+                dFecProc: Timestamp de procesamiento por SIFEN - dCodRes: Código de resultado de la
+                recepción - dMsgRes: Mensaje descriptivo del resultado - dProtAut: Número de
+                protocolo del lote (si exitoso) IMPORTANTE: Esta respuesta solo confirma la
+                RECEPCIÓN del lote, NO el procesamiento individual de documentos. Para conocer el
+                resultado final, usar SiResultLoteDE. Estados posibles: - Éxito (0300): Lote
+                encolado para procesamiento - Error (0301): Lote rechazado por validaciones
+                iniciales - Error (0270): Lote excede límite de tamaño (10MB) </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!--
+        ================================================================
+        TIPO PRINCIPAL - ESTRUCTURA DE LA RESPUESTA
+        ================================================================
+    -->
+
+    <xs:complexType name="tRetEnviLoteDe">
+        <xs:annotation>
+            <xs:documentation> Tipo principal que define la estructura completa de la respuesta.
+                Incluye metadatos de procesamiento y resultado de la recepción. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Fecha y hora de procesamiento por SIFEN -->
+            <xs:element name="dFecProc" type="tFechaHoraProcesamiento">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora de procesamiento de la recepción por SIFEN.
+                        Características: - Timestamp del servidor SIFEN (no del cliente) - Zona
+                        horaria: Paraguay (América/Asuncion) - Formato: YYYY-MM-DDTHH:MM:SS -
+                        Representa momento de recepción, no de procesamiento completo Uso: - Para
+                        auditoría y trazabilidad - Para calcular tiempo de respuesta - Para detectar
+                        problemas de sincronización Ejemplo: 2024-12-20T14:35:00 (5 minutos después
+                        del envío del cliente) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de resultado -->
+            <xs:element name="dCodRes" type="tCodigoResultado">
+                <xs:annotation>
+                    <xs:documentation> Código numérico que indica el resultado de la recepción.
+                        Códigos oficiales de recepción de lotes: ÉXITO: - 0300: "Lote recibido con
+                        éxito" → Lote encolado para procesamiento asíncrono → Usar dProtAut para
+                        consultas posteriores → Esperar 3-15 minutos antes de consultar resultados
+                        ERRORES DE VALIDACIÓN INICIAL: - 0301: "Lote no encolado para procesamiento"
+                        → Error en validaciones básicas del lote → Revisar estructura XML y
+                        contenido → No se generó número de protocolo ERRORES DE TAMAÑO: - 0270:
+                        "Mensaje superior a 10.000 KB" → Lote excede límite de 10 MB → Dividir en
+                        lotes más pequeños → Verificar compresión de documentos ERRORES DE FORMATO:
+                        - 0271: "Formato XML inválido" → Problema de sintaxis XML → Verificar
+                        encoding UTF-8 → Validar estructura contra schema ERRORES DE FIRMA: - 0272:
+                        "Firma digital inválida" → Problema con certificados digitales → Verificar
+                        validez del certificado PSC → Revisar proceso de firmado </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Mensaje descriptivo -->
+            <xs:element name="dMsgRes" type="tMensajeResultado">
+                <xs:annotation>
+                    <xs:documentation> Mensaje descriptivo del resultado en español. Propósito: -
+                        Explicación legible del código de resultado - Información adicional para
+                        debugging - Detalles específicos del error (si aplica) Ejemplos por código:
+                        0300: "Lote recibido con éxito" 0301: "Lote no encolado para procesamiento"
+                        0270: "Mensaje superior a 10.000 KB" 0271: "Formato XML inválido en
+                        documento 3" 0272: "Firma digital inválida en documento 1" IMPORTANTE: -
+                        Usar para logs y debugging - No confiar en texto exacto (puede variar) -
+                        Siempre usar dCodRes para lógica de aplicación - Puede incluir información
+                        específica del error </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número de protocolo del lote (opcional) -->
+            <xs:element name="dProtAut" type="tProtocoloLote" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Número de protocolo único del lote asignado por SIFEN.
+                        Características: - Solo presente cuando dCodRes = 0300 (éxito) - Formato:
+                        LOT + 9 dígitos numéricos - Único a nivel nacional por SIFEN - Requerido
+                        para consultar resultados posteriores Uso crítico: - GUARDAR para consultas
+                        con SiResultLoteDE - Usar como referencia en logs y auditoría - Incluir en
+                        reportes de procesamiento - Requerido para soporte técnico de SET Formato:
+                        LOTnnnnnnnnn Ejemplo: LOT123456789 ALGORITMO DE GENERACIÓN (interno SIFEN):
+                        1. Prefijo fijo: "LOT" 2. Timestamp comprimido (6 dígitos) 3. Secuencial
+                        diario (3 dígitos) Estados del protocolo: - Inicial: Lote encolado -
+                        Procesando: En validación individual - Finalizado: Todos los documentos
+                        procesados IMPORTANTE: ⚠️ Este protocolo NO es el protocolo individual de
+                        documentos ⚠️ Cada documento tendrá su propio protocolo tras procesamiento
+                        ⚠️ Un lote puede tener documentos aprobados y rechazados </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!--
+        ================================================================
+        TIPOS BÁSICOS Y RESTRICCIONES
+        ================================================================
+    -->
+
+    <!-- Fecha y hora de procesamiento -->
+    <xs:simpleType name="tFechaHoraProcesamiento">
+        <xs:annotation>
+            <xs:documentation> Timestamp de procesamiento del servidor SIFEN. Consideraciones
+                técnicas: - Siempre en zona horaria de Paraguay - Precisión hasta segundos (sin
+                milisegundos) - Formato ISO 8601 estricto - Usado para auditoría y SLA monitoring
+                Diferencias con fecha de envío: - dFecEnvio: Timestamp del cliente (request) -
+                dFecProc: Timestamp del servidor (response) - Delta típico: 1-5 segundos para
+                recepción - Delta procesamiento: 3-15 minutos para resultados Validaciones internas:
+                - Debe ser mayor a dFecEnvio del request - No puede diferir más de 1 hora del tiempo
+                real - Se usa para detectar problemas de red/latencia </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:dateTime">
+            <!-- Sin restricciones adicionales - controlado por servidor -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Código de resultado de recepción -->
+    <xs:simpleType name="tCodigoResultado">
+        <xs:annotation>
+            <xs:documentation> Código numérico de 4 dígitos que indica el resultado. Patrón de
+                códigos SIFEN: - 02xx: Errores de validación de documentos individuales - 03xx:
+                Códigos de lotes y procesamiento asíncrono - 04xx: Errores de autenticación y
+                autorización - 05xx: Errores de sistema y disponibilidad Para lotes específicamente
+                (03xx): - 0300: Recepción exitosa - 0301: Error de encolado - 0360-0362: Estados de
+                procesamiento (en SiResultLoteDE) Manejo en aplicaciones: 1. Verificar primer dígito
+                para categoría de error 2. Usar switch/case para códigos específicos 3. Implementar
+                retry logic según tipo de error 4. Loggear todos los códigos para análisis </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{4}">
+                <xs:annotation>
+                    <xs:documentation> Exactamente 4 dígitos numéricos. Ejemplos válidos: 0300,
+                        0301, 0270 Ejemplos inválidos: 300, 03001, A300 </xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Mensaje descriptivo del resultado -->
+    <xs:simpleType name="tMensajeResultado">
+        <xs:annotation>
+            <xs:documentation> Mensaje descriptivo en español del resultado. Características: -
+                Idioma: Español (Paraguay) - Encoding: UTF-8 - Longitud máxima: 500 caracteres -
+                Puede incluir detalles específicos del error Variabilidad: - Mensaje base es
+                estándar por código - Puede incluir información contextual - Ejemplo: "Formato XML
+                inválido en documento 3" - No depender del texto exacto en código Casos especiales:
+                - Errores múltiples: Primer error encontrado - Documentos específicos: Incluye
+                número de posición - Límites excedidos: Incluye valores actuales Uso recomendado: ✅
+                Mostrar al usuario final ✅ Incluir en logs de debugging ✅ Usar para reportes de
+                errores ❌ No usar para lógica condicional ❌ No parsear programáticamente </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="500">
+                <xs:annotation>
+                    <xs:documentation> Máximo 500 caracteres para permitir mensajes detallados sin
+                        afectar el performance de la transmisión. </xs:documentation>
+                </xs:annotation>
+            </xs:maxLength>
+            <xs:whiteSpace value="preserve">
+                <xs:annotation>
+                    <xs:documentation> Preservar espacios en blanco para mantener formato de
+                        mensajes con múltiples líneas o indentación. </xs:documentation>
+                </xs:annotation>
+            </xs:whiteSpace>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de protocolo del lote -->
+    <xs:simpleType name="tProtocoloLote">
+        <xs:annotation>
+            <xs:documentation> Identificador único del lote asignado por SIFEN. Estructura del
+                protocolo: - Prefijo: "LOT" (literal) - Dígitos: 9 dígitos numéricos - Total: 12
+                caracteres Algoritmo de generación (informativo): 1. Prefijo fijo: "LOT" 2.
+                Timestamp base36 comprimido: 6 dígitos 3. Secuencial diario: 3 dígitos Propiedades:
+                - Único a nivel nacional - Generado por SIFEN al recibir lote - Inmutable durante
+                toda la vida del lote - Requerido para todas las consultas posteriores Ejemplos
+                válidos: - LOT123456789 - LOT987654321 - LOT000000001 Ejemplos inválidos: -
+                LOT12345678 (8 dígitos) - LOT1234567890 (10 dígitos) - LTE123456789 (prefijo
+                incorrecto) - LOT12345678A (caracter no numérico) Uso en aplicaciones: 1. Almacenar
+                en base de datos 2. Incluir en logs de transacciones 3. Usar para consultas de
+                estado 4. Referenciar en soporte técnico 5. Incluir en reportes de auditoría </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:pattern value="LOT[0-9]{9}">
+                <xs:annotation>
+                    <xs:documentation> Patrón exacto: LOT seguido de exactamente 9 dígitos
+                        numéricos. Regex explicado: - LOT: Prefijo literal obligatorio - [0-9]:
+                        Cualquier dígito del 0 al 9 - {9}: Exactamente 9 repeticiones Validación
+                        adicional recomendada: - Verificar que no sea todo ceros: LOT000000000 -
+                        Almacenar como string (no como número) - Validar en recepción de respuestas </xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!--
+        ================================================================
+        DOCUMENTACIÓN ADICIONAL Y EJEMPLOS
+        ================================================================
+    -->
+
+    <xs:annotation>
+        <xs:documentation> ================================================================ EJEMPLOS
+            COMPLETOS DE RESPUESTAS ================================================================
+            Ejemplo 1: Recepción exitosa ---------------------------- <rRetEnviLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dFecProc>2024-12-20T14:35:00</dFecProc>
+                <dCodRes>0300</dCodRes>
+                <dMsgRes>Lote recibido con éxito</dMsgRes>
+                <dProtAut>LOT123456789</dProtAut>
+            </rRetEnviLoteDe> ➤ Acción: Guardar
+            LOT123456789 y consultar resultados después Ejemplo 2: Error de tamaño
+            -------------------------- <rRetEnviLoteDe xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dFecProc>2024-12-20T14:35:00</dFecProc>
+                <dCodRes>0270</dCodRes>
+                <dMsgRes>Mensaje superior a 10.000 KB</dMsgRes>
+            </rRetEnviLoteDe> ➤
+            Acción: Dividir lote en lotes más pequeños Ejemplo 3: Error de formato
+            --------------------------- <rRetEnviLoteDe xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dFecProc>2024-12-20T14:35:00</dFecProc>
+                <dCodRes>0271</dCodRes>
+                <dMsgRes>Formato XML inválido en documento 3</dMsgRes>
+            </rRetEnviLoteDe>
+            ➤ Acción: Revisar documento en posición 3 del lote Ejemplo 4: Error de firma digital
+            --------------------------------- <rRetEnviLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dFecProc>2024-12-20T14:35:00</dFecProc>
+                <dCodRes>0272</dCodRes>
+                <dMsgRes>Firma digital inválida en documento 1</dMsgRes>
+            </rRetEnviLoteDe>
+            ➤ Acción: Verificar certificado y proceso de firmado
+            ================================================================ MANEJO DE RESPUESTAS EN
+            APLICACIONES ================================================================
+            Pseudocódigo para procesamiento: ```python def procesar_respuesta_lote(response): codigo
+            = response.dCodRes mensaje = response.dMsgRes protocolo = response.dProtAut if
+            hasattr(response, 'dProtAut') else None if codigo == "0300": # ÉXITO - Lote encolado
+            print(f"✅ Lote enviado: {protocolo}") guardar_protocolo_para_consulta(protocolo)
+            programar_consulta_resultados(protocolo, delay=180) # 3 minutos return {"status":
+            "success", "protocol": protocolo} elif codigo == "0270": # ERROR - Tamaño excedido
+            print(f"❌ Lote muy grande: {mensaje}") dividir_y_reenviar_lote() return {"status":
+            "error", "reason": "size_exceeded"} elif codigo == "0271": # ERROR - XML inválido
+            print(f"❌ XML inválido: {mensaje}") validar_documentos_individualmente() return
+            {"status": "error", "reason": "invalid_xml"} elif codigo == "0272": # ERROR - Firma
+            inválida print(f"❌ Firma inválida: {mensaje}") verificar_certificados() return
+            {"status": "error", "reason": "invalid_signature"} elif codigo == "0301": # ERROR - No
+            encolado print(f"❌ No encolado: {mensaje}") revisar_validaciones_negocio() return
+            {"status": "error", "reason": "not_queued"} else: # ERROR - Código desconocido print(f"❓
+            Código desconocido: {codigo} - {mensaje}") return {"status": "error", "reason":
+            "unknown_error"} ``` ================================================================
+            ESTRATEGIAS DE RETRY Y RECUPERACIÓN
+            ================================================================ Códigos que permiten
+            retry inmediato: - 0270: Dividir lote y reintentar - 0271: Corregir XML y reintentar -
+            0272: Corregir firmas y reintentar Códigos que requieren análisis: - 0301: Revisar
+            validaciones de negocio Estrategia de retry recomendada: 1. Error 0270: Dividir en 2
+            lotes más pequeños 2. Error 0271: Validar individualmente y excluir inválidos 3. Error
+            0272: Verificar certificados y refirmar 4. Error 0301: Analizar logs detallados y
+            validaciones ================================================================
+            INTEGRACIÓN CON MONITOREO Y LOGGING
+            ================================================================ Información crítica
+            para logs: - Timestamp de envío vs recepción (latencia) - Código de resultado y mensaje
+            - Protocolo de lote (si exitoso) - Tamaño del lote enviado - Cantidad de documentos - ID
+            del lote original Métricas importantes: - Tasa de éxito por código:
+            0300/(0300+0301+0270+...) - Tiempo de respuesta promedio - Distribución de códigos de
+            error - Tamaño promedio de lotes exitosos - Frecuencia de cada tipo de error Alertas
+            recomendadas: - Tasa de error > 5% en ventana de 1 hora - Tiempo de respuesta > 30
+            segundos - Múltiples errores 0270 (lotes muy grandes) - Errores 0272 frecuentes
+            (problemas de certificado) </xs:documentation>
+    </xs:annotation>
+
+</xs:schema>

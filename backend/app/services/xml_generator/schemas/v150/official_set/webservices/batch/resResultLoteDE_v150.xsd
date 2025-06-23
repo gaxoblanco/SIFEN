@@ -1,0 +1,845 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ========================================================================
+    SIFEN Paraguay - Sistema Integrado de Facturación Electrónica Nacional
+    ========================================================================
+    
+    Schema: resResultLoteDE_v150.xsd
+    Versión: 1.50 (Septiembre 2019)
+    
+    Propósito:
+    - Define la estructura de respuesta para consultas de resultados de lotes
+    - Contiene el estado final del procesamiento del lote completo
+    - Incluye resultados individuales de cada documento en el lote
+    - Schema más complejo del sistema de lotes SIFEN
+    
+    Namespace: http://ekuatia.set.gov.py/sifen/xsd
+    Encoding: UTF-8
+    
+    Complejidad:
+    - Información de lote (metadatos generales)
+    - Resultados por documento (1-50 elementos individuales)
+    - Estados múltiples (lote + documentos individuales)
+    - Códigos de error específicos por documento
+    - Protocolos individuales de autorización
+    
+    Estados del Lote:
+    - 0360: En procesamiento (seguir consultando)
+    - 0361: Finalizado con errores (algunos docs rechazados)
+    - 0362: Finalizado exitosamente (todos docs aprobados)
+    
+    Estados de Documentos:
+    - "Aprobado": Documento autorizado (código 0260)
+    - "Aprobado con Observación": Autorizado con observaciones (código 1005)
+    - "Rechazado": Documento no válido (códigos 1000-4999)
+    
+    Uso:
+    - Web Service: /de/ws/consultas/consulta-lote.wsdl
+    - Método: SiResultLoteDE
+    - Tipo: Response (Respuesta de consulta)
+    
+    ========================================================================
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="150">
+
+    <!--
+        ================================================================
+        ELEMENTO RAÍZ - RESPUESTA DE CONSULTA DE RESULTADOS
+        ================================================================
+    -->
+
+    <xs:element name="rResEnviConsLoteDe" type="tResEnviConsLoteDe">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para la respuesta de consulta de resultados de lote.
+                ESTRUCTURA JERÁRQUICA: rResEnviConsLoteDe (Raíz) ├── dFecProc (Timestamp
+                procesamiento) ├── dCodResLot (Código estado lote) ├── dMsgResLot (Mensaje estado
+                lote) └── gResProcLote (0-50) (Resultados individuales) ├── id (CDC documento) ├──
+                dEstRes (Estado documento) ├── dProtAut (opcional) (Protocolo autorización) └──
+                gResProc (Información procesamiento) ├── dCodRes (Código resultado doc) └── dMsgRes
+                (Mensaje resultado doc) CASOS DE USO: 1. LOTE EN PROCESAMIENTO (0360): - dCodResLot
+                = "0360" - dMsgResLot = "Lote en procesamiento" - gResProcLote = VACÍO (sin
+                resultados aún) - Acción: Esperar y consultar nuevamente 2. LOTE PROCESADO
+                EXITOSAMENTE (0362): - dCodResLot = "0362" - dMsgResLot = "Procesamiento finalizado
+                exitosamente" - gResProcLote = 1-50 elementos con TODOS los docs "Aprobado" -
+                Acción: Procesar resultados y finalizar 3. LOTE PROCESADO CON ERRORES (0361): -
+                dCodResLot = "0361" - dMsgResLot = "Procesamiento finalizado con errores" -
+                gResProcLote = 1-50 elementos con ALGUNOS docs "Rechazado" - Acción: Procesar
+                resultados mixtos y manejar errores VALIDACIONES CRÍTICAS: ✅ El número de elementos
+                gResProcLote debe coincidir con documentos enviados ✅ Cada CDC debe corresponderse
+                con un documento del lote original ✅ Estados de documentos deben ser consistentes
+                con código de lote ✅ Protocolos solo presentes en documentos aprobados </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!--
+        ================================================================
+        TIPO PRINCIPAL - ESTRUCTURA COMPLETA DE LA RESPUESTA
+        ================================================================
+    -->
+
+    <xs:complexType name="tResEnviConsLoteDe">
+        <xs:annotation>
+            <xs:documentation> Tipo principal que define la estructura completa de la respuesta.
+                Combina información del lote general con resultados específicos por documento. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Fecha y hora de procesamiento -->
+            <xs:element name="dFecProc" type="tFechaProcesamiento">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora de finalización del procesamiento por SIFEN.
+                        DIFERENCIA CON OTROS TIMESTAMPS: - dFecEnvio (request): Timestamp cliente al
+                        enviar lote - dFecProc (recepción): Timestamp al confirmar recepción -
+                        dFecProc (resultados): Timestamp al finalizar procesamiento ← ESTE
+                        INTERPRETACIÓN POR ESTADO: Estado 0360 (En procesamiento): - Timestamp de la
+                        consulta actual - NO es timestamp de finalización - Se actualiza en cada
+                        consulta Estado 0361/0362 (Finalizado): - Timestamp real de finalización del
+                        procesamiento - Es fijo y no cambia en consultas posteriores - Representa
+                        momento de decisión final sobre documentos CÁLCULOS DE PERFORMANCE: - Tiempo
+                        de procesamiento = dFecProc (aquí) - dFecProc (recepción) - SLA objetivo:
+                        (manos de) 15 minutos para lotes normales - SLA crítico: (mas de) 20 minutos
+                        para lotes complejos Ejemplo: 2024-12-20T14:45:00 (15 minutos después de
+                        recepción exitosa) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de resultado del lote -->
+            <xs:element name="dCodResLot" type="tCodigoResultadoLote">
+                <xs:annotation>
+                    <xs:documentation> Código que indica el estado final del procesamiento del lote.
+                        CÓDIGOS OFICIALES DEL LOTE: 🔄 0360: "Lote en procesamiento" - Descripción:
+                        SIFEN está validando documentos individuales - Tiempo típico: 3-15 minutos
+                        desde recepción - Documentos: Sin procesar aún (gResProcLote vacío) -
+                        Acción: Continuar consultando cada 2-3 minutos - Retry: Hasta 20 minutos
+                        máximo, luego escalar ⚠️ 0361: "Procesamiento finalizado con errores" -
+                        Descripción: Algunos documentos fueron rechazados - Documentos: Mezcla de
+                        "Aprobado" y "Rechazado" - Resultado final: PARCIALMENTE EXITOSO - Acción:
+                        Procesar documentos aprobados y manejar rechazados - Business logic:
+                        Determinar si continuar o cancelar operación ✅ 0362: "Procesamiento
+                        finalizado exitosamente" - Descripción: TODOS los documentos fueron
+                        aprobados - Documentos: Todos con estado "Aprobado" o "Aprobado con
+                        Observación" - Resultado final: COMPLETAMENTE EXITOSO - Acción: Procesar
+                        resultados y confirmar operación completa LÓGICA DE TRANSICIÓN DE ESTADOS:
+                        Envío → 0300 (Recibido) → 0360 (Procesando) → 0361/0362 (Final) ↓ ↓ ↓ ↓
+                        Validación Encolado Procesamiento Resultado inicial exitoso individual final
+                        MANEJO EN APLICACIONES: ```python def procesar_resultado_lote(response):
+                        codigo = response.dCodResLot if codigo == "0360": # SEGUIR CONSULTANDO
+                        return {"status": "processing", "action": "retry"} elif codigo == "0361": #
+                        PROCESAMIENTO MIXTO aprobados = [d for d in response.gResProcLote if
+                        d.dEstRes == "Aprobado"] rechazados = [d for d in response.gResProcLote if
+                        d.dEstRes == "Rechazado"] return { "status": "partial_success", "approved":
+                        len(aprobados), "rejected": len(rechazados), "action":
+                        "process_mixed_results" } elif codigo == "0362": # PROCESAMIENTO EXITOSO
+                        return { "status": "success", "approved": len(response.gResProcLote),
+                        "action": "process_success" } else: # CÓDIGO DESCONOCIDO return {"status":
+                        "unknown", "action": "escalate"} ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Mensaje descriptivo del lote -->
+            <xs:element name="dMsgResLot" type="tMensajeResultadoLote">
+                <xs:annotation>
+                    <xs:documentation> Mensaje descriptivo en español del estado del lote. MENSAJES
+                        ESTÁNDAR POR CÓDIGO: 0360: "Lote en procesamiento" - Alternativas:
+                        "Procesando documentos del lote" - Contexto: Procesamiento asíncrono en
+                        curso 0361: "Procesamiento finalizado con errores" - Alternativas: "Lote
+                        procesado con documentos rechazados" - Contexto: Resultado mixto, requiere
+                        análisis detallado 0362: "Procesamiento finalizado exitosamente" -
+                        Alternativas: "Lote procesado correctamente" - Contexto: Resultado
+                        completamente exitoso MENSAJES CON INFORMACIÓN ADICIONAL: - "Procesamiento
+                        finalizado con errores: 3 de 10 documentos rechazados" - "Lote en
+                        procesamiento: 7 de 10 documentos procesados" - "Procesamiento finalizado
+                        exitosamente: 50 documentos aprobados" USO RECOMENDADO: ✅ Mostrar al usuario
+                        final para contexto ✅ Incluir en logs para debugging humano ✅ Usar para
+                        reportes y dashboards ❌ No usar para lógica condicional (usar dCodResLot) ❌
+                        No parsear programáticamente (formato puede variar) INTERNACIONALIZACIÓN: -
+                        Idioma: Español (Paraguay) - Encoding: UTF-8 - Caracteres especiales:
+                        Permitidos (acentos, ñ) - Longitud: Variable, máximo 500 caracteres </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Resultados individuales por documento -->
+            <xs:element name="gResProcLote" type="tResultadoDocumento"
+                minOccurs="0" maxOccurs="50">
+                <xs:annotation>
+                    <xs:documentation> Resultados individuales de procesamiento para cada documento
+                        del lote. CARDINALIDAD SEGÚN ESTADO: Estado 0360 (En procesamiento): -
+                        minOccurs="0": Sin resultados aún - Elemento no presente o array vacío -
+                        SIFEN aún procesando documentos Estado 0361/0362 (Finalizado): -
+                        minOccurs="1": Al menos un resultado - maxOccurs="50": Máximo 50 documentos
+                        - Debe coincidir con cantidad enviada originalmente ORDEN DE ELEMENTOS: -
+                        Mismo orden que en el lote original enviado - Posición 1 = primer documento
+                        del lote - Posición N = N-ésimo documento del lote - Usar para correlacionar
+                        con envío original CONSISTENCIA DE DATOS: ✅ Cada elemento debe corresponder
+                        a un documento enviado ✅ CDC debe coincidir con el generado originalmente ✅
+                        Total de elementos = total de documentos del lote ✅ No debe haber elementos
+                        duplicados o faltantes INFORMACIÓN POR DOCUMENTO: Cada elemento gResProcLote
+                        contiene: 1. id (CDC): Identificador único del documento 2. dEstRes: Estado
+                        final ("Aprobado", "Rechazado", etc.) 3. dProtAut: Número de autorización
+                        (solo si aprobado) 4. gResProc: Detalles del procesamiento (código y
+                        mensaje) CASOS ESPECIALES: Documento Aprobado: - dEstRes = "Aprobado" -
+                        dProtAut = presente (número de 10 dígitos) - gResProc.dCodRes = "0260" -
+                        gResProc.dMsgRes = "Autorización del DE satisfactoria" Documento con
+                        Observación: - dEstRes = "Aprobado con Observación" - dProtAut = presente
+                        (documento autorizado) - gResProc.dCodRes = "1005" (transmisión
+                        extemporánea) - gResProc.dMsgRes = "Transmisión extemporánea del DE"
+                        Documento Rechazado: - dEstRes = "Rechazado" - dProtAut = ausente (no hay
+                        autorización) - gResProc.dCodRes = códigos 1000-4999 - gResProc.dMsgRes =
+                        descripción específica del error PROCESAMIENTO EN APLICACIONES: ```python
+                        def procesar_documentos_individuales(resultados): estadisticas = {
+                        "aprobados": 0, "aprobados_observacion": 0, "rechazados": 0, "protocolos":
+                        [], "errores": [] } for doc in resultados: cdc = doc.id estado = doc.dEstRes
+                        protocolo = getattr(doc, 'dProtAut', None) codigo = doc.gResProc.dCodRes
+                        mensaje = doc.gResProc.dMsgRes if estado == "Aprobado":
+                        estadisticas["aprobados"] += 1 estadisticas["protocolos"].append(protocolo)
+                        elif estado == "Aprobado con Observación":
+                        estadisticas["aprobados_observacion"] += 1
+                        estadisticas["protocolos"].append(protocolo) elif estado == "Rechazado":
+                        estadisticas["rechazados"] += 1 estadisticas["errores"].append({ "cdc": cdc,
+                        "codigo": codigo, "mensaje": mensaje }) return estadisticas ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!--
+        ================================================================
+        RESULTADO INDIVIDUAL POR DOCUMENTO
+        ================================================================
+    -->
+
+    <xs:complexType name="tResultadoDocumento">
+        <xs:annotation>
+            <xs:documentation> Resultado individual del procesamiento de un documento electrónico.
+                Contiene toda la información necesaria para determinar el estado final de cada
+                documento. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- CDC del documento -->
+            <xs:element name="id" type="tCDCDocumento">
+                <xs:annotation>
+                    <xs:documentation> Código de Control del Documento (CDC) de 44 dígitos. FORMATO
+                        Y ESTRUCTURA DEL CDC: Posiciones 1-8: RUC del emisor (sin DV) Posición 9:
+                        Dígito verificador del RUC Posiciones 10-12: Código del establecimiento
+                        Posiciones 13-15: Código del punto de expedición Posiciones 16-18: Número de
+                        timbrado Posiciones 19-25: Número del documento Posición 26: Tipo de
+                        documento electrónico Posiciones 27-30: Fecha de emisión (AAAA) Posiciones
+                        31-32: Fecha de emisión (MM) Posiciones 33-34: Fecha de emisión (DD)
+                        Posiciones 35-36: Tipo de emisión Posiciones 37-44: Código de seguridad
+                        VALIDACIONES DEL CDC: ✅ Exactamente 44 dígitos numéricos ✅ Sin espacios,
+                        guiones o caracteres especiales ✅ Algoritmo de generación válido ✅ RUC
+                        emisor válido (posiciones 1-9) ✅ Fecha válida (posiciones 27-34) ✅ Tipo de
+                        documento válido (posición 26) CORRELACIÓN CON LOTE ORIGINAL: - Debe
+                        coincidir exactamente con CDC del documento enviado - Usado para identificar
+                        documento específico dentro del lote - Mantener orden para correlacionar con
+                        posición en lote - Verificar que no haya CDCs duplicados o faltantes CASOS
+                        DE USO: 1. Correlación: Asociar resultado con documento original 2.
+                        Auditoría: Trazabilidad completa del procesamiento 3. Reenvío: Identificar
+                        documentos rechazados para corrección 4. Reportes: Análisis de éxito/falla
+                        por documento 5. Integración: Actualizar estados en sistemas internos MANEJO
+                        DE ERRORES: - CDC no reconocido: Verificar envío original - CDC duplicado:
+                        Error en generación, revisar algoritmo - CDC faltante: Verificar integridad
+                        del lote Ejemplo: 12345678901200100000001100120241220010001 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Estado del resultado -->
+            <xs:element name="dEstRes" type="tEstadoResultado">
+                <xs:annotation>
+                    <xs:documentation> Estado final del procesamiento del documento individual.
+                        ESTADOS OFICIALES SEGÚN SIFEN: ✅ "Aprobado" - Documento completamente válido
+                        y autorizado - Código asociado: 0260 (Autorización del DE satisfactoria) -
+                        Protocolo: Presente (dProtAut con 10 dígitos) - Acción: Documento válido
+                        para uso comercial/legal - Efectos: Válido para deducción fiscal, archivo,
+                        etc. ⚠️ "Aprobado con Observación" - Documento autorizado pero con
+                        advertencias menores - Código típico: 1005 (Transmisión extemporánea del DE)
+                        - Protocolo: Presente (documento autorizado) - Observaciones comunes: *
+                        Enviado fuera del plazo de 72 horas * Problemas menores de formato (no
+                        críticos) * Advertencias sobre datos opcionales - Acción: Documento válido,
+                        revisar observaciones ❌ "Rechazado" - Documento no válido, no autorizado -
+                        Códigos: 1000-4999 (diversos errores) - Protocolo: Ausente (sin dProtAut) -
+                        Errores comunes: * 1000: CDC no correspondiente con XML * 1001: CDC
+                        duplicado * 1002: Error en datos obligatorios * 2xxx: Errores de validación
+                        de negocio * 3xxx: Errores de cálculos matemáticos * 4xxx: Errores de
+                        códigos de catálogo - Acción: Corregir errores y reenviar ESTADOS
+                        ADICIONALES (según contexto): 🚫 "Cancelado" - Documento cancelado por
+                        evento posterior - Requiere procesamiento de evento de cancelación - No
+                        típico en respuestas de lote inicial ⚪ "Anulado" - Documento anulado por
+                        evento posterior - Requiere procesamiento de evento de anulación - No típico
+                        en respuestas de lote inicial DISTRIBUCIÓN ESTADÍSTICA TÍPICA: - Aprobado:
+                        85-95% (operación normal) - Aprobado con Observación: 2-5% (principalmente
+                        extemporáneos) - Rechazado: 5-10% (errores diversos) LÓGICA DE NEGOCIO POR
+                        ESTADO: ```python def procesar_estado_documento(estado, codigo, protocolo):
+                        if estado == "Aprobado": # Documento completamente válido return { "valido":
+                        True, "autorizado": True, "protocolo": protocolo, "accion":
+                        "archivar_y_usar" } elif estado == "Aprobado con Observación": # Válido pero
+                        con advertencias return { "valido": True, "autorizado": True, "protocolo":
+                        protocolo, "accion": "revisar_observaciones" } elif estado == "Rechazado": #
+                        No válido, requiere corrección return { "valido": False, "autorizado":
+                        False, "protocolo": None, "accion": "corregir_y_reenviar" } ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Protocolo de autorización (opcional) -->
+            <xs:element name="dProtAut" type="tProtocoloAutorizacion" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Número de protocolo de autorización del documento individual.
+                        PRESENCIA SEGÚN ESTADO: ✅ PRESENTE cuando dEstRes = "Aprobado" ✅ PRESENTE
+                        cuando dEstRes = "Aprobado con Observación" ❌ AUSENTE cuando dEstRes =
+                        "Rechazado" ❌ AUSENTE cuando dEstRes = "Cancelado" o "Anulado"
+                        CARACTERÍSTICAS DEL PROTOCOLO: - Formato: 10 dígitos numéricos exactos -
+                        Único a nivel nacional por SIFEN - Inmutable durante vida del documento -
+                        Referencia oficial para el documento autorizado ESTRUCTURA (informativa):
+                        Posiciones 1-4: Año de autorización Posiciones 5-7: Día del año (001-366)
+                        Posiciones 8-10: Secuencial del día Ejemplo: 2024355001 - 2024: Año 2024 -
+                        355: Día 355 del año (21 de diciembre) - 001: Primer documento del día USOS
+                        DEL PROTOCOLO: 1. **Referencia legal**: Número oficial del documento 2.
+                        **Auditoría**: Trazabilidad en sistemas SET 3. **Consultas**: Buscar
+                        documento específico 4. **Impresión**: Incluir en representación gráfica 5.
+                        **Archivo**: Identificador para gestión documental 6. **Integración**:
+                        Sincronizar con sistemas ERP/contables VALIDACIONES CRÍTICAS: ✅ Solo
+                        presente en documentos aprobados ✅ Exactamente 10 dígitos numéricos ✅ No
+                        puede ser todo ceros: 0000000000 ✅ Debe ser único por documento ✅ Inmutable
+                        una vez asignado ALGORITMO DE VALIDACIÓN: ```python def
+                        validar_protocolo_autorizacion(protocolo, estado): if estado in ["Aprobado",
+                        "Aprobado con Observación"]: if not protocolo: raise ValueError("Protocolo
+                        requerido para documento aprobado") if len(protocolo) != 10: raise
+                        ValueError("Protocolo debe tener 10 dígitos") if not protocolo.isdigit():
+                        raise ValueError("Protocolo debe ser numérico") if protocolo ==
+                        "0000000000": raise ValueError("Protocolo no puede ser todo ceros") elif
+                        estado == "Rechazado": if protocolo: raise ValueError("Protocolo no debe
+                        estar presente en documento rechazado") return True ``` INTEGRACIÓN CON
+                        SISTEMAS: - Almacenar como string (no como número) - Indexar para búsquedas
+                        rápidas - Incluir en logs de transacciones - Referenciar en facturas
+                        impresas - Usar para consultas de estado </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Información de procesamiento -->
+            <xs:element name="gResProc" type="tInformacionProcesamiento">
+                <xs:annotation>
+                    <xs:documentation> Información detallada del procesamiento del documento
+                        individual. CONTENIDO: - dCodRes: Código específico del resultado del
+                        documento - dMsgRes: Mensaje descriptivo del resultado DIFERENCIA CON
+                        INFORMACIÓN DEL LOTE: - Lote: dCodResLot (estado general del lote) -
+                        Documento: dCodRes (estado específico del documento) RELACIÓN CON ESTADO: -
+                        dEstRes = interpretación legible ("Aprobado", "Rechazado") - dCodRes =
+                        código técnico específico (0260, 1005, etc.) - dMsgRes = explicación
+                        detallada técnica USO RECOMENDADO: - dEstRes: Para lógica de negocio y UI -
+                        dCodRes: Para manejo de errores específicos - dMsgRes: Para logs técnicos y
+                        debugging </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!--
+        ================================================================
+        INFORMACIÓN DETALLADA DE PROCESAMIENTO
+        ================================================================
+    -->
+
+    <xs:complexType name="tInformacionProcesamiento">
+        <xs:annotation>
+            <xs:documentation> Información técnica detallada del procesamiento de cada documento.
+                Complementa el estado general con códigos y mensajes específicos. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Código de resultado específico -->
+            <xs:element name="dCodRes" type="tCodigoResultadoDocumento">
+                <xs:annotation>
+                    <xs:documentation> Código técnico específico del resultado del procesamiento del
+                        documento. CÓDIGOS DE DOCUMENTOS APROBADOS: ✅ 0260: "Autorización del DE
+                        satisfactoria" - Estado: "Aprobado" - Descripción: Documento completamente
+                        válido - Protocolo: Presente - Frecuencia: 85-90% de documentos - Acción:
+                        Ninguna, documento listo para uso CÓDIGOS DE DOCUMENTOS APROBADOS CON
+                        OBSERVACIÓN: ⚠️ 1005: "Transmisión extemporánea del DE" - Estado: "Aprobado
+                        con Observación" - Descripción: Enviado después de 72 horas de emisión -
+                        Protocolo: Presente (documento autorizado) - Límite: Hasta 720 horas (30
+                        días) después de emisión - Acción: Revisar procesos para envío oportuno
+                        CÓDIGOS DE DOCUMENTOS RECHAZADOS (1000-4999): ERRORES DE ESTRUCTURA Y CDC
+                        (1000-1099): ❌ 1000: "CDC no correspondiente con XML" - Causa: CDC calculado
+                        incorrectamente - Solución: Verificar algoritmo de generación de CDC ❌ 1001:
+                        "CDC duplicado" - Causa: Documento con CDC ya procesado anteriormente -
+                        Solución: Verificar unicidad y secuencia de documentos ❌ 1002: "Error en
+                        datos obligatorios" - Causa: Campos requeridos faltantes o inválidos -
+                        Solución: Revisar completitud de datos obligatorios ERRORES DE VALIDACIÓN DE
+                        NEGOCIO (2000-2999): ❌ 2001: "RUC del emisor no autorizado para emisión" -
+                        Causa: RUC no habilitado para documentos electrónicos - Solución: Verificar
+                        habilitación en SET ❌ 2002: "Timbrado inválido o vencido" - Causa: Timbrado
+                        no vigente en fecha de emisión - Solución: Solicitar nuevo timbrado en SET ❌
+                        2003: "Numeración fuera de secuencia" - Causa: Número de documento no
+                        consecutivo - Solución: Verificar secuencia de numeración ERRORES DE
+                        CÁLCULOS (3000-3999): ❌ 3001: "Error en cálculo de totales" - Causa: Suma de
+                        ítems no coincide con total declarado - Solución: Verificar fórmulas de
+                        cálculo ❌ 3002: "Error en cálculo de IVA" - Causa: IVA calculado
+                        incorrectamente - Solución: Revisar aplicación de alícuotas de IVA ERRORES
+                        DE CÓDIGOS DE CATÁLOGO (4000-4999): ❌ 4001: "Código de moneda inválido" -
+                        Causa: Moneda no reconocida por sistema - Solución: Usar códigos ISO 4217
+                        válidos ❌ 4002: "Código de tipo de documento inválido" - Causa: Tipo de
+                        documento no válido - Solución: Verificar catálogo de tipos de documento
+                        ESTRATEGIA DE MANEJO POR RANGO: ```python def
+                        manejar_codigo_resultado(codigo): codigo_num = int(codigo) if codigo ==
+                        "0260": return {"tipo": "exito", "accion": "continuar"} elif 1000 (mayor
+                        igual) codigo_num (mayor igual) 1099: return {"tipo": "error_estructura",
+                        "accion": "corregir_formato"} elif 2000 (mayor igual) codigo_num (mayor
+                        igual) 2999: return {"tipo": "error_negocio", "accion":
+                        "revisar_habilitacion"} elif 3000 (mayor igual) codigo_num (mayor igual)
+                        3999: return {"tipo": "error_calculo", "accion": "verificar_matematicas"}
+                        elif 4000 (mayor igual) codigo_num (mayor igual) 4999: return {"tipo":
+                        "error_catalogo", "accion": "verificar_codigos"} else: return {"tipo":
+                        "error_desconocido", "accion": "escalar_soporte"} ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Mensaje descriptivo del resultado -->
+            <xs:element name="dMsgRes" type="tMensajeResultadoDocumento">
+                <xs:annotation>
+                    <xs:documentation> Mensaje descriptivo técnico del resultado del procesamiento.
+                        CARACTERÍSTICAS: - Idioma: Español (Paraguay) - Nivel: Técnico (para
+                        desarrolladores y sistemas) - Detalle: Específico del error o resultado -
+                        Longitud: Variable, máximo 500 caracteres EJEMPLOS POR TIPO DE RESULTADO:
+                        MENSAJES DE ÉXITO: ✅ "Autorización del DE satisfactoria" ✅ "Documento
+                        electrónico autorizado correctamente" MENSAJES DE OBSERVACIÓN: ⚠️
+                        "Transmisión extemporánea del DE" ⚠️ "Documento enviado fuera del plazo
+                        establecido" MENSAJES DE ERROR ESPECÍFICOS: ❌ "CDC no correspondiente con
+                        XML" ❌ "El CDC calculado no coincide con el contenido del documento" ❌
+                        "Campo dRucEmi es obligatorio y no está presente" ❌ "Timbrado número
+                        12345678 vencido el 2024-01-15" ❌ "Total general calculado: 110000,
+                        declarado: 100000" ❌ "IVA 10% sobre 100000 debe ser 10000, encontrado 9000"
+                        MENSAJES CON CONTEXTO ADICIONAL: - "Error en ítem 3: código de producto
+                        inválido 'ABC123'" - "RUC emisor 12345678-9 no habilitado para facturación
+                        electrónica" - "Documento número 0000001 ya fue procesado el 2024-12-15" USO
+                        EN APLICACIONES: PARA DESARROLLADORES: ✅ Incluir en logs técnicos ✅ Mostrar
+                        en consolas de debugging ✅ Usar para análisis de causas raíz ✅ Incluir en
+                        reportes de errores PARA USUARIOS FINALES: ⚠️ Puede ser muy técnico para
+                        usuarios no técnicos ⚠️ Traducir a lenguaje más amigable si es necesario ⚠️
+                        Complementar con guías de solución PARSING Y ANÁLISIS: ❌ No parsear
+                        programáticamente (formato puede cambiar) ❌ No usar para lógica condicional
+                        ✅ Usar dCodRes para decisiones programáticas ✅ Usar dMsgRes para información
+                        contextual EJEMPLO DE PROCESAMIENTO: ```python def
+                        procesar_mensaje_error(codigo, mensaje): # Usar código para lógica if codigo
+                        == "3001": return { "categoria": "error_calculo", "severidad": "alta",
+                        "accion_recomendada": "revisar_totales" } # Usar mensaje para contexto
+                        humano return { "mensaje_tecnico": mensaje, "mensaje_usuario":
+                        traducir_a_lenguaje_amigable(mensaje), "documentacion":
+                        obtener_link_ayuda(codigo) } ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!--
+        ================================================================
+        TIPOS BÁSICOS Y RESTRICCIONES
+        ================================================================
+    -->
+
+    <!-- Fecha y hora de procesamiento final -->
+    <xs:simpleType name="tFechaProcesamiento">
+        <xs:annotation>
+            <xs:documentation> Timestamp de finalización del procesamiento del lote por SIFEN.
+                INTERPRETACIÓN SEGÚN ESTADO DEL LOTE: Estado 0360 (En procesamiento): - Representa
+                timestamp de la consulta actual - Se actualiza en cada consulta mientras procesa -
+                NO es el timestamp final de procesamiento Estado 0361/0362 (Finalizado): -
+                Representa timestamp real de finalización - Es fijo y no cambia en consultas
+                posteriores - Marca el momento de decisión final sobre todos los documentos ZONA
+                HORARIA: - Paraguay: América/Asuncion - Horario estándar: UTC-3 - Horario de verano:
+                UTC-4 (cuando aplique) SLA Y PERFORMANCE: - Objetivo: (mayor) 15 minutos desde
+                recepción - Crítico: (mayor) 20 minutos para lotes complejos - Timeout: (menor) 30
+                minutos requiere escalación </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:dateTime" />
+    </xs:simpleType>
+
+    <!-- Código de resultado del lote -->
+    <xs:simpleType name="tCodigoResultadoLote">
+        <xs:annotation>
+            <xs:documentation> Código de 4 dígitos que indica el estado del procesamiento del lote
+                completo. PATRÓN: 036x para procesamiento de lotes - 0360: En procesamiento - 0361:
+                Finalizado con errores - 0362: Finalizado exitosamente VALIDACIÓN: - Exactamente 4
+                dígitos numéricos - Rango válido: 0360-0362 para lotes - Otros códigos pueden
+                indicar errores sistémicos </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{4}">
+                <xs:annotation>
+                    <xs:documentation>4 dígitos numéricos exactos</xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Mensaje de resultado del lote -->
+    <xs:simpleType name="tMensajeResultadoLote">
+        <xs:annotation>
+            <xs:documentation> Mensaje descriptivo del estado del lote en español. Máximo 500
+                caracteres, preservando espacios en blanco. </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="500" />
+            <xs:whiteSpace value="preserve" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- CDC del documento -->
+    <xs:simpleType name="tCDCDocumento">
+        <xs:annotation>
+            <xs:documentation> Código de Control del Documento de exactamente 44 dígitos numéricos.
+                VALIDACIÓN ESTRICTA: - Exactamente 44 caracteres - Solo dígitos numéricos (0-9) -
+                Sin espacios, guiones o caracteres especiales - Debe coincidir con CDC del documento
+                original del lote ALGORITMO DE VALIDACIÓN: ```python def validar_cdc(cdc): if
+                len(cdc) != 44: raise ValueError("CDC debe tener exactamente 44 dígitos") if not
+                cdc.isdigit(): raise ValueError("CDC debe contener solo dígitos") # Validaciones
+                adicionales del algoritmo CDC return validar_algoritmo_cdc_completo(cdc) ``` </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{44}">
+                <xs:annotation>
+                    <xs:documentation>Exactamente 44 dígitos numéricos consecutivos</xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Estado del resultado del documento -->
+    <xs:simpleType name="tEstadoResultado">
+        <xs:annotation>
+            <xs:documentation> Estado final del procesamiento del documento individual. VALORES
+                PERMITIDOS: - "Aprobado": Documento completamente válido - "Aprobado con
+                Observación": Válido pero con advertencias - "Rechazado": No válido, requiere
+                corrección VALORES ADICIONALES (contextos especiales): - "Cancelado": Cancelado por
+                evento posterior - "Anulado": Anulado por evento posterior NOTA: Estados "Cancelado"
+                y "Anulado" son poco comunes en respuestas de lotes iniciales, más típicos en
+                consultas de documentos procesados anteriormente. </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Aprobado">
+                <xs:annotation>
+                    <xs:documentation>Documento completamente válido y autorizado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Aprobado con Observación">
+                <xs:annotation>
+                    <xs:documentation>Documento autorizado pero con observaciones menores</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Rechazado">
+                <xs:annotation>
+                    <xs:documentation>Documento no válido, no autorizado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Cancelado">
+                <xs:annotation>
+                    <xs:documentation>Documento cancelado por evento posterior</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Anulado">
+                <xs:annotation>
+                    <xs:documentation>Documento anulado por evento posterior</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Protocolo de autorización -->
+    <xs:simpleType name="tProtocoloAutorizacion">
+        <xs:annotation>
+            <xs:documentation> Número de protocolo de autorización de exactamente 10 dígitos.
+                CARACTERÍSTICAS: - Solo presente en documentos aprobados - Único a nivel nacional
+                por SIFEN - Inmutable una vez asignado - Referencia oficial del documento autorizado
+                ESTRUCTURA (informativa): AAAADDDSSS donde: - AAAA: Año (4 dígitos) - DDD: Día del
+                año 001-366 (3 dígitos) - SSS: Secuencial del día (3 dígitos) VALIDACIÓN: -
+                Exactamente 10 dígitos numéricos - No puede ser todo ceros: 0000000000 - Solo
+                almacenar como string (evitar overflow numérico) </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{10}">
+                <xs:annotation>
+                    <xs:documentation>Exactamente 10 dígitos numéricos</xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Código de resultado del documento -->
+    <xs:simpleType name="tCodigoResultadoDocumento">
+        <xs:annotation>
+            <xs:documentation> Código técnico específico del resultado del documento individual.
+                RANGOS DE CÓDIGOS: - 0260: Aprobación exitosa - 1000-1999: Errores de estructura y
+                formato - 2000-2999: Errores de validación de negocio - 3000-3999: Errores de
+                cálculos matemáticos - 4000-4999: Errores de códigos de catálogo - 5000+: Errores de
+                sistema PATRÓN: 4 dígitos numéricos exactos </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{4}">
+                <xs:annotation>
+                    <xs:documentation>4 dígitos numéricos exactos</xs:documentation>
+                </xs:annotation>
+            </xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Mensaje de resultado del documento -->
+    <xs:simpleType name="tMensajeResultadoDocumento">
+        <xs:annotation>
+            <xs:documentation> Mensaje descriptivo técnico del resultado del documento. Máximo 500
+                caracteres en español, con espacios preservados. Puede incluir información
+                específica del error o contexto adicional. </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="500" />
+            <xs:whiteSpace value="preserve" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!--
+        ================================================================
+        DOCUMENTACIÓN ADICIONAL - EJEMPLOS COMPLETOS
+        ================================================================
+    -->
+
+    <xs:annotation>
+        <xs:documentation> ================================================================ EJEMPLOS
+            COMPLETOS DE RESPUESTAS POR ESCENARIO
+            ================================================================ ESCENARIO 1: Lote en
+            procesamiento (sin resultados aún)
+            ====================================================== <rResEnviConsLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dFecProc>2024-12-20T14:45:00</dFecProc>
+                <dCodResLot>0360</dCodResLot>
+                <dMsgResLot>Lote en procesamiento</dMsgResLot>
+                <!-- Sin elementos gResProcLote -->
+            </rResEnviConsLoteDe> ➤
+            Acción: Esperar 2-3 minutos y consultar nuevamente ESCENARIO 2: Lote procesado
+            exitosamente (todos aprobados) ========================================================= <rResEnviConsLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dFecProc>2024-12-20T14:50:00</dFecProc>
+                <dCodResLot>0362</dCodResLot>
+                <dMsgResLot>Procesamiento finalizado exitosamente</dMsgResLot>
+
+                <!-- Documento 1: Aprobado -->
+                <gResProcLote>
+                    <id>12345678901200100000001100120241220010001</id>
+                    <dEstRes>Aprobado</dEstRes>
+                    <dProtAut>2024355001</dProtAut>
+                    <gResProc>
+                        <dCodRes>0260</dCodRes>
+                        <dMsgRes>Autorización del DE satisfactoria</dMsgRes>
+                    </gResProc>
+                </gResProcLote>
+
+                <!-- Documento 2: Aprobado -->
+                <gResProcLote>
+                    <id>12345678901200100000002100120241220010002</id>
+                    <dEstRes>Aprobado</dEstRes>
+                    <dProtAut>2024355002</dProtAut>
+                    <gResProc>
+                        <dCodRes>0260</dCodRes>
+                        <dMsgRes>Autorización del DE satisfactoria</dMsgRes>
+                    </gResProc>
+                </gResProcLote>
+
+            </rResEnviConsLoteDe>
+            ➤ Acción: Todos los documentos aprobados, procesar éxito completo ESCENARIO 3: Lote con
+            resultados mixtos (algunos rechazados)
+            =========================================================== <rResEnviConsLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dFecProc>2024-12-20T14:52:00</dFecProc>
+                <dCodResLot>0361</dCodResLot>
+                <dMsgResLot>Procesamiento finalizado con errores</dMsgResLot>
+
+                <!-- Documento 1: Aprobado -->
+                <gResProcLote>
+                    <id>12345678901200100000001100120241220010001</id>
+                    <dEstRes>Aprobado</dEstRes>
+                    <dProtAut>2024355001</dProtAut>
+                    <gResProc>
+                        <dCodRes>0260</dCodRes>
+                        <dMsgRes>Autorización del DE satisfactoria</dMsgRes>
+                    </gResProc>
+                </gResProcLote>
+
+                <!-- Documento 2: Aprobado con Observación -->
+                <gResProcLote>
+                    <id>12345678901200100000002100120241218010002</id>
+                    <dEstRes>Aprobado con Observación</dEstRes>
+                    <dProtAut>2024355002</dProtAut>
+                    <gResProc>
+                        <dCodRes>1005</dCodRes>
+                        <dMsgRes>Transmisión extemporánea del DE</dMsgRes>
+                    </gResProc>
+                </gResProcLote>
+
+                <!-- Documento 3: Rechazado -->
+                <gResProcLote>
+                    <id>12345678901200100000003100120241220010003</id>
+                    <dEstRes>Rechazado</dEstRes>
+                    <!-- Sin dProtAut -->
+                    <gResProc>
+                        <dCodRes>1001</dCodRes>
+                        <dMsgRes>CDC duplicado</dMsgRes>
+                    </gResProc>
+                </gResProcLote>
+
+                <!-- Documento 4: Rechazado -->
+                <gResProcLote>
+                    <id>12345678901200100000004100120241220010004</id>
+                    <dEstRes>Rechazado</dEstRes>
+                    <!-- Sin dProtAut -->
+                    <gResProc>
+                        <dCodRes>3001</dCodRes>
+                        <dMsgRes>Error en cálculo de totales</dMsgRes>
+                    </gResProc>
+                </gResProcLote>
+
+            </rResEnviConsLoteDe>
+            ➤ Resultado: 1 aprobado, 1 aprobado con observación, 2 rechazados ➤ Acción: Procesar
+            aprobados, corregir y reenviar rechazados
+            ================================================================ ALGORITMO COMPLETO DE
+            PROCESAMIENTO ================================================================ ```python
+            def procesar_respuesta_completa_lote(response): \"\"\" Procesamiento completo de
+            respuesta de consulta de lote \"\"\" resultado = { "estado_lote": response.dCodResLot,
+            "mensaje_lote": response.dMsgResLot, "fecha_procesamiento": response.dFecProc,
+            "estadisticas": { "total": 0, "aprobados": 0, "aprobados_observacion": 0, "rechazados":
+            0 }, "documentos": { "aprobados": [], "observaciones": [], "rechazados": [] },
+            "acciones_requeridas": [] } # Verificar estado del lote if response.dCodResLot ==
+            "0360": resultado["acciones_requeridas"].append({ "tipo": "esperar", "descripcion":
+            "Lote aún en procesamiento", "siguiente_consulta": "2-3 minutos" }) return resultado #
+            Procesar documentos individuales if hasattr(response, 'gResProcLote'): for doc in
+            response.gResProcLote: doc_info = { "cdc": doc.id, "estado": doc.dEstRes, "codigo":
+            doc.gResProc.dCodRes, "mensaje": doc.gResProc.dMsgRes, "protocolo": getattr(doc,
+            'dProtAut', None) } resultado["estadisticas"]["total"] += 1 if doc.dEstRes ==
+            "Aprobado": resultado["estadisticas"]["aprobados"] += 1
+            resultado["documentos"]["aprobados"].append(doc_info) elif doc.dEstRes == "Aprobado con
+            Observación": resultado["estadisticas"]["aprobados_observacion"] += 1
+            resultado["documentos"]["observaciones"].append(doc_info)
+            resultado["acciones_requeridas"].append({ "tipo": "revisar_observacion", "documento":
+            doc.id, "descripcion": doc.gResProc.dMsgRes }) elif doc.dEstRes == "Rechazado":
+            resultado["estadisticas"]["rechazados"] += 1
+            resultado["documentos"]["rechazados"].append(doc_info)
+            resultado["acciones_requeridas"].append({ "tipo": "corregir_documento", "documento":
+            doc.id, "error": doc.gResProc.dMsgRes, "codigo_error": doc.gResProc.dCodRes }) #
+            Determinar estado final del procesamiento if resultado["estadisticas"]["rechazados"] ==
+            0: resultado["resultado_final"] = "exito_completo" elif
+            resultado["estadisticas"]["aprobados"] > 0: resultado["resultado_final"] =
+            "exito_parcial" else: resultado["resultado_final"] = "fallo_completo" return resultado
+            def generar_reporte_lote(resultado): \"\"\" Generar reporte ejecutivo del procesamiento
+            del lote \"\"\" total = resultado["estadisticas"]["total"] aprobados =
+            resultado["estadisticas"]["aprobados"] observaciones =
+            resultado["estadisticas"]["aprobados_observacion"] rechazados =
+            resultado["estadisticas"]["rechazados"] if total == 0: return "Lote aún en
+            procesamiento" tasa_exito = ((aprobados + observaciones) / total) * 100 reporte =
+            f\"\"\" REPORTE DE PROCESAMIENTO DE LOTE =============================== Estado del
+            lote: {resultado["estado_lote"]} Fecha de procesamiento:
+            {resultado["fecha_procesamiento"]} ESTADÍSTICAS: - Total de documentos: {total} -
+            Aprobados: {aprobados} ({(aprobados/total)*100:.1f}%) - Aprobados con observación:
+            {observaciones} ({(observaciones/total)*100:.1f}%) - Rechazados: {rechazados}
+            ({(rechazados/total)*100:.1f}%) - Tasa de éxito: {tasa_exito:.1f}% RESULTADO FINAL:
+            {resultado["resultado_final"].upper()} ACCIONES PENDIENTES:
+            {len(resultado["acciones_requeridas"])} \"\"\" return reporte ```
+            ================================================================ MEJORES PRÁCTICAS PARA
+            IMPLEMENTACIÓN ================================================================ 1.
+            MANEJO DE ESTADOS: - Implementar máquina de estados para tracking - Usar enum para
+            estados bien definidos - Validar transiciones válidas de estados 2. PERSISTENCIA: -
+            Almacenar todos los resultados para auditoría - Indexar por CDC para búsquedas rápidas -
+            Mantener histórico de consultas 3. MONITOREO: - Alertas para lotes que tardan > 20
+            minutos - Métricas de tasa de éxito por período - Dashboard con estado en tiempo real 4.
+            RECOVERY: - Implementar retry logic para consultas fallidas - Manejar timeouts y
+            reconexiones automáticas - Backup de datos críticos antes de reenvíos 5. INTEGRACIÓN: -
+            Mapear códigos SIFEN a estados internos - Sincronizar con sistemas ERP/contables -
+            Notificaciones automáticas a usuarios finales 6. TESTING: - Mock responses para
+            diferentes escenarios - Tests de carga con lotes de 50 documentos - Validación de todos
+            los códigos de error ================================================================
+            CÓDIGOS DE ERROR DETALLADOS Y SOLUCIONES
+            ================================================================ ERRORES DE ESTRUCTURA
+            (1000-1099): 1000: "CDC no correspondiente con XML" ➤ Causa: Algoritmo de CDC incorrecto
+            ➤ Solución: Verificar implementación del algoritmo de CDC ➤ Verificar: RUC,
+            establecimiento, punto expedición, número doc 1001: "CDC duplicado" ➤ Causa: Documento
+            ya procesado anteriormente ➤ Solución: Verificar base de datos de documentos enviados ➤
+            Verificar: Secuencia de numeración única 1002: "Error en datos obligatorios" ➤ Causa:
+            Campos requeridos faltantes o formato incorrecto ➤ Solución: Validar contra schema
+            DE_v150.xsd ➤ Verificar: Completitud de todos los campos obligatorios ERRORES DE NEGOCIO
+            (2000-2999): 2001: "RUC del emisor no autorizado para emisión" ➤ Causa: RUC no
+            habilitado para documentos electrónicos ➤ Solución: Solicitar habilitación en SET ➤
+            Verificar: Estado del RUC en portal ekuatia.set.gov.py 2002: "Timbrado inválido o
+            vencido" ➤ Causa: Timbrado no vigente en fecha de emisión ➤ Solución: Solicitar nuevo
+            timbrado válido ➤ Verificar: Fechas de vigencia del timbrado 2003: "Numeración fuera de
+            secuencia" ➤ Causa: Salto en numeración de documentos ➤ Solución: Verificar secuencia
+            consecutiva ➤ Verificar: Último número enviado vs actual ERRORES DE CÁLCULO (3000-3999):
+            3001: "Error en cálculo de totales" ➤ Causa: Suma de ítems ≠ total declarado ➤ Solución:
+            Verificar fórmulas de cálculo ➤ Verificar: Suma de (cantidad × precio) por ítem 3002:
+            "Error en cálculo de IVA" ➤ Causa: IVA calculado incorrectamente ➤ Solución: Revisar
+            aplicación de alícuotas ➤ Verificar: 10% sobre gravado, 5% sobre mínimo ERRORES DE
+            CATÁLOGO (4000-4999): 4001: "Código de moneda inválido" ➤ Causa: Moneda no reconocida ➤
+            Solución: Usar códigos ISO 4217 válidos ➤ Verificar: PYG (600), USD (840), EUR (978)
+            4002: "Código de tipo de documento inválido" ➤ Causa: Tipo no válido en catálogo SET ➤
+            Solución: Verificar catálogo oficial ➤ Verificar: 1=FE, 4=AFE, 5=NCE, 6=NDE, 7=NRE
+            ================================================================ PERFORMANCE Y
+            OPTIMIZACIÓN ================================================================ MÉTRICAS
+            CLAVE: - Tiempo de procesamiento promedio: (mayor) 10 minutos - Tasa de éxito de lotes:
+            (menor) 95% - Tiempo de respuesta de consultas: (mayor) 5 segundos - Disponibilidad del
+            servicio: (menor) 99.5% OPTIMIZACIONES RECOMENDADAS: 1. CACHING INTELIGENTE: ```python #
+            Cache de resultados finales (inmutable) cache_resultados_finales = {} def
+            consultar_con_cache(protocolo_lote): if protocolo_lote in cache_resultados_finales:
+            return cache_resultados_finales[protocolo_lote] resultado =
+            consultar_sifen(protocolo_lote) # Solo cachear resultados finales if
+            resultado.dCodResLot in ["0361", "0362"]: cache_resultados_finales[protocolo_lote] =
+            resultado return resultado ``` 2. POOLING DE CONEXIONES: ```python # Pool de conexiones
+            para consultas concurrentes connection_pool = ConnectionPool( max_connections=10,
+            timeout=30, retry_policy=ExponentialBackoff() ) ``` 3. CONSULTAS BATCH: ```python #
+            Consultar múltiples lotes en paralelo async def consultar_lotes_paralelo(protocolos):
+            tasks = [consultar_lote_async(p) for p in protocolos] return await
+            asyncio.gather(*tasks) ``` 4. RATE LIMITING: ```python # Limitar consultas para evitar
+            sobrecarga rate_limiter = RateLimiter( max_requests=60, # 60 consultas time_window=60 #
+            por minuto ) ``` ================================================================
+            MONITOREO Y ALERTAS ================================================================
+            DASHBOARDS RECOMENDADOS: 1. ESTADO EN TIEMPO REAL: - Lotes en procesamiento actualmente
+            - Tiempo promedio de procesamiento hoy - Distribución de estados de documentos - Códigos
+            de error más frecuentes 2. TENDENCIAS HISTÓRICAS: - Tasa de éxito por día/semana/mes -
+            Tiempo de procesamiento promedio - Volumen de lotes procesados - Comparación con
+            períodos anteriores 3. ALERTAS OPERACIONALES: - Lote tardó > 20 minutos en procesarse -
+            Tasa de error > 10% en última hora - Servicio SIFEN no disponible - Protocolos
+            duplicados detectados MÉTRICAS SLA: ```python SLA_METRICS = {
+            "tiempo_procesamiento_objetivo": 15 * 60, # 15 minutos "tiempo_procesamiento_critico":
+            20 * 60, # 20 minutos "tasa_exito_minima": 0.95, # 95% "disponibilidad_minima": 0.995, #
+            99.5% "tiempo_respuesta_consulta": 5 # 5 segundos } ```
+            ================================================================ CONSIDERACIONES DE
+            SEGURIDAD ================================================================ 1.
+            AUTENTICACIÓN: - Certificados PSC válidos y vigentes - Validación de cadena de
+            certificados - Renovación automática antes de vencimiento 2. INTEGRIDAD: - Validación de
+            firmas digitales en responses - Verificación de checksums de mensajes - Detección de
+            modificaciones en tránsito 3. CONFIDENCIALIDAD: - TLS 1.2 mínimo para todas las
+            conexiones - Cifrado de datos sensibles en logs - Segregación de ambientes (test/prod)
+            4. AUDITORÍA: - Log completo de todas las transacciones - Trazabilidad de cambios de
+            estado - Retención de logs según regulaciones
+            ================================================================ TROUBLESHOOTING GUIDE
+            ================================================================ PROBLEMA: Lote tarda
+            más de 20 minutos ➤ Verificar: Estado del servicio SIFEN ➤ Acción: Consultar portal SET
+            para mantenimientos ➤ Escalación: Contactar soporte técnico SET PROBLEMA: Muchos
+            documentos rechazados ➤ Verificar: Códigos de error más frecuentes ➤ Acción: Revisar
+            proceso de generación/validación ➤ Escalación: Analizar datos de entrada PROBLEMA:
+            Protocolos duplicados ➤ Verificar: Unicidad en base de datos local ➤ Acción: Revisar
+            algoritmo de generación CDC ➤ Escalación: Verificar sincronización de secuencias
+            PROBLEMA: Consultas devuelven error ➤ Verificar: Conectividad y certificados ➤ Acción:
+            Validar formato de protocolos ➤ Escalación: Revisar logs de red y TLS </xs:documentation>
+    </xs:annotation>
+
+</xs:schema>

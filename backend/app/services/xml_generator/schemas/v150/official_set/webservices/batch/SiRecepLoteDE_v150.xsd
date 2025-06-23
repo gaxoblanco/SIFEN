@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ========================================================================
+    SIFEN Paraguay - Sistema Integrado de Facturación Electrónica Nacional
+    ========================================================================
+    
+    Schema: SiRecepLoteDE_v150.xsd
+    Versión: 1.50 (Septiembre 2019)
+    
+    Propósito:
+    - Define la estructura para el envío de lotes de documentos electrónicos
+    - Permite enviar hasta 50 documentos en una sola transacción
+    - Procesamiento asíncrono con respuesta inmediata de recepción
+    
+    Namespace: http://ekuatia.set.gov.py/sifen/xsd
+    Encoding: UTF-8
+    
+    Límites Oficiales:
+    - Mínimo: 1 documento por lote
+    - Máximo: 50 documentos por lote  
+    - Tamaño máximo: 10 MB (10.000 KB)
+    - Timeout: 5 minutos para procesamiento
+    
+    Uso:
+    - Web Service: /de/ws/async/recibe-lote.wsdl
+    - Método: SiRecepLoteDE
+    - Tipo: Request (Petición de envío)
+    
+    ========================================================================
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="150">
+
+    <!--
+        ================================================================
+        ELEMENTO RAÍZ - ENVÍO DE LOTE DE DOCUMENTOS ELECTRÓNICOS
+        ================================================================
+    -->
+
+    <xs:element name="rEnviLoteDe" type="tEnviLoteDe">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para el envío de lotes de documentos electrónicos.
+                Estructura: - dId: Identificador único del lote (control interno) - dFecEnvio: Fecha
+                y hora de envío del lote - xDe: Contenedor con 1-50 documentos electrónicos firmados
+                Restricciones: - Todos los documentos deben ser del mismo RUC emisor - Todos los
+                documentos deben estar firmados digitalmente - Tamaño total del lote no debe exceder
+                10 MB </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!--
+        ================================================================
+        TIPO PRINCIPAL - ESTRUCTURA DEL LOTE
+        ================================================================
+    -->
+
+    <xs:complexType name="tEnviLoteDe">
+        <xs:annotation>
+            <xs:documentation> Tipo principal que define la estructura completa del lote. Contiene
+                metadatos del lote y el contenedor de documentos. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- ID de control del lote -->
+            <xs:element name="dId" type="tIdLote">
+                <xs:annotation>
+                    <xs:documentation> Identificador único del lote para control interno.
+                        Características: - Entero positivo de 1 a 15 dígitos - Debe ser único por
+                        emisor - Se usa para correlacionar request/response - No debe repetirse en
+                        envíos simultáneos Ejemplo: 123456789 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha y hora de envío -->
+            <xs:element name="dFecEnvio" type="tFechaHoraEnvio">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora de envío del lote (timestamp del emisor).
+                        Formato: YYYY-MM-DDTHH:MM:SS Zona horaria: Local Paraguay (América/Asuncion)
+                        Validaciones: - No puede ser futura (máximo +5 minutos tolerancia) - No
+                        puede ser muy antigua (máximo -24 horas) Ejemplo: 2024-12-20T14:30:00 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Contenedor de documentos -->
+            <xs:element name="xDe" type="tContenedorDocumentos">
+                <xs:annotation>
+                    <xs:documentation> Contenedor que incluye todos los documentos electrónicos del
+                        lote. Contenido: - Elementos rDE (Documento Electrónico) firmados - Mínimo 1
+                        documento, máximo 50 documentos - Cada documento debe cumplir schema
+                        DE_v150.xsd - Todos deben tener la misma versión (150) Restricciones de
+                        negocio: - Mismo RUC emisor en todos los documentos - Mismo ambiente
+                        (test/producción) - Documentos únicos (no duplicar CDC) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!--
+        ================================================================
+        CONTENEDOR DE DOCUMENTOS ELECTRÓNICOS
+        ================================================================
+    -->
+
+    <xs:complexType name="tContenedorDocumentos">
+        <xs:annotation>
+            <xs:documentation> Contenedor que alberga todos los documentos electrónicos del lote.
+                Permite cualquier elemento del namespace SIFEN (flexibilidad para futuras
+                versiones). </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+            <!-- Documentos electrónicos (rDE) -->
+            <xs:any namespace="http://ekuatia.set.gov.py/sifen/xsd"
+                processContents="strict"
+                minOccurs="1"
+                maxOccurs="50">
+                <xs:annotation>
+                    <xs:documentation> Documentos electrónicos individuales (elementos rDE).
+                        Especificaciones: - Cada elemento debe ser un documento válido según
+                        DE_v150.xsd - Debe incluir firma digital (elemento gFirma) - Debe tener CDC
+                        único generado correctamente - Debe pasar validaciones de negocio
+                        individuales Tipos de documentos soportados: - Factura Electrónica (iTiDE=1)
+                        - Factura Electrónica de Exportación (iTiDE=2) - Factura Electrónica de
+                        Importación (iTiDE=3) - Autofactura Electrónica (iTiDE=4) - Nota de Crédito
+                        Electrónica (iTiDE=5) - Nota de Débito Electrónica (iTiDE=6) - Nota de
+                        Remisión Electrónica (iTiDE=7) Validaciones por documento: 1. Schema XSD
+                        válido 2. Firma digital presente y válida 3. Campos obligatorios completos
+                        4. Cálculos matemáticos correctos 5. Códigos de catálogos válidos 6. Fechas
+                        en rangos permitidos </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!--
+        ================================================================
+        TIPOS BÁSICOS Y RESTRICCIONES
+        ================================================================
+    -->
+
+    <!-- Identificador de lote -->
+    <xs:simpleType name="tIdLote">
+        <xs:annotation>
+            <xs:documentation> Identificador único del lote para correlación y trazabilidad. Reglas
+                de generación recomendadas: - Usar timestamp + secuencial: 20241220143001 - Usar
+                UUID truncado: 123456789012345 - Usar contador incremental por día: 1, 2, 3...
+                IMPORTANTE: No reutilizar IDs en envíos simultáneos </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:long">
+            <xs:minInclusive value="1">
+                <xs:annotation>
+                    <xs:documentation>Valor mínimo: 1</xs:documentation>
+                </xs:annotation>
+            </xs:minInclusive>
+            <xs:maxInclusive value="999999999999999">
+                <xs:annotation>
+                    <xs:documentation>Valor máximo: 999999999999999 (15 dígitos)</xs:documentation>
+                </xs:annotation>
+            </xs:maxInclusive>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Fecha y hora de envío -->
+    <xs:simpleType name="tFechaHoraEnvio">
+        <xs:annotation>
+            <xs:documentation> Timestamp de envío del lote en formato ISO 8601. Consideraciones de
+                zona horaria: - Paraguay usa América/Asuncion - Horario estándar: UTC-3
+                (marzo-octubre) - Horario de verano: UTC-4 (octubre-marzo) Validaciones del SET: -
+                No puede ser futura (tolerancia +5 minutos) - No puede ser muy antigua (límite -24
+                horas) - Debe ser coherente con la hora del sistema Formato exacto:
+                YYYY-MM-DDTHH:MM:SS Ejemplo válido: 2024-12-20T14:30:00 Ejemplo inválido: 2024-12-20
+                14:30:00 (falta la T) </xs:documentation>
+        </xs:annotation>
+
+        <xs:restriction base="xs:dateTime">
+            <!-- No se definen restricciones adicionales en el schema -->
+            <!-- Las validaciones de rango se realizan en tiempo de ejecución -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!--
+        ================================================================
+        DOCUMENTACIÓN ADICIONAL
+        ================================================================
+    -->
+
+    <xs:annotation>
+        <xs:documentation> ================================================================ EJEMPLOS
+            DE USO ================================================================ Ejemplo 1: Lote
+            con 1 documento (mínimo) ---------------------------------------- <rEnviLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dId>1</dId>
+                <dFecEnvio>2024-12-20T14:30:00</dFecEnvio>
+                <xDe>
+                    <rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                        <!-- Contenido completo del documento según DE_v150.xsd -->
+                        <gTimb>...</gTimb>
+                        <gDatGralOpe>...</gDatGralOpe>
+                        <gFirma>...</gFirma>
+                    </rDE>
+                </xDe>
+            </rEnviLoteDe>
+            Ejemplo 2: Lote con múltiples documentos ---------------------------------------- <rEnviLoteDe
+                xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                <dId>123456789</dId>
+                <dFecEnvio>2024-12-20T14:30:00</dFecEnvio>
+                <xDe>
+                    <rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                        <!-- Documento 1: Factura -->
+                    </rDE>
+                    <rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                        <!-- Documento 2: Nota de Crédito -->
+                    </rDE>
+                    <rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                        <!-- Documento 3: Nota de Remisión -->
+                    </rDE>
+                </xDe>
+            </rEnviLoteDe>
+            ================================================================ VALIDACIONES CRÍTICAS
+            ANTES DEL ENVÍO ================================================================ 1.
+            VALIDACIÓN DE ESTRUCTURA: ✅ XML bien formado ✅ Namespace correcto ✅ Elementos
+            obligatorios presentes ✅ Tipos de datos correctos 2. VALIDACIÓN DE LOTE: ✅ Cantidad de
+            documentos: 1-50 ✅ Tamaño total: ≤ 10 MB ✅ ID de lote único ✅ Fecha de envío válida 3.
+            VALIDACIÓN DE DOCUMENTOS: ✅ Cada rDE válido según DE_v150.xsd ✅ Firmas digitales
+            presentes ✅ CDC únicos y bien formados ✅ Mismo RUC emisor en todos ✅ Mismo ambiente
+            (test/prod) 4. VALIDACIÓN DE NEGOCIO: ✅ Certificado digital válido ✅ RUC autorizado para
+            emisión ✅ Timbrados vigentes ✅ Secuencia de numeración correcta ✅ Cálculos matemáticos
+            exactos ================================================================ MANEJO DE
+            ERRORES COMUNES ================================================================ Error
+            0270: "Mensaje superior a 10.000 KB" ➤ Solución: Dividir lote en lotes más pequeños
+            Error 0271: "Formato XML inválido" ➤ Solución: Validar estructura XML y encoding UTF-8
+            Error 0272: "Firma digital inválida" ➤ Solución: Verificar certificado y proceso de
+            firmado Error 0301: "Lote no encolado para procesamiento" ➤ Solución: Revisar
+            validaciones de negocio y reintentar
+            ================================================================ MEJORES PRÁCTICAS PARA
+            IMPLEMENTACIÓN ================================================================ 1.
+            TAMAÑO DE LOTES: - Lotes pequeños (1-10 docs): Respuesta más rápida - Lotes medianos
+            (11-25 docs): Balance eficiencia/velocidad - Lotes grandes (26-50 docs): Máxima
+            eficiencia de red 2. GESTIÓN DE IDs: - Usar secuencia única por emisor - Incluir
+            timestamp para trazabilidad - No reutilizar IDs en envíos simultáneos 3. MONITOREO: -
+            Guardar dId para consultas posteriores - Implementar timeouts apropiados - Manejar
+            reintentos con backoff exponencial 4. VALIDACIÓN: - Validar individualmente antes de
+            agrupar - Verificar compatibilidad entre documentos - Usar validación híbrida (local +
+            servidor) </xs:documentation>
+    </xs:annotation>
+
+</xs:schema>
