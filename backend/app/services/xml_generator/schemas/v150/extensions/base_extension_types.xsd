@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: extensions/base_extension_types.xsd
+  Propósito: Tipos base modulares para extensiones sectoriales SIFEN v150
+  
+  FUNDACIÓN MODULAR CRÍTICA:
+  Este módulo define la infraestructura base que permitirá agregar todos los
+  schemas sectoriales futuros sin refactoring. Sigue el patrón modular establecido
+  en common/, document_core/, parties/, operations/.
+  
+  RESPONSABILIDADES CORE:
+  ✅ Enumeración oficial de sectores SIFEN v150 (E770-E899)
+  ✅ Estructura base común para todas las extensiones
+  ✅ Tipos reutilizables entre sectores
+  ✅ Metadata para identificación y validación
+  ✅ Patrones de nomenclatura consistentes
+  
+  ARQUITECTURA MODULAR:
+  - Reutiliza tipos de common/basic_types.xsd y common/currency_types.xsd
+  - Base para futuros: retail/, automotive/, energy/, insurance/
+  - Integración limpia con document_core/root_elements.xsd
+  - Zero breaking changes en funcionalidad existente
+  
+  COBERTURA SIFEN v150:
+  ✅ E770-E789: Sector automotores (vehículos nuevos)
+  ✅ E791-E799: Sector energía eléctrica (medidores)
+  ✅ E800-EA799: Sector seguros (pólizas)  
+  ✅ E810-E819: Sector supermercados (donaciones/vuelto)
+  ✅ Preparado para futuros sectores según demanda
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: ✅ FUNDACIÓN CRÍTICA MODULAR
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIÓN DE DEPENDENCIAS MODULARES                                -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos comunes (siguiendo patrón modular establecido) -->
+    <xs:include schemaLocation="../common/basic_types.xsd" />
+
+    <!-- Tipos monetarios (para donaciones, montos sectoriales) -->
+    <xs:include
+        schemaLocation="../common/currency_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- ENUMERACIÓN OFICIAL DE SECTORES SIFEN v150                           -->
+    <!-- ===================================================================== -->
+
+    <xs:simpleType name="tipoCodigoSector">
+        <xs:annotation>
+            <xs:documentation> Códigos oficiales de sectores económicos con extensiones en SIFEN
+                v150. Basado en campos E770-E899 del Manual Técnico oficial. SECTORES
+                IMPLEMENTADOS/PREPARADOS: - SUPERMERCADOS: E810-E819 (donaciones, vuelto, cajero) -
+                AUTOMOTORES: E770-E789 (vehículos nuevos, especificaciones técnicas) - ENERGIA:
+                E791-E799 (medidores eléctricos, consumo) - SEGUROS: E800-EA799 (pólizas, vigencias,
+                empresas) ESCALABILIDAD: Se pueden agregar nuevos sectores según demanda del mercado
+                sin modificar esta enumeración base. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <!-- Sector Supermercados/Retail - Campos E810-E819 -->
+            <xs:enumeration value="SUPERMERCADOS">
+                <xs:annotation>
+                    <xs:documentation> Sector supermercados y comercio retail. Campos: E810-E819
+                        (gGrupSup) Incluye: cajero, efectivo, vuelto, donaciones Mercado objetivo:
+                        PyMEs retail, farmacias, minimarkets </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Sector Automotores - Campos E770-E789 -->
+            <xs:enumeration value="AUTOMOTORES">
+                <xs:annotation>
+                    <xs:documentation> Sector automotriz y venta vehículos nuevos. Campos: E770-E789
+                        (gVehNuevo) Incluye: chasis, motor, especificaciones técnicas Mercado
+                        objetivo: Concesionarios, importadores automotrices </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Sector Energía Eléctrica - Campos E791-E799 -->
+            <xs:enumeration value="ENERGIA">
+                <xs:annotation>
+                    <xs:documentation> Sector energía eléctrica y servicios públicos. Campos:
+                        E791-E799 (gGrupEner) Incluye: medidores, lecturas, consumo eléctrico
+                        Mercado objetivo: ANDE, cooperativas eléctricas </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Sector Seguros - Campos E800-EA799 -->
+            <xs:enumeration value="SEGUROS">
+                <xs:annotation>
+                    <xs:documentation> Sector seguros y reaseguros. Campos: E800-EA799 (gGrupSeg +
+                        gGrupPolSeg) Incluye: empresas seguros, pólizas, vigencias Mercado objetivo:
+                        Compañías seguros, agentes, corredores </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS BASE PARA METADATA DE EXTENSIONES                              -->
+    <!-- ===================================================================== -->
+
+    <!-- Versión de extensión sectorial -->
+    <xs:simpleType
+        name="tipoVersionExtension">
+        <xs:annotation>
+            <xs:documentation> Versión específica de la extensión sectorial. Permite versionado
+                independiente de extensiones sin afectar el core. Formato: "1.0", "1.1", "2.0", etc. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]+\.[0-9]+" />
+            <xs:minLength value="3" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Estado de implementación de extensión -->
+    <xs:simpleType
+        name="tipoEstadoExtension">
+        <xs:annotation>
+            <xs:documentation> Estado actual de implementación de la extensión sectorial. Permite
+                identificar extensiones en desarrollo vs producción. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ACTIVA">
+                <xs:annotation>
+                    <xs:documentation>Extensión completamente implementada y validada</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="DESARROLLO">
+                <xs:annotation>
+                    <xs:documentation>Extensión en desarrollo, para testing únicamente</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="DEPRECATED">
+                <xs:annotation>
+                    <xs:documentation>Extensión obsoleta, usar nueva versión</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ESTRUCTURA BASE COMÚN PARA TODAS LAS EXTENSIONES                     -->
+    <!-- ===================================================================== -->
+
+    <!-- Metadata común para identificación de extensiones -->
+    <xs:complexType
+        name="tipoMetadataExtension">
+        <xs:annotation>
+            <xs:documentation> Metadata común que deben incluir todas las extensiones sectoriales.
+                Permite identificación, versionado y validación de extensiones. PROPÓSITO: -
+                Identificar qué extensión está activa en el documento - Versionar extensiones
+                independientemente del core - Validar compatibilidad y estado de implementación -
+                Facilitar debugging y troubleshooting </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Código del sector económico -->
+            <xs:element name="dCodSector" type="tipoCodigoSector">
+                <xs:annotation>
+                    <xs:documentation> Código del sector económico que utiliza esta extensión.
+                        Obligatorio para identificar campos específicos presentes. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Versión de la extensión -->
+            <xs:element name="dVerExt" type="tipoVersionExtension" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Versión específica de la extensión sectorial. Opcional, por
+                        defecto usa versión del documento principal. Útil para versionado
+                        independiente de extensiones. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Estado de implementación -->
+            <xs:element name="dEstExt" type="tipoEstadoExtension" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Estado de implementación de la extensión. Opcional, por
+                        defecto "ACTIVA". Útil para identificar extensiones en desarrollo. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS BASE REUTILIZABLES ENTRE SECTORES                              -->
+    <!-- ===================================================================== -->
+
+    <!-- Nombre de persona para diversos sectores -->
+    <xs:simpleType name="tipoNombrePersonaSector">
+        <xs:annotation>
+            <xs:documentation> Tipo base para nombres de personas en contextos sectoriales. Usado
+                en: cajeros (supermercados), vendedores (automotores), técnicos (energía), agentes
+                (seguros). FORMATO: Nombre y apellido completos VALIDACIONES: Letras, números,
+                espacios, guiones y puntos COMPATIBILIDAD: Patrón simplificado para máxima
+                compatibilidad XSD EJEMPLOS VÁLIDOS: - "María González" - "Juan P." - "CAJERO_01" -
+                "Ana María Rodríguez" </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z0-9\s\-\.]{2,60}" />
+            <xs:minLength value="2" />
+            <xs:maxLength value="60" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Código alfanumérico sector específico -->
+    <xs:simpleType name="tipoCodigoSectorEspecifico">
+        <xs:annotation>
+            <xs:documentation> Tipo base para códigos específicos por sector. Usado en: códigos
+                vehículo, códigos empresa, códigos medidor, etc. FORMATO: Alfanumérico con guiones y
+                guiones bajos permitidos LONGITUD: Hasta 50 caracteres para máxima flexibilidad
+                COMPATIBILIDAD: Patrón estándar sin caracteres Unicode EJEMPLOS VÁLIDOS: - "AUTO123"
+                - "MED-001" - "EMP_SEGUROS_001" - "VEHICULO-TOYOTA-2024" </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z0-9\-_]{1,50}" />
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Descripción sectorial extendida -->
+    <xs:simpleType name="tipoDescripcionSectorial">
+        <xs:annotation>
+            <xs:documentation> Tipo base para descripciones específicas por sector. Usado en:
+                descripciones donaciones, tipos vehículo, categorías energía. FORMATO: Texto libre
+                con caracteres especiales permitidos LONGITUD: Hasta 200 caracteres para
+                descripciones detalladas </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="200" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ESTRUCTURA BASE ABSTRACTA PARA EXTENSIONES                           -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo base abstracto que heredan todas las extensiones -->
+    <xs:complexType
+        name="tipoGrupoExtensionBase" abstract="true">
+        <xs:annotation>
+            <xs:documentation> Tipo base abstracto del que heredan todas las extensiones
+                sectoriales. Proporciona estructura común y metadata de identificación. PATRÓN
+                MODULAR: - Cada sector específico hereda de esta base - Metadata común para
+                identificación automática - Validaciones base aplicables a todos los sectores -
+                Estructura preparada para debugging y logging SECTORES QUE HEREDAN: -
+                tipoGrupoSupermercados (retail/supermercados.xsd) - tipoGrupoAutomotores
+                (automotive/automotores.xsd) - tipoGrupoEnergia (energy/energia.xsd) -
+                tipoGrupoSeguros (insurance/seguros.xsd) </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Metadata obligatoria de extensión -->
+            <xs:element name="gMetaExt" type="tipoMetadataExtension">
+                <xs:annotation>
+                    <xs:documentation> Metadata de identificación de la extensión. Obligatoria para
+                        todas las extensiones sectoriales. Permite identificar y validar la
+                        extensión activa. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Área para contenido específico del sector -->
+            <!-- Esta secuencia se extiende en cada tipo concreto -->
+        </xs:sequence>
+
+        <!-- Atributo para validación de tipos -->
+        <xs:attribute name="tipo" type="tipoCodigoSector" use="required">
+            <xs:annotation>
+                <xs:documentation> Atributo que identifica el tipo de extensión. Debe coincidir con
+                    el sector específico implementado. Usado para validación automática de
+                    consistencia. </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA VALIDACIÓN Y CONSTRAINTS                                  -->
+    <!-- ===================================================================== -->
+
+    <!-- Reglas de validación común para extensiones -->
+    <xs:complexType
+        name="tipoValidacionExtension">
+        <xs:annotation>
+            <xs:documentation> Tipo que encapsula reglas de validación comunes a extensiones.
+                Permite validaciones cross-sector sin duplicar lógica. </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Sector mínimo requerido -->
+            <xs:element name="dSectorReq" type="tipoCodigoSector">
+                <xs:annotation>
+                    <xs:documentation> Sector mínimo requerido para usar esta validación. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Versión mínima compatible -->
+            <xs:element name="dVerMinima" type="tipoVersionExtension" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Versión mínima de extensión compatible. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS GLOBALES PARA USO EN DOCUMENT_CORE                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento global para metadata de extensión -->
+    <xs:element
+        name="gExtensionMetadata" type="tipoMetadataExtension">
+        <xs:annotation>
+            <xs:documentation> Elemento global para metadata de extensiones. Útil para validación
+                independiente y debugging. Se puede usar sin importar la extensión específica. </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- DOCUMENTACIÓN DE INTEGRACIÓN                                         -->
+    <!-- ===================================================================== -->
+
+    <!--
+        INTEGRACIÓN CON DOCUMENT_CORE/ROOT_ELEMENTS.XSD:
+        
+        Para integrar las extensiones en el documento principal, agregar:
+        
+        1. Importación en root_elements.xsd:
+        <xs:include schemaLocation="../extensions/extension_registry.xsd" />
+        
+        2. Elemento opcional en tipoDocumentoElectronico:
+        <xs:element name="gExtSec" type="tipoExtensionesDisponibles" minOccurs="0">
+            <xs:annotation>
+                <xs:documentation>
+                    Grupo de extensiones sectoriales opcionales.
+                    Solo una extensión por documento.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        PATRÓN DE USO EN DOCUMENTOS:
+        
+        <rDE>
+            <dVerFor>1.5.0</dVerFor>
+            <DE>
+                 Contenido principal del documento
+                <gOpeDE>
+    ...</gOpeDE>
+                <gTimb>...</gTimb>
+                <gEmis>...</gEmis>
+                <gDatRec>...</gDatRec>
+                <gCamItem>...</gCamItem>
+                <gTotSub>
+    ...</gTotSub>
+
+     Extensión sectorial opcional
+                <gExtSec>
+        <gSupermercados tipo="SUPERMERCADOS">
+            <gMetaExt>
+                <dCodSector>SUPERMERCADOS</dCodSector>
+                <dVerExt>1.0</dVerExt>
+                <dEstExt>ACTIVA</dEstExt>
+            </gMetaExt>
+            <dNomCaj>María González</dNomCaj>
+            <dEfectivo>150000</dEfectivo>
+            <dVuelto>5000</dVuelto>
+            <dDonac>2000</dDonac>
+            <dDesDonac>Fundación Dequení</dDesDonac>
+        </gSupermercados>
+    </gExtSec>
+            </DE>
+        </rDE>
+    BENEFICIOS DE ESTA ARQUITECTURA: ✅ Zero breaking changes en funcionalidad existente ✅
+    Extensiones completamente opcionales ✅ Versionado independiente por sector ✅ Metadata para
+    identificación automática ✅ Base sólida para agregar futuros sectores ✅ Reutilización máxima de
+    tipos entre sectores ✅ Integración limpia con document_core ✅ Testing independiente por
+    extensión -->
+</xs:schema>

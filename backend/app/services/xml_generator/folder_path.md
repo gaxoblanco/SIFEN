@@ -43,7 +43,7 @@ backend/app/services/xml_generator/
         ├── document_types/            # 🟢 Tipos específicos
         ├── operations/                # 🟢 Operaciones y pagos
         ├── transport/                 # 🟢 Transporte
-        └── extensions/                # Extensiones sectoriales
+        └── extensions/                # 🟢 Extensiones sectoriales
 ```
 
 ## 🧪 Tipos de Tests Necesarios
