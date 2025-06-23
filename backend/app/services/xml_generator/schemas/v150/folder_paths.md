@@ -86,7 +86,7 @@ backend/app/services/xml_generator/schemas/v150/
 │   │       └── ❌ Evento_v150.xsd           # Estructura eventos
 │   │
 │   ├── 🔐 security/                         # Firma digital y seguridad
-│   │   └── ❌ xmldsig-core-schema-v150.xsd  # Firma digital XML W3C
+│   │   └── ✅ xmldsig-core-schema-v150.xsd  # Firma digital XML W3C
 │   │
 │   └── 📋 catalog.xml                       # 🆕 Catálogo resolución schemas
 │
