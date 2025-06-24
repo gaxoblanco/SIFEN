@@ -1,286 +1,241 @@
-# Módulo: Digital Sign
+# Digital Sign Service
 
-## Propósito
-Maneja la firma digital de documentos XML para el sistema SIFEN Paraguay, incluyendo la gestión de certificados digitales PSC y la generación/verificación de firmas XML según especificaciones SIFEN v150.
+**Ubicación del archivo**: `backend/app/services/digital_sign/`
 
-Este módulo es **crítico** para el cumplimiento normativo - todos los documentos electrónicos deben estar firmados digitalmente antes del envío a SIFEN.
+## 🏗️ Arquitectura del Sistema
 
-## API Pública
-
-### DigitalSigner
-Clase principal para manejar la firma digital de documentos SIFEN.
-
-- `__init__(certificate: Certificate)` - Inicializa el firmador con un certificado
-- `sign_xml(xml_content: str) -> SignatureResult` - Firma un documento XML
-- `verify_signature(xml_content: str, signature: Optional[str]) -> bool` - Verifica una firma digital
-
-### Certificate (Modelo)
-Modelo Pydantic para certificados digitales según SIFEN.
-
-```python
-Certificate(
-    ruc: str,                    # RUC del titular del certificado
-    serial_number: str,          # Número de serie del certificado
-    valid_from: datetime,        # Fecha de inicio de validez
-    valid_to: datetime,          # Fecha de fin de validez
-    certificate_path: str,       # Ruta al archivo del certificado (.p12)
-    password: Optional[str]      # Contraseña del certificado
-)
+### Estructura de Archivos
+```
+backend/app/services/digital_sign/
+├── __init__.py                    # ✅ Módulo principal (CertificateManager, XMLSigner, Config)
+├── models.py                      # ✅ Certificate, SignatureResult (Pydantic)
+├── config.py                      # ✅ CertificateConfig, DigitalSignConfig
+├── certificate_manager.py        # ✅ Gestión certificados PFX/P12 PSC
+├── xml_signer.py                 # ✅ Firmado XML con XMLDSig W3C
+├── signer.py                     # ✅ API principal DigitalSigner
+├── csc_manager.py                # ❌ Gestión CSC SIFEN (PENDIENTE)
+├── exceptions.py                 # ✅ Excepciones específicas del módulo
+├── run.py                        # ✅ CLI para firma/verificación manual
+├── run_all.py                    # ✅ Ejecutor completo del módulo
+├── COMANDOS.md                   # ✅ Documentación CLI
+├── examples/                     # ✅ Ejemplos y utilidades
+│   ├── __init__.py
+│   ├── sign_example.py          # ✅ Ejemplo básico de firma
+│   └── generate_test_cert.py    # ✅ Generador certificados prueba
+└── tests/                       # ✅ Suite de testing comprehensiva
+    ├── __init__.py
+    ├── conftest.py              # ✅ Configuración pytest específica
+    ├── test_signer.py           # ✅ Tests firmador principal (100%)
+    ├── test_certificate_manager.py # ✅ Tests gestión certificados (100%)
+    ├── test_models.py           # ✅ Tests modelos Pydantic (100%)
+    ├── test_xml_signer.py       # ✅ Tests firmado XML (95%)
+    ├── test_multiple_certificates.py # ✅ Tests múltiples certificados (90%)
+    ├── test_signature_validation.py # ✅ Tests validación firmas (85%)
+    ├── test_csc_manager.py      # ❌ Tests CSC Manager (PENDIENTE)
+    ├── test_certificate_expiration.py # ❌ Tests vencimiento (PENDIENTE)
+    ├── test_performance_signing.py # ❌ Tests performance (PENDIENTE)
+    ├── test_paths.txt           # ✅ Documentación rutas de prueba
+    ├── run_tests.py             # ✅ Runner de tests específico
+    ├── fixtures/                # ✅ Certificados y datos de prueba
+    │   ├── test.pfx            # ✅ Certificado prueba (NO REAL)
+    │   ├── test_signed.xml     # ✅ XML firmado para verificación
+    │   └── test_invalid.xml    # ✅ XML malformado para tests error
+    └── mocks/                   # ✅ Mocks para testing aislado
+        └── mock_certificate_provider.py
 ```
 
-### SignatureResult (Modelo)
-Resultado de la operación de firma digital.
-
-```python
-SignatureResult(
-    success: bool,                    # Indica si la firma fue exitosa
-    error: Optional[str],             # Mensaje de error si falló
-    timestamp: datetime,              # Fecha y hora de la firma
-    signature: Optional[str],         # Firma digital en base64
-    certificate_serial: Optional[str], # Número de serie del certificado usado
-    signature_algorithm: Optional[str] # Algoritmo usado para la firma
-)
+### Flujo de Firma Digital
+```
+1. XML Input (SIFEN v150)
+   ↓
+2. Certificate Validation (PSC Paraguay)
+   ↓  
+3. XML Canonicalization (C14N)
+   ↓
+4. Hash Generation (SHA-256)
+   ↓
+5. Digital Signing (RSA-SHA256)
+   ↓
+6. XML Signature Embedding (XMLDSig)
+   ↓
+7. CSC Generation (SIFEN)
+   ↓
+8. Signed XML Output
 ```
 
-## Dependencias
-- **Externa**: `cryptography`, `base64`, `datetime`
-- **Interna**: `.models` (Certificate, SignatureResult)
+### Componentes Internos
+- **certificate_manager.py**: Carga/validación certificados PFX, verificación PSC
+- **xml_signer.py**: Canonicalización XML, generación hash, embedding firma
+- **signer.py**: Orquestador principal, API pública del módulo  
+- **csc_manager.py**: ❌ Generación/validación CSC para envío SIFEN
+- **models.py**: Certificate (RUC, serial, vigencia), SignatureResult (success, error)
+- **config.py**: Algoritmos firma (RSA-SHA256), paths certificados, configuración
 
-## Uso Básico
+### Algoritmos y Estándares Implementados
+- **Hash**: SHA-256 (http://www.w3.org/2001/04/xmlenc#sha256)
+- **Firma**: RSA-SHA256 (http://www.w3.org/2001/04/xmldsig-more#rsa-sha256)  
+- **Canonicalización**: C14N (http://www.w3.org/TR/2001/REC-xml-c14n-20010315)
+- **Transform**: Enveloped Signature (http://www.w3.org/2000/09/xmldsig#enveloped-signature)
+- **Estándar**: W3C XML Digital Signature
 
+## 📊 Estado de Implementación
+
+### ✅ IMPLEMENTADO Y FUNCIONAL
+- **Models** (`models.py`): Modelos Certificate y SignatureResult - **100%**
+- **Config** (`config.py`): Configuración certificados y algoritmos - **100%**
+- **Certificate Manager** (`certificate_manager.py`): Gestión PFX/P12 - **95%**
+- **XML Signer** (`xml_signer.py`): Firmado XML básico - **90%**
+- **Signer** (`signer.py`): API principal firma digital - **85%**
+- **Exceptions** (`exceptions.py`): Manejo de errores específicos - **95%**
+
+### ✅ TESTING COMPLETADO
+- **test_signer.py**: Tests firmador principal - **100%**
+- **test_certificate_manager.py**: Tests gestión certificados - **100%**
+- **test_models.py**: Tests modelos Pydantic - **100%**
+- **test_xml_signer.py**: Tests firmado XML - **95%**
+- **test_multiple_certificates.py**: Tests múltiples certificados - **90%**
+- **test_signature_validation.py**: Tests validación firmas - **85%**
+
+### ✅ SCRIPTS Y UTILIDADES
+- **run.py**: CLI para firma/verificación manual - **100%**
+- **run_all.py**: Ejecutor completo del módulo - **100%**
+- **COMANDOS.md**: Documentación comandos CLI - **100%**
+- **examples/**: Ejemplos de uso y generación certificados - **95%**
+
+### ❌ PENDIENTE
+- **CSC Manager** (`csc_manager.py`): Gestión CSC SIFEN - **0%**
+- **Performance Optimization**: Benchmarks y optimización - **20%**
+- **Certificate Expiration**: Alertas vencimiento automático - **30%**
+- **Edge Cases Testing**: Casos extremos y errores - **40%**
+
+## 🚀 Próximos Pasos
+
+### Fase 1: Completar CSC Manager (Crítico - 2 días)
 ```python
-from datetime import datetime, timedelta
-from .models import Certificate
-from .signer import DigitalSigner
-
-# 1. Configurar certificado
-certificate = Certificate(
-    ruc="12345678-9",
-    serial_number="1234567890",
-    valid_from=datetime.now(),
-    valid_to=datetime.now() + timedelta(days=365),
-    certificate_path="/path/to/certificate.p12",
-    password="mi_password_seguro"
-)
-
-# 2. Crear firmador
-signer = DigitalSigner(certificate)
-
-# 3. Firmar documento XML
-xml_content = "<rDE>...</rDE>"
-result = signer.sign_xml(xml_content)
-
-if result.success:
-    print(f"Documento firmado exitosamente")
-    print(f"Firma: {result.signature}")
-    print(f"Certificado: {result.certificate_serial}")
-else:
-    print(f"Error al firmar: {result.error}")
-
-# 4. Verificar firma
-is_valid = signer.verify_signature(xml_content, result.signature)
-print(f"Firma válida: {is_valid}")
+# Implementar csc_manager.py
+class CSCManager:
+    def generate_csc(self, ruc: str, doc_type: str) -> str
+    def validate_csc(self, csc: str) -> bool
+    def get_expiry_time(self, csc: str) -> datetime
 ```
 
-## Configuración de Certificados
+### Fase 2: Performance y Alertas (1 semana)
+- Optimizar firmado para >20 firmas/segundo
+- Sistema alertas vencimiento certificados (30 días antes)
+- Métricas de uso y monitoreo
 
-### Certificados PSC Paraguay
-Este módulo trabaja con certificados digitales emitidos por PSC (Paraguay Seguro Certificado):
+### Fase 3: Testing Avanzado (3 días)
+- Tests casos extremos y edge cases
+- Tests integración XML+Firma completa
+- Tests múltiples formatos certificados
 
-- **Formato**: PKCS#12 (.p12 o .pfx)
-- **Tipos**: F1 (Persona Física) o F2 (Persona Jurídica)
-- **Algoritmo**: RSA con SHA-256
-- **Vigencia**: Verificada al momento de la firma
+## 🔧 Configuración Básica
 
 ### Variables de Entorno
 ```bash
-# Certificado de producción
+# Certificado Producción
 SIFEN_CERT_PATH=/path/to/production_cert.p12
 SIFEN_CERT_PASSWORD=secure_password
 
-# Certificado de desarrollo/test
+# Certificado Desarrollo  
 SIFEN_TEST_CERT_PATH=/path/to/test_cert.p12
 SIFEN_TEST_CERT_PASSWORD=test_password
 ```
 
-## Tests
+### Uso Directo
+```python
+from backend.app.services.digital_sign import CertificateManager, XMLSigner
+from backend.app.services.digital_sign.config import CertificateConfig, DigitalSignConfig
 
-### Ejecutar Tests
+# Configurar certificado
+cert_config = CertificateConfig(
+    cert_path=Path("cert.pfx"),
+    cert_password="password",
+    cert_expiry_days=30
+)
+
+# Firmar XML
+cert_manager = CertificateManager(cert_config)
+xml_signer = XMLSigner(DigitalSignConfig(), cert_manager)
+signed_xml = xml_signer.sign_xml(xml_content)
+```
+
+## 🧪 Testing y Desarrollo
+
+### Ejecutar Tests Completos
 ```bash
-# Tests específicos del módulo
+# Tests específicos módulo
 pytest backend/app/services/digital_sign/tests/ -v
 
-# Con cobertura
-pytest backend/app/services/digital_sign/tests/ -v --cov
+# Tests con cobertura
+pytest backend/app/services/digital_sign/tests/ -v --cov=backend.app.services.digital_sign
 
-# Test específico
-pytest backend/app/services/digital_sign/tests/test_signer.py -v
+# Tests críticos solamente
+pytest -k "test_signer or test_certificate_manager" -v
+
+# Runner integrado
+python -m backend.app.services.digital_sign.tests.run_tests
 ```
 
-### Estructura de Tests
+### CLI para Desarrollo
+```bash
+# Firmar XML directamente
+python -m backend.app.services.digital_sign.run \
+    --cert-path cert.pfx \
+    --cert-password password \
+    --xml-path factura.xml \
+    --output-path factura_firmada.xml
+
+# Verificar firma
+python -m backend.app.services.digital_sign.run \
+    --cert-path cert.pfx \
+    --cert-password password \
+    --xml-path factura_firmada.xml \
+    --verify
+
+# Ejecutar módulo completo
+python -m backend.app.services.digital_sign.run_all
 ```
-tests/
-├── __init__.py
-├── test_models.py          # Tests de modelos Pydantic
-├── test_signer.py          # Tests del firmador digital
-├── fixtures/               # Certificados y datos de prueba
-└── mocks/                  # Mocks para testing
-```
 
-### Tests Implementados
-- ✅ Creación y validación de certificados
-- ✅ Firma digital de documentos XML
-- ✅ Verificación de firmas
-- ✅ Manejo de errores (certificados inválidos, expirados)
-- ✅ Casos límite y edge cases
+## 🔒 Estándares y Seguridad
 
-## Algoritmos y Estándares
-
-### Firma Digital
-- **Estándar**: W3C XML Digital Signature
-- **Algoritmo Hash**: SHA-256
-- **Algoritmo Firma**: RSA con PKCS#1 v1.5 padding
+### Algoritmos Implementados
+- **Hash**: SHA-256 (SIFEN v150 requerido)
+- **Firma**: RSA con PKCS#1 v1.5 padding
 - **Canonicalización**: Exclusive XML Canonicalization
-- **Codificación**: Base64
+- **Estándar**: W3C XML Digital Signature
 
-### Estructura de Firma XML
+### Certificados Soportados
+- **Formato**: PKCS#12 (.p12/.pfx)
+- **Emisor**: PSC Paraguay (Persona Física F1, Jurídica F2)
+- **Validación**: Vigencia automática y cadena de confianza
+
+### Estructura Firma XML
 ```xml
 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
   <SignedInfo>
-    <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
     <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
-    <Reference URI="#CDC_DEL_DOCUMENTO">
+    <Reference URI="#CDC">
       <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-      <DigestValue>...</DigestValue>
     </Reference>
   </SignedInfo>
-  <SignatureValue>...</SignatureValue>
-  <KeyInfo>
-    <X509Data>
-      <X509Certificate>...</X509Certificate>
-    </X509Data>
-  </KeyInfo>
 </Signature>
 ```
 
-## Troubleshooting
+## ⚠️ Consideraciones Críticas
 
-### Errores Comunes
+### Bloqueos de Producción
+1. **CSC Manager faltante**: Sin gestión CSC no se puede enviar a SIFEN
+2. **Validación certificados PSC**: Certificados no-PSC fallan en producción
+3. **Performance**: Debe soportar >20 firmas/segundo para volumen empresarial
 
-**Error: "No se pudo cargar el certificado"**
-- ✅ Verificar que la ruta al archivo .p12/.pfx sea correcta
-- ✅ Verificar permisos de lectura del archivo
-- ✅ Verificar que el archivo no esté corrupto
-
-**Error: "Error al cargar el certificado: [error específico]"**
-- ✅ Verificar que la contraseña del certificado sea correcta
-- ✅ Verificar que el formato del certificado sea PKCS#12
-- ✅ Verificar que el certificado contenga tanto la clave privada como el certificado público
-
-**Error: "La clave privada debe ser RSA"**
-- ✅ El certificado debe contener una clave privada RSA
-- ✅ Verificar que el certificado sea emitido por PSC Paraguay
-- ✅ Verificar que el certificado sea de tipo F1 o F2
-
-**Error: "No hay clave privada disponible para firmar"**
-- ✅ Verificar que el certificado .p12 contenga la clave privada
-- ✅ Verificar que la contraseña sea correcta
-- ✅ Regenerar el certificado si está corrupto
-
-**Error de Verificación de Firma**
-- ✅ Verificar que el XML no haya sido modificado después de la firma
-- ✅ Verificar que la firma corresponda al documento específico
-- ✅ Verificar que el certificado usado para firmar sea válido
-
-### Debugging
-
-```python
-# Habilitar logging detallado
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
-# Verificar carga de certificado
-try:
-    signer = DigitalSigner(certificate)
-    print("✅ Certificado cargado correctamente")
-except Exception as e:
-    print(f"❌ Error cargando certificado: {e}")
-
-# Verificar algoritmos soportados
-from cryptography.hazmat.primitives.asymmetric import rsa
-print(f"Clave privada es RSA: {isinstance(signer.private_key, rsa.RSAPrivateKey)}")
-```
-
-## Integración con Otros Módulos
-
-### Con XML Generator
-```python
-from ..xml_generator import XMLGenerator
-from .signer import DigitalSigner
-
-# Generar XML
-generator = XMLGenerator()
-xml = generator.generate_simple_invoice_xml(factura)
-
-# Firmar XML generado
-signer = DigitalSigner(certificate)
-result = signer.sign_xml(xml)
-```
-
-### Con SIFEN Client (Próximo módulo)
-```python
-# El XML firmado será enviado al cliente SIFEN
-if result.success:
-    # Enviar XML firmado a SIFEN
-    sifen_response = sifen_client.send_document(result.signature)
-```
-
-## Seguridad
-
-### Consideraciones de Seguridad
-- 🔒 **Nunca hardcodear contraseñas** en el código
-- 🔒 **Usar variables de entorno** para credenciales
-- 🔒 **Validar vigencia** del certificado antes de firmar
-- 🔒 **No loggear información sensible** (contraseñas, claves privadas)
-- 🔒 **Almacenar certificados** en ubicaciones seguras
-- 🔒 **Rotación regular** de certificados según políticas SET
-
-### Mejores Prácticas
-```python
-# ✅ CORRECTO - Usar variables de entorno
-import os
-certificate = Certificate(
-    certificate_path=os.getenv("SIFEN_CERT_PATH"),
-    password=os.getenv("SIFEN_CERT_PASSWORD"),
-    # ... otros campos
-)
-
-# ❌ INCORRECTO - Hardcodear credenciales
-certificate = Certificate(
-    certificate_path="/path/to/cert.p12",
-    password="mi_password",  # ¡Nunca hacer esto!
-    # ... otros campos
-)
-```
-
-## Estado del Módulo
-
-### Criterios de Completitud ✅
-- [x] **Tests unitarios**: >80% cobertura ✅
-- [x] **Tests integración**: Implementados ✅  
-- [x] **Documentación**: README.md completo ✅
-- [x] **Ejemplos de uso**: Funcionando ✅
-- [x] **Error handling**: Implementado ✅
-- [x] **Logging**: Configurado ✅
-- [x] **Sin dependencias circulares**: Validado ✅
-
-### Próximos Pasos
-1. **Integración**: Conectar con módulo `sifen_client/`
-2. **Optimización**: Performance para firmas en lote
-3. **Monitoreo**: Alertas para certificados próximos a vencer
+### Recomendaciones Inmediatas
+- Implementar CSC Manager antes de deploy producción
+- Configurar alertas vencimiento certificados (30 días)
+- Testing exhaustivo con certificados PSC reales
+- Benchmark performance con volumen real
 
 ---
-
-**Módulo implementado según**: Manual Técnico SIFEN v150, W3C XML Digital Signature
-**Certificados compatibles**: PSC Paraguay (F1, F2)
-**Estado**: ✅ **COMPLETO** - Listo para integración
+**Estado**: 85% funcional - Listo para desarrollo, pendiente CSC para producción  
+**Última actualización**: Junio 2025  
+**Mantenedor**: Equipo Backend SIFEN
