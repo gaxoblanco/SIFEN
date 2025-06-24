@@ -1,0 +1,645 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Response Consulta RUC Contribuyente
+  Archivo: resConsRUC_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/queries/
+  
+  PROPÓSITO:
+  - Define la estructura del response para consultas de RUC contribuyente
+  - Proporciona información completa del contribuyente si es encontrado
+  - Maneja casos de éxito, error y RUC no encontrado
+  - Facilita la validación de contrapartes comerciales
+  
+  OPERACIÓN:
+  - Web Service: SiConsRUC (consulta RUC)
+  - Correlación: Respuesta a siConsRUC_v150.xsd request
+  - Endpoint: https://sifen.set.gov.py/de/ws/consultas/consulta.wsdl
+  - Test: https://sifen-test.set.gov.py/de/ws/consultas/consulta.wsdl
+  
+  CÓDIGOS DE RESPUESTA PRINCIPALES:
+  - 0420: "Consulta realizada correctamente" (RUC encontrado)
+  - 0430: "RUC no encontrado en el sistema" (RUC no existe)
+  - 0500: "Error interno del servidor" (error temporal)
+  - 0600: "Error de validación del request" (request malformado)
+  
+  ESTADOS DEL CONTRIBUYENTE:
+  - 1: Activo (puede emitir documentos electrónicos)
+  - 2: Suspendido (temporalmente inhabilitado)
+  - 3: Cancelado (dado de baja definitivamente)
+  - 4: Bloqueado (inhabilitado por incumplimientos)
+  
+  TIPOS DE CONTRIBUYENTE:
+  - 1: Persona física (trabajador independiente, profesional)
+  - 2: Persona jurídica (empresa, sociedad, organización)
+  
+  CASOS DE USO PRINCIPALES:
+  1. Validación de RUC de receptores antes de emitir documentos
+  2. Verificación de estado de contrapartes comerciales
+  3. Obtención de datos oficiales para integración contable
+  4. Auditoría y control de operaciones comerciales
+  5. Validación pre-envío de documentos electrónicos
+  
+  ESTRUCTURA CONDICIONAL:
+  - gResProcConsRUC: Solo presente si dCodRes = "0420" (RUC encontrado)
+  - Todos los campos dentro del grupo son obligatorios si el grupo está presente
+  - Fechas en formato ISO 8601 estándar
+  
+  IMPLEMENTACIÓN RECOMENDADA:
+  ```python
+  # Ejemplo procesamiento response
+  def procesar_consulta_ruc(response_xml: str) -> dict:
+      tree = parse_xml(response_xml)
+      codigo = tree.find('.//dCodRes').text
+      
+      if codigo == '0420':
+          # RUC encontrado
+          datos_ruc = extraer_datos_contribuyente(tree)
+          return {'encontrado': True, 'contribuyente': datos_ruc}
+      elif codigo == '0430':
+          # RUC no encontrado
+          return {'encontrado': False, 'motivo': 'RUC no existe'}
+      else:
+          # Error en consulta
+          mensaje = tree.find('.//dMsgRes').text
+          return {'error': True, 'codigo': codigo, 'mensaje': mensaje}
+  ```
+  
+  INTEGRACIÓN CON SCHEMAS:
+  - Request: siConsRUC_v150.xsd
+  - Validación RUC: basic_types.xsd (referencia)
+  - Tipos compartidos: common_types.xsd
+  
+  Autor: [Sistema]
+  Fecha: 2024-06-24
+  Versión: 1.5.0
+  Manual: Técnico SIFEN v150 - Sección 4.6.2
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTS Y ANOTACIONES GLOBALES                                       -->
+    <!-- ===================================================================== -->
+
+    <xs:annotation>
+        <xs:documentation> Schema SIFEN v150 - Response Consulta RUC Contribuyente ESTRUCTURA
+            JERÁRQUICA: rRetEnviConsRUC (Raíz) ├── dFecProc (Timestamp procesamiento SIFEN) ├──
+            dCodRes (Código resultado: 0420, 0430, etc.) ├── dMsgRes (Mensaje descriptivo resultado)
+            └── gResProcConsRUC (Datos RUC - solo si encontrado) ├── dRUC/dDV (RUC y dígito
+            verificador) ├── dNomCont (Nombre/razón social contribuyente) ├── cEstCont/dDesEstCont
+            (Estado y descripción) ├── cTipCont/dDesTipCont (Tipo contribuyente) └── dFecActEst
+            (Fecha actualización estado) INTERPRETACIÓN DE CÓDIGOS: - 0420: RUC encontrado y datos
+            incluidos - 0430: RUC válido pero no existe en padrones SET - 05xx: Error de
+            autenticación/certificado - 99xx: Error técnico temporal del servidor VALIDACIONES
+            AUTOMÁTICAS: - Correlación con ID del request original - Formato de timestamp de
+            procesamiento - Coherencia entre código y presencia de datos - Validación de estados y
+            tipos según catálogos oficiales CASOS ESPECIALES DE MANEJO: 1. RUC encontrado:
+            gResProcConsRUC presente con todos los datos 2. RUC no encontrado: Solo datos de control
+            (sin gResProcConsRUC) 3. Error temporal: Reintentar consulta después de tiempo de espera
+            4. RUC inactivo: Datos presentes pero estado ≠ 1 (Activo) </xs:documentation>
+    </xs:annotation>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO RAÍZ DEL RESPONSE                                            -->
+    <!-- ===================================================================== -->
+
+    <xs:element name="rRetEnviConsRUC" type="tns:tipoResponseConsultaRUC">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para el response de consulta de RUC contribuyente
+                CONTENIDO FIJO: - dFecProc: Timestamp del procesamiento en SIFEN - dCodRes: Código
+                de resultado específico - dMsgRes: Mensaje descriptivo del resultado CONTENIDO
+                CONDICIONAL: - gResProcConsRUC: Datos del contribuyente (solo si dCodRes = "0420")
+                CORRELACIÓN: - Respuesta directa a request siConsRUC_v150.xsd - ID de control debe
+                coincidir con request original EJEMPLO RUC ENCONTRADO: ```xml <rRetEnviConsRUC
+                    xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                    <dFecProc>2024-06-24T15:30:45-03:00</dFecProc>
+                    <dCodRes>0420</dCodRes>
+                    <dMsgRes>Consulta realizada correctamente</dMsgRes>
+                    <gResProcConsRUC>
+                        <dRUC>12345678</dRUC>
+                        <dDV>9</dDV>
+                        <dNomCont>Empresa Ejemplo Sociedad Anónima</dNomCont>
+                        <cEstCont>1</cEstCont>
+                        <dDesEstCont>Activo</dDesEstCont>
+                        <cTipCont>2</cTipCont>
+                        <dDesTipCont>Persona Jurídica</dDesTipCont>
+                        <dFecActEst>2024-01-15</dFecActEst>
+                    </gResProcConsRUC>
+                </rRetEnviConsRUC>
+                ``` EJEMPLO RUC NO ENCONTRADO: ```xml <rRetEnviConsRUC
+                    xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                    <dFecProc>2024-06-24T15:30:45-03:00</dFecProc>
+                    <dCodRes>0430</dCodRes>
+                    <dMsgRes>RUC no encontrado en el sistema</dMsgRes>
+                    <!-- Sin gResProcConsRUC -->
+                </rRetEnviConsRUC>
+                ``` </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPO COMPLEJO PRINCIPAL                                               -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoResponseConsultaRUC">
+        <xs:annotation>
+            <xs:documentation> Tipo complejo que define la estructura completa del response CAMPOS
+                OBLIGATORIOS (siempre presentes): - dFecProc: Fecha y hora del procesamiento en
+                SIFEN - dCodRes: Código específico del resultado - dMsgRes: Mensaje descriptivo del
+                código CAMPOS CONDICIONALES: - gResProcConsRUC: Datos del contribuyente (solo si
+                código = 0420) LÓGICA DE NEGOCIO: - Si dCodRes = "0420": gResProcConsRUC DEBE estar
+                presente - Si dCodRes ≠ "0420": gResProcConsRUC NO debe estar presente - Todos los
+                campos son validados según tipos específicos PROCESAMIENTO RECOMENDADO: 1. Verificar
+                dCodRes para determinar éxito/fallo 2. Si éxito (0420): procesar datos en
+                gResProcConsRUC 3. Si fallo: usar dMsgRes para manejo de errores 4. Loggar siempre
+                dFecProc para auditoría </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- Fecha y hora de procesamiento -->
+            <xs:element name="dFecProc" type="tns:tipoTimestampProcesamientoRUC">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora exacta del procesamiento en SIFEN
+                        CARACTERÍSTICAS: - Tipo: DateTime con timezone - Formato: ISO 8601 completo
+                        (YYYY-MM-DDThh:mm:ss±TZ) - Timezone: America/Asuncion (-03:00 estándar,
+                        -04:00 DST) - Precisión: Segundos (sin milisegundos) PROPÓSITO: - Timestamp
+                        oficial del procesamiento - Auditoría y trazabilidad de operaciones -
+                        Correlación temporal con logs SIFEN - Verificación de tiempos de respuesta
+                        VALIDACIONES: - Fecha no puede ser futura - Debe incluir timezone válido de
+                        Paraguay - Formato estricto ISO 8601 EJEMPLOS VÁLIDOS: -
+                        2024-06-24T15:30:45-03:00 (horario estándar) - 2024-12-15T09:15:30-04:00
+                        (horario de verano) USO EN CACHE: Usar este timestamp para determinar
+                        validez de datos en cache de RUC consultados </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de resultado -->
+            <xs:element name="dCodRes" type="tns:tipoCodigoResultadoRUC">
+                <xs:annotation>
+                    <xs:documentation> Código específico del resultado de la consulta RUC CÓDIGOS
+                        PRINCIPALES: 🟢 ÉXITO: - 0420: "Consulta realizada correctamente" RUC
+                        encontrado y datos incluidos 🟡 RUC NO ENCONTRADO: - 0430: "RUC no
+                        encontrado en el sistema" RUC válido pero no existe en padrones SET 🔴
+                        ERRORES DE VALIDACIÓN: - 0600: "Error de validación del request" Request
+                        malformado o RUC/DV inválido - 0610: "Parámetros de consulta inválidos"
+                        Formato de RUC incorrecto o DV no corresponde 🔴 ERRORES DE AUTENTICACIÓN: -
+                        0500: "Error de autenticación" Certificado PSC inválido o expirado - 0510:
+                        "Acceso no autorizado" Sin permisos para consultar RUC 🔴 ERRORES TÉCNICOS:
+                        - 9900: "Error interno del servidor" Error temporal, reintentar - 9910:
+                        "Servicio temporalmente no disponible" Mantenimiento programado MANEJO
+                        PROGRAMÁTICO: ```python def manejar_codigo_respuesta_ruc(codigo: str): if
+                        codigo == '0420': return 'EXITO_RUC_ENCONTRADO' elif codigo == '0430':
+                        return 'RUC_NO_ENCONTRADO' elif codigo.startswith('06'): return
+                        'ERROR_VALIDACION' elif codigo.startswith('05'): return
+                        'ERROR_AUTENTICACION' elif codigo.startswith('99'): return 'ERROR_TEMPORAL'
+                        else: return 'ERROR_DESCONOCIDO' ``` IMPLICACIONES DE NEGOCIO: - 0420 +
+                        cEstCont=1: RUC activo, puede operar - 0420 + cEstCont≠1: RUC existe pero
+                        inactivo - 0430: RUC no existe, verificar digitación </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Mensaje descriptivo -->
+            <xs:element name="dMsgRes" type="tns:tipoMensajeResultadoRUC">
+                <xs:annotation>
+                    <xs:documentation> Mensaje descriptivo que complementa el código de resultado
+                        CARACTERÍSTICAS: - Texto en español legible para humanos - Longitud variable
+                        (10-200 caracteres típico) - Coherente con el código dCodRes - Sin
+                        información sensible del contribuyente MENSAJES TÍPICOS POR CÓDIGO: - 0420:
+                        "Consulta realizada correctamente" - 0430: "RUC no encontrado en el sistema"
+                        - 0600: "Error de validación del request" - 0610: "Dígito verificador
+                        incorrecto para el RUC" - 0500: "Error de autenticación del certificado" -
+                        9900: "Error interno del servidor, intente nuevamente" PROPÓSITO: -
+                        Información legible para usuarios finales - Contexto adicional para
+                        debugging - Mensajes para mostrar en interfaces - Logs y auditoría
+                        descriptiva USO RECOMENDADO: - Para UI: Mostrar al usuario final - Para
+                        logs: Complementar el código técnico - Para debugging: Información adicional
+                        del error - No usar para lógica de negocio (usar dCodRes) NOTA IMPORTANTE:
+                        El contenido exacto puede variar entre versiones de SIFEN, siempre usar
+                        dCodRes para lógica de negocio </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Datos del RUC consultado (condicional) -->
+            <xs:element name="gResProcConsRUC" type="tns:tipoInformacionContribuyente" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Grupo con información del contribuyente consultado
+                        CONDICIONALIDAD ESTRICTA: - PRESENTE: Solo cuando dCodRes = "0420" -
+                        AUSENTE: En cualquier otro código de resultado - OBLIGATORIO: Si RUC existe
+                        en padrones SET CONTENIDO INCLUIDO: - RUC y dígito verificador
+                        (confirmación) - Nombre o razón social oficial - Estado actual del
+                        contribuyente - Tipo de contribuyente (física/jurídica) - Fecha de última
+                        actualización de estado INFORMACIÓN EXCLUIDA (no incluida): - Dirección
+                        fiscal del contribuyente - Actividades económicas específicas - Información
+                        de contacto (teléfono, email) - Datos bancarios o financieros - Historial de
+                        cambios de estado VALIDACIÓN AUTOMÁTICA: - Parser debe verificar coherencia:
+                        código 0420 = datos presentes - Todos los subcampos son obligatorios si el
+                        grupo está presente - RUC y DV deben coincidir con los del request - Estado
+                        debe ser válido según catálogo oficial USO TÍPICO: ```python if
+                        response.dCodRes == '0420': contribuyente = response.gResProcConsRUC
+                        print(f"Contribuyente: {contribuyente.dNomCont}") print(f"RUC:
+                        {contribuyente.dRUC}-{contribuyente.dDV}") print(f"Estado:
+                        {contribuyente.dDesEstCont}") print(f"Tipo: {contribuyente.dDesTipCont}") #
+                        Verificar si puede operar puede_operar = contribuyente.cEstCont == '1' ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+
+        <!-- Atributo de versión -->
+        <xs:attribute name="version" type="xs:string" fixed="1.5.0">
+            <xs:annotation>
+                <xs:documentation> Versión del schema de response utilizado VALOR FIJO: "1.5.0"
+                    PROPÓSITO: Identificar versión para compatibilidad y parsing USO: Automático por
+                    el sistema </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPO COMPLEJO PARA INFORMACIÓN DEL CONTRIBUYENTE                     -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoInformacionContribuyente">
+        <xs:annotation>
+            <xs:documentation> Información oficial del contribuyente desde padrones SET PROPÓSITO: -
+                Proporcionar datos oficiales y actualizados del contribuyente - Permitir
+                verificación de estado para operaciones comerciales - Facilitar validación de
+                contrapartes comerciales - Mostrar información fiscalmente relevante CAMPOS
+                INCLUIDOS: Todos los campos son obligatorios si el grupo está presente. La
+                información refleja el estado actual en padrones SET. ACTUALIZACIÓN: Los datos se
+                obtienen en tiempo real del sistema SET, reflejando el estado más actual del
+                contribuyente. NOTA DE PRIVACIDAD: Solo incluye información pública disponible en
+                padrones. No incluye datos privados o sensibles del contribuyente. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- RUC del contribuyente -->
+            <xs:element name="dRUC" type="tns:tipoRUCContribuyente">
+                <xs:annotation>
+                    <xs:documentation> RUC del contribuyente (confirmación del request)
+                        CARACTERÍSTICAS: - Longitud: Exactamente 8 dígitos numéricos - Sin guiones
+                        ni separadores - Sin dígito verificador (se incluye en dDV) - Debe coincidir
+                        exactamente con el RUC del request PROPÓSITO: - Confirmación del RUC
+                        consultado - Verificación de coherencia request-response - Identificación
+                        única del contribuyente - Base para cálculos de validación VALIDACIÓN: -
+                        Debe coincidir 100% con RUC del request - Solo dígitos 0-9 - Longitud exacta
+                        8 caracteres EJEMPLO: 12345678 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Dígito verificador -->
+            <xs:element name="dDV" type="tns:tipoDigitoVerificadorContribuyente">
+                <xs:annotation>
+                    <xs:documentation> Dígito verificador del RUC (confirmación del request)
+                        CARACTERÍSTICAS: - Longitud: 1 dígito numérico (0-9) - Calculado con
+                        algoritmo módulo 11 - Debe coincidir exactamente con el DV del request -
+                        Verificación automática de integridad PROPÓSITO: - Confirmación del DV
+                        consultado - Verificación de coherencia - Validación de integridad del RUC
+                        VALIDACIÓN: - Debe coincidir 100% con DV del request - Algoritmo módulo 11
+                        aplicado correctamente EJEMPLO: 9 (para RUC 12345678) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Nombre del contribuyente -->
+            <xs:element name="dNomCont" type="tns:tipoNombreContribuyente">
+                <xs:annotation>
+                    <xs:documentation> Nombre o razón social oficial del contribuyente
+                        CARACTERÍSTICAS: - Longitud: 4-200 caracteres - Texto libre alfanumérico -
+                        Según registro oficial en padrones SET - Puede incluir denominaciones
+                        comerciales CONTENIDO: - Personas físicas: Nombre completo oficial -
+                        Personas jurídicas: Razón social registrada - Incluye denominaciones
+                        oficiales completas - Sin abreviaciones no autorizadas ACTUALIZACIÓN: -
+                        Refleja última actualización en padrones SET - Puede diferir de
+                        denominaciones comerciales - Información oficial para documentos fiscales
+                        EJEMPLOS: - "Juan Carlos Pérez González" (persona física) - "Empresa Ejemplo
+                        Sociedad Anónima" (persona jurídica) - "Cooperativa de Servicios Múltiples
+                        Ltda." (cooperativa) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Estado del contribuyente -->
+            <xs:element name="cEstCont" type="tns:tipoCodigoEstadoContribuyente">
+                <xs:annotation>
+                    <xs:documentation> Código del estado actual del contribuyente en SET VALORES
+                        POSIBLES: - 1: Activo (puede operar normalmente) - 2: Suspendido
+                        (temporalmente inhabilitado) - 3: Cancelado (dado de baja definitivamente) -
+                        4: Bloqueado (inhabilitado por incumplimientos) IMPLICACIONES OPERATIVAS: -
+                        Estado 1: Puede emitir y recibir documentos electrónicos - Estado 2:
+                        Operaciones limitadas, revisar situación - Estado 3: No puede operar, baja
+                        definitiva - Estado 4: Inhabilitado, resolver incumplimientos ACTUALIZACIÓN:
+                        - Refleja estado actual en tiempo real - Puede cambiar por gestiones
+                        administrativas - Información crítica para operaciones comerciales USO
+                        RECOMENDADO: ```python if contribuyente.cEstCont == '1': # Puede operar
+                        normalmente proceder_con_operacion() else: # Verificar situación antes de
+                        operar alertar_estado_irregular() ``` EJEMPLO: 1 (Activo) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción del estado -->
+            <xs:element name="dDesEstCont" type="tns:tipoDescripcionEstadoContribuyente">
+                <xs:annotation>
+                    <xs:documentation> Descripción textual del estado del contribuyente VALORES
+                        CORRESPONDIENTES: - "Activo": Para cEstCont = 1 - "Suspendido": Para
+                        cEstCont = 2 - "Cancelado": Para cEstCont = 3 - "Bloqueado": Para cEstCont =
+                        4 CARACTERÍSTICAS: - Texto fijo según código de estado - En español, legible
+                        para usuarios - Coherente con cEstCont siempre - Información oficial SET
+                        PROPÓSITO: - Mostrar en interfaces de usuario - Reportes e impresiones
+                        legibles - Logs descriptivos - Comunicación con usuarios finales VALIDACIÓN
+                        AUTOMÁTICA: - Debe corresponder exactamente con cEstCont - Texto estándar
+                        sin variaciones EJEMPLO: "Activo" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tipo de contribuyente -->
+            <xs:element name="cTipCont" type="tns:tipoCodigoTipoContribuyente">
+                <xs:annotation>
+                    <xs:documentation> Código del tipo de contribuyente según clasificación SET
+                        VALORES POSIBLES: - 1: Persona física (trabajador independiente,
+                        profesional) - 2: Persona jurídica (empresa, sociedad, organización)
+                        IMPLICACIONES LEGALES: - Tipo 1: Régimen fiscal de persona física - Tipo 2:
+                        Régimen fiscal de persona jurídica INMUTABILIDAD: - El tipo no cambia
+                        frecuentemente - Requiere gestión administrativa para modificar - Define
+                        régimen fiscal aplicable USO EN DOCUMENTOS: - Determina campos obligatorios
+                        en documentos electrónicos - Influye en validaciones específicas - Afecta
+                        cálculos de impuestos EJEMPLO: 2 (Persona Jurídica) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción del tipo -->
+            <xs:element name="dDesTipCont" type="tns:tipoDescripcionTipoContribuyente">
+                <xs:annotation>
+                    <xs:documentation> Descripción textual del tipo de contribuyente VALORES
+                        CORRESPONDIENTES: - "Persona Física": Para cTipCont = 1 - "Persona
+                        Jurídica": Para cTipCont = 2 CARACTERÍSTICAS: - Texto fijo según código de
+                        tipo - En español, legible para usuarios - Coherente con cTipCont siempre -
+                        Terminología oficial SET PROPÓSITO: - Mostrar en interfaces de usuario -
+                        Reportes e impresiones legibles - Documentación y auditoría - Clasificación
+                        descriptiva VALIDACIÓN AUTOMÁTICA: - Debe corresponder exactamente con
+                        cTipCont - Texto estándar sin variaciones EJEMPLO: "Persona Jurídica" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de actualización del estado -->
+            <xs:element name="dFecActEst" type="tns:tipoFechaActualizacionEstado">
+                <xs:annotation>
+                    <xs:documentation> Fecha de la última actualización del estado del contribuyente
+                        CARACTERÍSTICAS: - Tipo: Date (solo fecha, sin hora) - Formato: YYYY-MM-DD
+                        (ISO 8601) - Refleja última modificación oficial en SET - Inmutable hasta
+                        nueva actualización administrativa PROPÓSITO: - Determinar antigüedad del
+                        estado actual - Auditoría de cambios de estado - Validar vigencia de
+                        información - Control temporal de estados CASOS DE USO: - Verificar recencia
+                        de la información - Determinar si consultar nuevamente - Auditoría de
+                        cambios administrativos - Cache con validez temporal INTERPRETACIÓN: - Fecha
+                        reciente: Estado probablemente estable - Fecha antigua: Estado consolidado -
+                        Múltiples cambios recientes: Situación en revisión VALIDACIÓN: - No puede
+                        ser fecha futura - Debe ser coherente con existencia del RUC - Formato
+                        estricto YYYY-MM-DD EJEMPLO: 2024-01-15 (actualizado el 15 de enero de 2024)
+                        IMPLEMENTACIÓN CACHE: ```python def es_info_valida(fecha_actualizacion:
+                        date) -> bool: # Considerar válida si actualización es reciente
+                        dias_desde_actualizacion = (date.today() - fecha_actualizacion).days return
+                        dias_desde_actualizacion (mayoIgual que) 30 # 30 días de validez ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS SIMPLES AUXILIARES                                             -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para timestamp de procesamiento RUC -->
+    <xs:simpleType name="tipoTimestampProcesamientoRUC">
+        <xs:annotation>
+            <xs:documentation> Tipo para fecha y hora de procesamiento de consulta RUC
+                CARACTERÍSTICAS: - Base: dateTime con timezone obligatorio - Timezone:
+                America/Asuncion (-03:00 o -04:00) - Precisión: Segundos (sin milisegundos) -
+                Formato: YYYY-MM-DDThh:mm:ss±TZ VALIDACIÓN: - Debe incluir timezone válido - No
+                puede ser fecha futura - Formato ISO 8601 estricto </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:dateTime">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de resultado RUC -->
+    <xs:simpleType name="tipoCodigoResultadoRUC">
+        <xs:annotation>
+            <xs:documentation> Código específico del resultado de consulta RUC CÓDIGOS VÁLIDOS: -
+                0420: Consulta exitosa, RUC encontrado - 0430: RUC no encontrado en padrones - 05xx:
+                Errores de autenticación - 06xx: Errores de validación - 99xx: Errores técnicos
+                temporales FORMATO: - 4 dígitos numéricos exactos - Sin espacios ni caracteres
+                especiales </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{4}" />
+            <xs:length value="4" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para mensaje de resultado RUC -->
+    <xs:simpleType name="tipoMensajeResultadoRUC">
+        <xs:annotation>
+            <xs:documentation> Mensaje descriptivo del resultado de consulta RUC CARACTERÍSTICAS: -
+                Texto en español - Longitud variable 10-200 caracteres - Sin información sensible -
+                Coherente con código de resultado </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="10" />
+            <xs:maxLength value="200" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para RUC del contribuyente -->
+    <xs:simpleType name="tipoRUCContribuyente">
+        <xs:annotation>
+            <xs:documentation> RUC del contribuyente en response (confirmación) CARACTERÍSTICAS: -
+                Exactamente 8 dígitos numéricos - Sin separadores ni espacios - Debe coincidir con
+                RUC del request </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{8}" />
+            <xs:length value="8" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para dígito verificador del contribuyente -->
+    <xs:simpleType name="tipoDigitoVerificadorContribuyente">
+        <xs:annotation>
+            <xs:documentation> Dígito verificador del contribuyente (confirmación) CARACTERÍSTICAS:
+                - 1 dígito numérico (0-9) - Debe coincidir con DV del request - Validación módulo 11 </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]" />
+            <xs:length value="1" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para nombre del contribuyente -->
+    <xs:simpleType name="tipoNombreContribuyente">
+        <xs:annotation>
+            <xs:documentation> Nombre o razón social oficial del contribuyente CARACTERÍSTICAS: -
+                Longitud: 4-200 caracteres - Alfanumérico con espacios permitidos - Según registro
+                oficial en padrones SET - Incluye denominaciones completas </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="4" />
+            <xs:maxLength value="200" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de estado del contribuyente -->
+    <xs:simpleType name="tipoCodigoEstadoContribuyente">
+        <xs:annotation>
+            <xs:documentation> Código del estado del contribuyente en SET VALORES VÁLIDOS: - 1:
+                Activo - 2: Suspendido - 3: Cancelado - 4: Bloqueado </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1" />
+            <xs:enumeration value="2" />
+            <xs:enumeration value="3" />
+            <xs:enumeration value="4" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para descripción del estado -->
+    <xs:simpleType name="tipoDescripcionEstadoContribuyente">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del estado del contribuyente VALORES FIJOS: -
+                "Activo" - "Suspendido" - "Cancelado" - "Bloqueado" </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Activo" />
+            <xs:enumeration value="Suspendido" />
+            <xs:enumeration value="Cancelado" />
+            <xs:enumeration value="Bloqueado" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de tipo de contribuyente -->
+    <xs:simpleType name="tipoCodigoTipoContribuyente">
+        <xs:annotation>
+            <xs:documentation> Código del tipo de contribuyente según SET VALORES VÁLIDOS: - 1:
+                Persona Física - 2: Persona Jurídica </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1" />
+            <xs:enumeration value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para descripción del tipo -->
+    <xs:simpleType name="tipoDescripcionTipoContribuyente">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del tipo de contribuyente VALORES FIJOS: -
+                "Persona Física" - "Persona Jurídica" </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Persona Física" />
+            <xs:enumeration value="Persona Jurídica" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para fecha de actualización de estado -->
+    <xs:simpleType name="tipoFechaActualizacionEstado">
+        <xs:annotation>
+            <xs:documentation> Fecha de última actualización del estado (solo fecha, sin hora)
+                FORMATO: YYYY-MM-DD VALIDACIÓN: No puede ser fecha futura </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:date">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA ANÁLISIS Y DEBUGGING                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo auxiliar para análisis de response RUC -->
+    <xs:complexType name="tipoAnalisisResponseRUC">
+        <xs:annotation>
+            <xs:documentation> Tipo auxiliar para análisis programático de responses RUC USOS: -
+                Parsing automatizado de respuestas - Clasificación de resultados por estado -
+                Testing automatizado de casos - Generación de reportes y estadísticas - Análisis de
+                calidad de datos NO INCLUIR EN RESPONSES REALES Solo para análisis interno y
+                desarrollo </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="exitoso" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si la consulta fue exitosa true: dCodRes = 0420 (RUC
+                        encontrado) false: cualquier otro código </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="rucEncontrado" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si el RUC fue encontrado true: dCodRes = 0420 false:
+                        dCodRes = 0430 o error </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="contribuyenteActivo" type="xs:boolean" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Indica si el contribuyente está activo true: cEstCont = 1
+                        false: cEstCont ≠ 1 Solo presente si RUC encontrado </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="categoriaResultado" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation> Categoría del resultado para métricas Valores:
+                        "encontrado_activo", "encontrado_inactivo", "no_encontrado",
+                        "error_validacion", "error_autenticacion", "error_tecnico" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="tiempoRespuesta" type="xs:duration" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Tiempo de respuesta del servicio Para métricas de performance </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipo para métricas de uso RUC -->
+    <xs:complexType name="tipoMetricasConsultaRUC">
+        <xs:annotation>
+            <xs:documentation> Métricas específicas para consultas de RUC PROPÓSITO: - Análisis de
+                patrones de consulta - Optimización de performance - Monitoreo de uso del servicio -
+                Reportes de contribuyentes más consultados - Análisis de calidad de datos </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="tipoContribuyenteMasConsultado" type="tns:tipoCodigoTipoContribuyente"
+                minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Tipo de contribuyente más consultado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="estadoMasFrecuente" type="tns:tipoCodigoEstadoContribuyente"
+                minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Estado más frecuente en consultas</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="antiguedadPromedio" type="xs:int" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Días promedio desde última actualización de estado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="origenConsulta" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Origen de la consulta: "validacion_previa",
+                        "verificacion_contraparte", "integracion"</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>

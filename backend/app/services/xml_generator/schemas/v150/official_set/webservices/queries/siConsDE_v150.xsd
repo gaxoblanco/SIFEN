@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Request Consulta Documento Electrónico por CDC
+  Archivo: siConsDE_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/queries/
+  
+  PROPÓSITO:
+  - Define la estructura del request para consultar documentos por CDC
+  - Permite obtener estado y datos básicos de un documento electrónico
+  - Valida el formato y contenido del CDC antes del envío
+  - Facilita la verificación de documentos en el sistema SIFEN
+  
+  OPERACIÓN:
+  - Web Service: SiConsDE (consulta documento)
+  - Método: POST síncrono
+  - Endpoint: https://sifen.set.gov.py/de/ws/consultas/consulta.wsdl
+  - Test: https://sifen-test.set.gov.py/de/ws/consultas/consulta.wsdl
+  
+  AUTENTICACIÓN:
+  - Certificado PSC requerido
+  - TLS 1.2 con mutual authentication
+  - Timeout: 30 segundos
+  
+  VALIDACIÓN CDC:
+  - Longitud exacta: 44 caracteres
+  - Solo caracteres alfanuméricos válidos
+  - Formato: AAAAMMDDHHMMSSTTTTTTTTTTTTTTTTTTTTTTTTTTT
+  - Verificación de check digit automática
+  
+  CASOS DE USO:
+  1. Verificar aprobación de documento antes de imprimir
+  2. Consultar estado para seguimiento de procesamiento  
+  3. Validar documentos recibidos de terceros
+  4. Auditoría y control de documentos emitidos
+  5. Integración con sistemas contables/ERP
+  
+  RESPUESTA ESPERADA:
+  - Schema: resConsDE_v150.xsd
+  - Datos: Estado, emisor, totales, fechas
+  - Códigos: 0280 (exitoso), 0420 (no encontrado)
+  
+  IMPLEMENTACIÓN:
+  ```python
+  # Ejemplo uso Python
+  def consultar_documento(cdc: str) -> dict:
+      request = {
+          'dId': 1,
+          'dCDC': cdc
+      }
+      response = sifen_client.consultar_de(request)
+      return response
+  ```
+  
+  Autor: [Sistema]
+  Fecha: 2024-06-24
+  Versión: 1.5.0
+  Manual: Técnico SIFEN v150 - Sección 4.5
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTS Y ANOTACIONES GLOBALES                                       -->
+    <!-- ===================================================================== -->
+
+    <xs:annotation>
+        <xs:documentation> Schema SIFEN v150 - Request Consulta Documento Electrónico por CDC
+            ESTRUCTURA GENERAL: - rEnviConsDe: Elemento raíz del request - dId: Identificador de
+            control secuencial - dCDC: Código de Control del Documento a consultar VALIDACIONES
+            APLICADAS: - CDC: Formato alfanumérico 44 caracteres exactos - ID: Numérico 1-15 dígitos
+            - Encoding: UTF-8 obligatorio - Namespace: URI exacto requerido CÓDIGOS DE RESPUESTA
+            ESPERADOS: - 0280: Consulta realizada correctamente - 0420: CDC no encontrado en el
+            sistema - 0500: Error interno del servidor - 0600: Error de validación del request USO
+            RECOMENDADO: 1. Validar CDC localmente antes de envío 2. Implementar retry para errores
+            temporales 3. Cache respuestas para consultas frecuentes 4. Log todas las consultas para
+            auditoría </xs:documentation>
+    </xs:annotation>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO RAÍZ DEL REQUEST                                             -->
+    <!-- ===================================================================== -->
+
+    <xs:element name="rEnviConsDe" type="tns:tipoEnviConsultaDE">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para el request de consulta de documento electrónico
+                CONTENIDO: - dId: ID secuencial de control del emisor - dCDC: Código de Control del
+                Documento a consultar PROPÓSITO: - Encapsular los datos necesarios para la consulta
+                - Facilitar la validación de estructura - Mantener trazabilidad del request EJEMPLO
+                DE USO: ```xml <rEnviConsDe xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                    <dId>1</dId>
+                    <dCDC>01234567890123456789012345678901234567890123</dCDC>
+                </rEnviConsDe>
+                ``` </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPO COMPLEJO PRINCIPAL                                               -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoEnviConsultaDE">
+        <xs:annotation>
+            <xs:documentation> Tipo complejo que define la estructura del request de consulta CAMPOS
+                OBLIGATORIOS: - dId: Identificador secuencial (control interno) - dCDC: Código de
+                Control del Documento target VALIDACIONES: - Ambos campos son obligatorios
+                (minOccurs="1") - Tipos y longitudes específicamente definidos - Orden de elementos
+                es significativo (sequence) CASOS DE ERROR COMUNES: - CDC malformado (longitud
+                incorrecta) - ID fuera de rango permitido - Caracteres inválidos en CDC - Namespace
+                incorrecto o ausente </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- ID de control del envío -->
+            <xs:element name="dId" type="tns:tipoIDControl">
+                <xs:annotation>
+                    <xs:documentation> ID de control secuencial del request CARACTERÍSTICAS: - Tipo:
+                        Numérico entero positivo - Longitud: 1-15 dígitos - Obligatorio: Sí -
+                        Autoincremental: Recomendado por emisor PROPÓSITO: - Control de secuencia de
+                        requests - Facilitar debugging y troubleshooting - Correlación
+                        request-response - Auditoría de consultas realizadas IMPLEMENTACIÓN: -
+                        Mantener contador por sesión/día - Reiniciar diariamente o por sesión - Usar
+                        para logs y trazabilidad EJEMPLO: 1, 2, 3, ..., 999999999999999 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de Control del Documento -->
+            <xs:element name="dCDC" type="tns:tipoCDCConsulta">
+                <xs:annotation>
+                    <xs:documentation> Código de Control del Documento a consultar CARACTERÍSTICAS:
+                        - Tipo: Alfanumérico (sin espacios ni caracteres especiales) - Longitud:
+                        Exactamente 44 caracteres - Obligatorio: Sí - Formato:
+                        YYYYMMDDHHMMSSSSSSSSSSSSSSSSSSSSSSSSSSS ESTRUCTURA INTERNA DEL CDC: -
+                        Posiciones 1-4: Año (YYYY) - Posiciones 5-6: Mes (MM) - Posiciones 7-8: Día
+                        (DD) - Posiciones 9-10: Hora (HH) - Posiciones 11-12: Minuto (MM) -
+                        Posiciones 13-14: Segundo (SS) - Posiciones 15-44: Identificador único +
+                        check digit VALIDACIONES AUTOMÁTICAS: - Check digit calculation - Formato de
+                        fecha y hora válido - Caracteres permitidos solamente - Longitud exacta sin
+                        excepciones EJEMPLO: 20240910143000123456789012345678901234567890 NOTA
+                        IMPORTANTE: El CDC debe corresponder a un documento electrónico previamente
+                        enviado y procesado en SIFEN </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+
+        <!-- Atributo de versión -->
+        <xs:attribute name="version" type="xs:string" fixed="1.5.0">
+            <xs:annotation>
+                <xs:documentation> Versión del schema de request utilizado VALOR FIJO: "1.5.0"
+                    PROPÓSITO: Identificar versión para compatibilidad y validación USO: Automático
+                    por el parser XML </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS SIMPLES AUXILIARES                                             -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para ID de control -->
+    <xs:simpleType name="tipoIDControl">
+        <xs:annotation>
+            <xs:documentation> Tipo para el identificador de control del request RESTRICCIONES: -
+                Base: Entero positivo - Mínimo: 1 - Máximo: 999999999999999 (15 dígitos) - Sin
+                decimales ni caracteres especiales IMPLEMENTACIÓN RECOMENDADA: - Usar contador
+                incremental por sesión - Reiniciar en 1 cada nueva sesión/día - No reutilizar IDs en
+                la misma sesión CASOS DE USO: - Control de secuencia - Debugging de requests -
+                Correlación logs - Auditoría de operaciones </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="999999999999999" />
+            <xs:totalDigits value="15" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para CDC de consulta -->
+    <xs:simpleType name="tipoCDCConsulta">
+        <xs:annotation>
+            <xs:documentation> Tipo especializado para validar CDC en consultas VALIDACIONES
+                APLICADAS: - Longitud exacta: 44 caracteres - Solo caracteres alfanuméricos (A-Z,
+                a-z, 0-9) - Sin espacios, guiones, o caracteres especiales - Pattern matching para
+                formato específico ESTRUCTURA VALIDADA: - Fecha y hora embedded válida -
+                Identificador único interno - Check digit de verificación ERRORES COMUNES
+                DETECTADOS: - Longitud incorrecta (muy común) - Caracteres inválidos (espacios,
+                símbolos) - CDC de otros países o sistemas - CDC generado incorrectamente EJEMPLO
+                VÁLIDO: 20240910143000ABCD1234567890ABCD1234567890AB </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:length value="44" />
+            <xs:pattern value="[A-Za-z0-9]{44}" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA ANÁLISIS Y DEBUGGING                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo auxiliar para análisis de request -->
+    <xs:complexType name="tipoAnalisisRequest">
+        <xs:annotation>
+            <xs:documentation> Tipo auxiliar para análisis programático de requests USOS: -
+                Validación pre-envío - Testing automatizado - Debugging de estructuras - Generación
+                de reportes NO INCLUIR EN REQUESTS REALES Solo para análisis interno y desarrollo </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="cdcValido" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si el CDC tiene formato válido Útil para validación
+                        pre-envío </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="fechaExtracted" type="xs:dateTime" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora extraída del CDC Para validación de coherencia
+                        temporal </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="categoriaConsulta" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation> Categoría de la consulta para métricas Ej: "verificacion",
+                        "auditoria", "integracion" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>

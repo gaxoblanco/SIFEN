@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Request Consulta RUC Contribuyente
+  Archivo: siConsRUC_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/queries/
+  
+  PROPÓSITO:
+  - Define la estructura del request para consultar información de RUC
+  - Permite obtener datos del contribuyente (estado, tipo, nombre)
+  - Valida el formato RUC y dígito verificador antes del envío
+  - Facilita la verificación de contribuyentes en operaciones comerciales
+  
+  OPERACIÓN:
+  - Web Service: SiConsRUC (consulta RUC)
+  - Método: POST síncrono
+  - Endpoint: https://sifen.set.gov.py/de/ws/consultas/consulta.wsdl
+  - Test: https://sifen-test.set.gov.py/de/ws/consultas/consulta.wsdl
+  
+  AUTENTICACIÓN:
+  - Certificado PSC requerido
+  - TLS 1.2 con mutual authentication  
+  - Timeout: 30 segundos
+  
+  VALIDACIÓN RUC:
+  - Longitud exacta: 8 dígitos numéricos
+  - Dígito verificador: Calculado con módulo 11
+  - Solo caracteres numéricos válidos
+  - Verificación automática de coherencia RUC-DV
+  
+  CASOS DE USO:
+  1. Validar RUC de receptores antes de emitir documentos
+  2. Verificar estado de contribuyentes para operaciones comerciales
+  3. Obtener datos oficiales para integración contable/ERP
+  4. Auditoría y control de contrapartes comerciales
+  5. Validación pre-envío de documentos electrónicos
+  
+  RESPUESTA ESPERADA:
+  - Schema: resConsRUC_v150.xsd
+  - Datos: Estado, tipo, nombre, fecha actualización
+  - Códigos: 0420 (exitoso), 0430 (no encontrado)
+  
+  ALGORITMO DÍGITO VERIFICADOR:
+  ```python
+  # Cálculo DV con módulo 11
+  def calcular_dv_ruc(ruc: str) -> str:
+      multiplicadores = [2, 3, 4, 5, 6, 7, 2, 3]
+      suma = sum(int(digito) * mult for digito, mult in zip(ruc, multiplicadores))
+      resto = suma % 11
+      if resto < 2:
+          return str(resto)
+      else:
+          return str(11 - resto)
+  ```
+  
+  IMPLEMENTACIÓN:
+  ```python
+  # Ejemplo uso Python
+  def consultar_ruc(ruc: str, dv: str) -> dict:
+      request = {
+          'dId': get_next_id(),
+          'dRUC': ruc,
+          'dDV': dv
+      }
+      response = sifen_client.consultar_ruc(request)
+      return response
+  ```
+  
+  Autor: [Sistema]
+  Fecha: 2024-06-24
+  Versión: 1.5.0
+  Manual: Técnico SIFEN v150 - Sección 4.6
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTS Y ANOTACIONES GLOBALES                                       -->
+    <!-- ===================================================================== -->
+
+    <xs:annotation>
+        <xs:documentation> Schema SIFEN v150 - Request Consulta RUC Contribuyente ESTRUCTURA
+            GENERAL: - rEnviConsRUC: Elemento raíz del request - dId: Identificador de control
+            secuencial - dRUC: RUC del contribuyente a consultar (8 dígitos) - dDV: Dígito
+            verificador del RUC (1 dígito, módulo 11) VALIDACIONES CRÍTICAS: - RUC: Formato numérico
+            8 dígitos exactos - DV: Coherencia con RUC usando algoritmo módulo 11 - ID: Numérico
+            1-15 dígitos para control - Encoding: UTF-8 obligatorio - Namespace: URI exacto
+            requerido CÓDIGOS DE RESPUESTA ESPERADOS: - 0420: Consulta realizada correctamente (RUC
+            encontrado) - 0430: RUC no encontrado en el sistema - 0500: Error interno del servidor -
+            0600: Error de validación del request INFORMACIÓN OBTENIDA: Si el RUC existe, la
+            respuesta incluye: - Nombre/razón social del contribuyente - Estado actual (Activo,
+            Suspendido, Cancelado, Bloqueado) - Tipo de contribuyente (Persona física/jurídica) -
+            Fecha de última actualización de estado USO RECOMENDADO: 1. Validar RUC y DV localmente
+            antes de envío 2. Implementar cache para RUC consultados frecuentemente 3. Verificar
+            estado antes de emitir documentos electrónicos 4. Actualizar cache cuando estado cambie </xs:documentation>
+    </xs:annotation>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO RAÍZ DEL REQUEST                                             -->
+    <!-- ===================================================================== -->
+
+    <xs:element name="rEnviConsRUC" type="tns:tipoEnviConsultaRUC">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para el request de consulta de RUC contribuyente
+                CONTENIDO: - dId: ID secuencial de control del emisor - dRUC: RUC del contribuyente
+                a consultar - dDV: Dígito verificador correspondiente al RUC PROPÓSITO: - Encapsular
+                los datos necesarios para la consulta - Facilitar la validación de estructura -
+                Mantener trazabilidad del request - Verificar integridad de datos EJEMPLO DE USO:
+                ```xml <rEnviConsRUC xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                    <dId>1</dId>
+                    <dRUC>12345678</dRUC>
+                    <dDV>9</dDV>
+                </rEnviConsRUC> ``` VALIDACIÓN AUTOMÁTICA: - Al
+                procesar, el sistema verifica que DV corresponda a RUC - RUC debe existir en el
+                padrón de contribuyentes SET - ID debe ser único por sesión/día del consultante </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPO COMPLEJO PRINCIPAL                                               -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoEnviConsultaRUC">
+        <xs:annotation>
+            <xs:documentation> Tipo complejo que define la estructura del request de consulta RUC
+                CAMPOS OBLIGATORIOS: - dId: Identificador secuencial (control interno) - dRUC: RUC
+                del contribuyente target - dDV: Dígito verificador correspondiente VALIDACIONES: -
+                Todos los campos son obligatorios (minOccurs="1") - Tipos y longitudes
+                específicamente definidos - Orden de elementos es significativo (sequence) -
+                Coherencia RUC-DV validada automáticamente CASOS DE ERROR COMUNES: - RUC malformado
+                (longitud incorrecta o caracteres no numéricos) - DV incorrecto según algoritmo
+                módulo 11 - ID fuera de rango permitido - Namespace incorrecto o ausente ALGORITMO
+                VALIDACIÓN DV: 1. Multiplicar cada dígito del RUC por [2,3,4,5,6,7,2,3] 2. Sumar
+                todos los productos 3. Calcular resto de división por 11 4. Si resto (mayor que) 2:
+                DV = resto, sino DV = 11 - resto </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- ID de control del envío -->
+            <xs:element name="dId" type="tns:tipoIDControlRUC">
+                <xs:annotation>
+                    <xs:documentation> ID de control secuencial del request CARACTERÍSTICAS: - Tipo:
+                        Numérico entero positivo - Longitud: 1-15 dígitos - Obligatorio: Sí -
+                        Autoincremental: Recomendado por consultante PROPÓSITO: - Control de
+                        secuencia de requests - Facilitar debugging y troubleshooting - Correlación
+                        request-response - Auditoría de consultas realizadas - Evitar duplicación de
+                        consultas IMPLEMENTACIÓN: - Mantener contador por sesión de consulta -
+                        Reiniciar diariamente o por sesión - Usar para logs y trazabilidad - No
+                        reutilizar en la misma sesión EJEMPLO: 1, 2, 3, ..., 999999999999999 BUENAS
+                        PRÁCTICAS: - Usar timestamp como ID para unicidad - Loggar ID junto con RUC
+                        consultado - Implementar límite de requests por minuto </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC del contribuyente a consultar -->
+            <xs:element name="dRUC" type="tns:tipoRUCConsulta">
+                <xs:annotation>
+                    <xs:documentation> RUC del contribuyente a consultar (sin dígito verificador)
+                        CARACTERÍSTICAS: - Tipo: Numérico (sin espacios ni caracteres especiales) -
+                        Longitud: Exactamente 8 dígitos - Obligatorio: Sí - Formato: Solo dígitos
+                        0-9, sin separadores ESTRUCTURA: - 8 dígitos consecutivos - Sin guiones,
+                        puntos, espacios - Sin dígito verificador (se envía en dDV) - Rango válido:
+                        10000000 a 99999999 VALIDACIONES AUTOMÁTICAS: - Solo caracteres numéricos
+                        permitidos - Longitud exacta sin excepciones - No debe iniciar con 00000000
+                        - Debe existir en padrón SET (verificado en servidor) EJEMPLOS VÁLIDOS: -
+                        12345678 (RUC ficticio para testing) - 80012345 (formato típico empresas) -
+                        01234567 (persona física) EJEMPLOS INVÁLIDOS: - 1234567 (7 dígitos, falta
+                        uno) - 123456789 (9 dígitos, sobra uno) - 1234-5678 (con separador) -
+                        ABC12345 (caracteres no numéricos) NOTA IMPORTANTE: El RUC debe corresponder
+                        a un contribuyente real registrado en el sistema de la SET. RUC inexistentes
+                        generarán código de respuesta 0430. </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Dígito verificador del RUC -->
+            <xs:element name="dDV" type="tns:tipoDigitoVerificadorRUC">
+                <xs:annotation>
+                    <xs:documentation> Dígito verificador del RUC calculado con algoritmo módulo 11
+                        CARACTERÍSTICAS: - Tipo: Numérico (1 dígito) - Longitud: Exactamente 1
+                        dígito - Obligatorio: Sí - Calculado: Algoritmo módulo 11 sobre los 8
+                        dígitos del RUC ALGORITMO MÓDULO 11: 1. Multiplicadores: [2, 3, 4, 5, 6, 7,
+                        2, 3] 2. Multiplicar cada dígito del RUC por su multiplicador 3. Sumar todos
+                        los productos obtenidos 4. Calcular: resto = suma % 11 5. Si resto (mayor
+                        que) 2: DV = resto 6. Si resto>= 2: DV = 11 - resto EJEMPLO CÁLCULO (RUC:
+                        12345678): ``` RUC: 1 2 3 4 5 6 7 8 Mult: 2 3 4 5 6 7 2 3 Prod: 2 6 12 20 30
+                        42 14 24 Suma: 2+6+12+20+30+42+14+24 = 150 Resto: 150 % 11 = 7 DV: 11 - 7 =
+                        4 ``` VALIDACIÓN AUTOMÁTICA: - SIFEN verifica que DV corresponda exactamente
+                        al RUC - DV incorrecto genera error de validación inmediato - Sin tolerancia
+                        a errores de cálculo IMPLEMENTACIÓN RECOMENDADA: ```python def
+                        calcular_dv_ruc(ruc: str) -> str: multiplicadores = [2, 3, 4, 5, 6, 7, 2, 3]
+                        suma = sum(int(d) * m for d, m in zip(ruc, multiplicadores)) resto = suma %
+                        11 return str(resto if resto (mayor que) 2 else 11 - resto) ``` EJEMPLOS: -
+                        RUC 12345678 → DV 4 - RUC 80012345 → DV 6 - RUC 99999999 → DV 0 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+
+        <!-- Atributo de versión -->
+        <xs:attribute name="version" type="xs:string" fixed="1.5.0">
+            <xs:annotation>
+                <xs:documentation> Versión del schema de request utilizado VALOR FIJO: "1.5.0"
+                    PROPÓSITO: Identificar versión para compatibilidad y validación USO: Automático
+                    por el parser XML </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS SIMPLES AUXILIARES                                             -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para ID de control RUC -->
+    <xs:simpleType name="tipoIDControlRUC">
+        <xs:annotation>
+            <xs:documentation> Tipo para el identificador de control del request de consulta RUC
+                RESTRICCIONES: - Base: Entero positivo - Mínimo: 1 - Máximo: 999999999999999 (15
+                dígitos) - Sin decimales ni caracteres especiales IMPLEMENTACIÓN RECOMENDADA: - Usar
+                timestamp Unix para unicidad global - Alternativamente, contador incremental por
+                sesión - Reiniciar en 1 cada nueva sesión/día - No reutilizar IDs en la misma sesión
+                CASOS DE USO: - Control de secuencia de consultas - Debugging de requests
+                específicos - Correlación con logs del sistema - Auditoría de operaciones de
+                consulta - Detección de consultas duplicadas </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="999999999999999" />
+            <xs:totalDigits value="15" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para RUC de consulta -->
+    <xs:simpleType name="tipoRUCConsulta">
+        <xs:annotation>
+            <xs:documentation> Tipo especializado para validar RUC en consultas VALIDACIONES
+                APLICADAS: - Longitud exacta: 8 dígitos numéricos - Solo caracteres numéricos (0-9)
+                - Sin espacios, guiones, o caracteres especiales - Pattern matching para formato
+                específico RESTRICCIONES ADICIONALES: - No puede iniciar con 00000000 - Debe estar
+                en rango válido de RUC de Paraguay - No acepta RUC extranjeros o formatos especiales
+                ERRORES COMUNES DETECTADOS: - Longitud incorrecta (muy común) - Caracteres no
+                numéricos (espacios, guiones) - RUC con formato de otros países - RUC de testing mal
+                formados EJEMPLO VÁLIDO: 12345678 EJEMPLOS INVÁLIDOS: - 1234567 (7 dígitos) -
+                123456789 (9 dígitos) - 1234-5678 (con guión) - 00000000 (todos ceros) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:length value="8" />
+            <xs:pattern value="[0-9]{8}" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para dígito verificador RUC -->
+    <xs:simpleType name="tipoDigitoVerificadorRUC">
+        <xs:annotation>
+            <xs:documentation> Tipo especializado para dígito verificador de RUC VALIDACIONES
+                APLICADAS: - Longitud exacta: 1 dígito numérico - Solo dígitos 0-9 permitidos - Sin
+                espacios ni caracteres especiales - Coherencia con RUC verificada en el servidor
+                ALGORITMO DE VALIDACIÓN: El servidor SIFEN verificará automáticamente que el DV
+                corresponda al RUC usando el algoritmo módulo 11 estándar. ERRORES DETECTADOS: - DV
+                incorrecto para el RUC proporcionado - Caracteres no numéricos - Longitud diferente
+                a 1 dígito - DV calculado con algoritmo incorrecto EJEMPLO: 9 (para RUC específico)
+                NOTA DE IMPLEMENTACIÓN: Calcular DV localmente antes de envío para evitar errores de
+                validación en el servidor SIFEN. </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:length value="1" />
+            <xs:pattern value="[0-9]" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA ANÁLISIS Y DEBUGGING                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo auxiliar para análisis de request RUC -->
+    <xs:complexType name="tipoAnalisisRequestRUC">
+        <xs:annotation>
+            <xs:documentation> Tipo auxiliar para análisis programático de requests RUC USOS: -
+                Validación pre-envío de datos - Testing automatizado de casos - Debugging de
+                estructuras de datos - Generación de reportes de consultas - Verificación de
+                coherencia RUC-DV NO INCLUIR EN REQUESTS REALES Solo para análisis interno y
+                desarrollo </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="rucValido" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si el RUC tiene formato válido Útil para validación
+                        pre-envío </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="dvCorrecto" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si el DV corresponde al RUC Validación usando
+                        algoritmo módulo 11 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="categoriaConsulta" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation> Categoría de la consulta para métricas Ej:
+                        "validacion_previa", "verificacion_contraparte", "auditoria" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="tipoContribuyente" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Tipo estimado del contribuyente basado en RUC Para análisis
+                        estadístico </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipo para métricas de consulta RUC -->
+    <xs:complexType name="tipoMetricasConsultaRUC">
+        <xs:annotation>
+            <xs:documentation> Métricas específicas para consultas de RUC PROPÓSITO: - Análisis de
+                patrones de consulta - Optimización de performance - Monitoreo de uso del servicio -
+                Reportes de contribuyentes más consultados </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="frecuenciaConsulta" type="xs:int" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Veces que se ha consultado este RUC</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="ultimaConsulta" type="xs:dateTime" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Timestamp de la última consulta exitosa</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="origenConsulta" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Origen de la consulta: "validacion", "integracion",
+                        "auditoria"</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- 
+    ==== Ejemplo de cálculo DV incluido ====
+        RUC: 12345678
+        Multiplicadores: [2,3,4,5,6,7,2,3]
+        Productos: [2,6,12,20,30,42,14,24]
+        Suma: 150
+        Resto: 150 % 11 = 7
+        DV: 11 - 7 = 4
+    -->
+</xs:schema>

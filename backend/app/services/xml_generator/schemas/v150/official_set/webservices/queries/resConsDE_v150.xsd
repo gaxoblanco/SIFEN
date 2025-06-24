@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Response Consulta Documento Electrónico por CDC
+  Archivo: resConsDE_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/queries/
+  
+  PROPÓSITO:
+  - Define la estructura del response para consultas de documentos por CDC
+  - Proporciona información completa del documento si es encontrado
+  - Maneja casos de éxito, error y documento no encontrado
+  - Facilita la interpretación programática de respuestas SIFEN
+  
+  OPERACIÓN:
+  - Web Service: SiConsDE (consulta documento)
+  - Correlación: Respuesta a siConsDE_v150.xsd request
+  - Endpoint: https://sifen.set.gov.py/de/ws/consultas/consulta.wsdl
+  - Test: https://sifen-test.set.gov.py/de/ws/consultas/consulta.wsdl
+  
+  CÓDIGOS DE RESPUESTA PRINCIPALES:
+  - 0280: "Consulta realizada correctamente" (documento encontrado)
+  - 0420: "CDC no encontrado en el sistema" (CDC no existe)
+  - 0500: "Error interno del servidor" (error temporal)
+  - 0600: "Error de validación del request" (request malformado)
+  
+  CASOS DE USO PRINCIPALES:
+  1. Verificación de estado de documentos emitidos
+  2. Validación de documentos recibidos de terceros
+  3. Consulta de datos para integración contable
+  4. Auditoría y seguimiento de documentos
+  5. Verificación pre-impresión de KuDE
+  
+  ESTRUCTURA CONDICIONAL:
+  - gResProcCons: Solo presente si dCodRes = "0280" (documento encontrado)
+  - Campos monetarios: Formato sin separadores de miles
+  - Fechas: ISO 8601 estándar
+  
+  IMPLEMENTACIÓN RECOMENDADA:
+  ```python
+  # Ejemplo procesamiento response
+  def procesar_consulta_de(response_xml: str) -> dict:
+      tree = parse_xml(response_xml)
+      codigo = tree.find('.//dCodRes').text
+      
+      if codigo == '0280':
+          # Documento encontrado
+          datos_doc = extraer_datos_documento(tree)
+          return {'encontrado': True, 'documento': datos_doc}
+      elif codigo == '0420':
+          # Documento no encontrado
+          return {'encontrado': False, 'motivo': 'CDC no existe'}
+      else:
+          # Error en consulta
+          mensaje = tree.find('.//dMsgRes').text
+          return {'error': True, 'codigo': codigo, 'mensaje': mensaje}
+  ```
+  
+  INTEGRACIÓN CON SCHEMAS:
+  - Request: siConsDE_v150.xsd
+  - Documento base: DE_v150.xsd (referencia)
+  - Tipos compartidos: basic_types.xsd
+  
+  Autor: [Sistema]
+  Fecha: 2024-06-24
+  Versión: 1.5.0
+  Manual: Técnico SIFEN v150 - Sección 4.5.2
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:tns="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTS Y ANOTACIONES GLOBALES                                       -->
+    <!-- ===================================================================== -->
+
+    <xs:annotation>
+        <xs:documentation> Schema SIFEN v150 - Response Consulta Documento Electrónico por CDC
+            ESTRUCTURA JERÁRQUICA: rRetEnviConsDe (Raíz) ├── dFecProc (Timestamp procesamiento
+            SIFEN) ├── dCodRes (Código resultado: 0280, 0420, etc.) ├── dMsgRes (Mensaje descriptivo
+            resultado) └── gResProcCons (Datos documento - solo si encontrado) ├── dFecEmi (Fecha
+            emisión documento) ├── dRucEm/dDVEm (RUC y DV emisor) ├── dNomEm (Nombre emisor) ├──
+            iTiDE (Tipo documento electrónico) ├── dNumDoc (Número documento) ├──
+            dTotGralOpe/dTotIVA (Totales monetarios) └── cEstDE/dDesEstDE (Estado documento)
+            INTERPRETACIÓN DE CÓDIGOS: - 0280: Documento encontrado y datos incluidos - 0420: CDC
+            válido pero documento no existe - 05xx: Error de autenticación/certificado - 99xx: Error
+            técnico temporal del servidor VALIDACIONES AUTOMÁTICAS: - Correlación con ID del request
+            original - Formato de timestamp de procesamiento - Coherencia entre código y presencia
+            de datos - Validación de tipos de datos según especificación CASOS ESPECIALES DE MANEJO:
+            1. Documento encontrado: gResProcCons presente con todos los datos 2. Documento no
+            encontrado: Solo datos de control (sin gResProcCons) 3. Error temporal: Reintentar
+            consulta después de tiempo de espera 4. Error de autenticación: Verificar certificado
+            PSC </xs:documentation>
+    </xs:annotation>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO RAÍZ DEL RESPONSE                                            -->
+    <!-- ===================================================================== -->
+
+    <xs:element name="rRetEnviConsDe" type="tns:tipoResponseConsultaDE">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz para el response de consulta de documento electrónico
+                CONTENIDO FIJO: - dFecProc: Timestamp del procesamiento en SIFEN - dCodRes: Código
+                de resultado específico - dMsgRes: Mensaje descriptivo del resultado CONTENIDO
+                CONDICIONAL: - gResProcCons: Datos del documento (solo si dCodRes = "0280")
+                CORRELACIÓN: - Respuesta directa a request siConsDE_v150.xsd - ID de control debe
+                coincidir con request original EJEMPLO DOCUMENTO ENCONTRADO: ```xml <rRetEnviConsDe
+                    xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                    <dFecProc>2024-06-24T15:30:45-03:00</dFecProc>
+                    <dCodRes>0280</dCodRes>
+                    <dMsgRes>Consulta realizada correctamente</dMsgRes>
+                    <gResProcCons>
+                        <dFecEmi>2024-06-24</dFecEmi>
+                        <dRucEm>12345678</dRucEm>
+                        <dDVEm>9</dDVEm>
+                        <dNomEm>Empresa Ejemplo SAE</dNomEm>
+                        <iTiDE>1</iTiDE>
+                        <dNumDoc>0000001</dNumDoc>
+                        <dTotGralOpe>110000</dTotGralOpe>
+                        <dTotIVA>10000</dTotIVA>
+                        <cEstDE>1</cEstDE>
+                        <dDesEstDE>Aprobado</dDesEstDE>
+                    </gResProcCons>
+                </rRetEnviConsDe>
+                ``` EJEMPLO DOCUMENTO NO ENCONTRADO: ```xml <rRetEnviConsDe
+                    xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                    <dFecProc>2024-06-24T15:30:45-03:00</dFecProc>
+                    <dCodRes>0420</dCodRes>
+                    <dMsgRes>CDC no encontrado en el sistema</dMsgRes>
+                    <!-- Sin gResProcCons -->
+                </rRetEnviConsDe>
+                ``` </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPO COMPLEJO PRINCIPAL                                               -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoResponseConsultaDE">
+        <xs:annotation>
+            <xs:documentation> Tipo complejo que define la estructura completa del response CAMPOS
+                OBLIGATORIOS (siempre presentes): - dFecProc: Fecha y hora del procesamiento en
+                SIFEN - dCodRes: Código específico del resultado - dMsgRes: Mensaje descriptivo del
+                código CAMPOS CONDICIONALES: - gResProcCons: Datos del documento (solo si código =
+                0280) LÓGICA DE NEGOCIO: - Si dCodRes = "0280": gResProcCons DEBE estar presente -
+                Si dCodRes ≠ "0280": gResProcCons NO debe estar presente - Todos los campos son
+                validados según tipos específicos PROCESAMIENTO RECOMENDADO: 1. Verificar dCodRes
+                para determinar éxito/fallo 2. Si éxito (0280): procesar datos en gResProcCons 3. Si
+                fallo: usar dMsgRes para manejo de errores 4. Loggar siempre dFecProc para auditoría </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- Fecha y hora de procesamiento -->
+            <xs:element name="dFecProc" type="tns:tipoTimestampProcesamiento">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora exacta del procesamiento en SIFEN
+                        CARACTERÍSTICAS: - Tipo: DateTime con timezone - Formato: ISO 8601 completo
+                        (YYYY-MM-DDThh:mm:ss±TZ) - Timezone: America/Asuncion (-03:00 estándar,
+                        -04:00 DST) - Precisión: Segundos (sin milisegundos) PROPÓSITO: - Timestamp
+                        oficial del procesamiento - Auditoría y trazabilidad de operaciones -
+                        Correlación temporal con logs SIFEN - Verificación de tiempos de respuesta
+                        VALIDACIONES: - Fecha no puede ser futura - Debe incluir timezone válido de
+                        Paraguay - Formato estricto ISO 8601 EJEMPLOS VÁLIDOS: -
+                        2024-06-24T15:30:45-03:00 (horario estándar) - 2024-12-15T09:15:30-04:00
+                        (horario de verano) USO EN LOGS: Usar este timestamp para correlacionar con
+                        logs internos y determinar tiempos de procesamiento </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Código de resultado -->
+            <xs:element name="dCodRes" type="tns:tipoCodigoResultadoConsulta">
+                <xs:annotation>
+                    <xs:documentation> Código específico del resultado de la consulta CÓDIGOS
+                        PRINCIPALES: 🟢 ÉXITO: - 0280: "Consulta realizada correctamente" Documento
+                        encontrado y datos incluidos 🟡 DOCUMENTO NO ENCONTRADO: - 0420: "CDC no
+                        encontrado en el sistema" CDC válido pero documento no existe 🔴 ERRORES DE
+                        VALIDACIÓN: - 0600: "Error de validación del request" Request malformado o
+                        CDC inválido - 0610: "Parámetros de consulta inválidos" Formato de CDC
+                        incorrecto 🔴 ERRORES DE AUTENTICACIÓN: - 0500: "Error de autenticación"
+                        Certificado PSC inválido o expirado - 0510: "Acceso no autorizado" Sin
+                        permisos para consultar 🔴 ERRORES TÉCNICOS: - 9900: "Error interno del
+                        servidor" Error temporal, reintentar - 9910: "Servicio temporalmente no
+                        disponible" Mantenimiento programado MANEJO PROGRAMÁTICO: ```python def
+                        manejar_codigo_respuesta(codigo: str): if codigo == '0280': return
+                        'EXITO_DOCUMENTO_ENCONTRADO' elif codigo == '0420': return
+                        'DOCUMENTO_NO_ENCONTRADO' elif codigo.startswith('06'): return
+                        'ERROR_VALIDACION' elif codigo.startswith('05'): return
+                        'ERROR_AUTENTICACION' elif codigo.startswith('99'): return 'ERROR_TEMPORAL'
+                        else: return 'ERROR_DESCONOCIDO' ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Mensaje descriptivo -->
+            <xs:element name="dMsgRes" type="tns:tipoMensajeResultado">
+                <xs:annotation>
+                    <xs:documentation> Mensaje descriptivo que complementa el código de resultado
+                        CARACTERÍSTICAS: - Texto en español legible para humanos - Longitud variable
+                        (10-200 caracteres típico) - Coherente con el código dCodRes - Sin
+                        información sensible MENSAJES TÍPICOS POR CÓDIGO: - 0280: "Consulta
+                        realizada correctamente" - 0420: "CDC no encontrado en el sistema" - 0600:
+                        "Error de validación del request" - 0500: "Error de autenticación del
+                        certificado" - 9900: "Error interno del servidor, intente nuevamente"
+                        PROPÓSITO: - Información legible para usuarios finales - Contexto adicional
+                        para debugging - Mensajes para mostrar en interfaces - Logs y auditoría
+                        descriptiva USO RECOMENDADO: - Para UI: Mostrar al usuario final - Para
+                        logs: Complementar el código técnico - Para debugging: Información adicional
+                        del error - No usar para lógica de negocio (usar dCodRes) NOTA IMPORTANTE:
+                        El contenido exacto puede variar entre versiones de SIFEN, siempre usar
+                        dCodRes para lógica de negocio </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Datos del documento consultado (condicional) -->
+            <xs:element name="gResProcCons" type="tns:tipoInformacionDocumento" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Grupo con información del documento consultado
+                        CONDICIONALIDAD ESTRICTA: - PRESENTE: Solo cuando dCodRes = "0280" -
+                        AUSENTE: En cualquier otro código de resultado - OBLIGATORIO: Si documento
+                        existe y consulta es exitosa CONTENIDO INCLUIDO: - Información básica del
+                        emisor (RUC, nombre) - Tipo y número del documento - Fecha de emisión
+                        original - Totales monetarios principales - Estado actual del documento en
+                        SIFEN INFORMACIÓN EXCLUIDA (no incluida): - Items detallados del documento -
+                        Información del receptor - Firma digital completa - Campos específicos por
+                        tipo de documento VALIDACIÓN AUTOMÁTICA: - Parser debe verificar coherencia:
+                        código 0280 = datos presentes - Todos los subcampos son obligatorios si el
+                        grupo está presente - Tipos de datos según especificación SIFEN USO TÍPICO:
+                        ```python if response.dCodRes == '0280': documento = response.gResProcCons
+                        print(f"Documento {documento.iTiDE} #{documento.dNumDoc}") print(f"Emisor:
+                        {documento.dNomEm} ({documento.dRucEm})") print(f"Total:
+                        {documento.dTotGralOpe} ({documento.dDesEstDE})") ``` </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+
+        <!-- Atributo de versión -->
+        <xs:attribute name="version" type="xs:string" fixed="1.5.0">
+            <xs:annotation>
+                <xs:documentation> Versión del schema de response utilizado VALOR FIJO: "1.5.0"
+                    PROPÓSITO: Identificar versión para compatibilidad y parsing USO: Automático por
+                    el sistema </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPO COMPLEJO PARA INFORMACIÓN DEL DOCUMENTO                         -->
+    <!-- ===================================================================== -->
+
+    <xs:complexType name="tipoInformacionDocumento">
+        <xs:annotation>
+            <xs:documentation> Información básica del documento electrónico consultado PROPÓSITO: -
+                Proporcionar datos esenciales del documento - Permitir verificación de autenticidad
+                - Facilitar integración con sistemas contables - Mostrar estado actual en SIFEN
+                CAMPOS INCLUIDOS: Todos los campos son obligatorios si el grupo está presente. La
+                información refleja el estado actual en SIFEN. ACTUALIZACIÓN: Los datos se obtienen
+                en tiempo real del sistema SIFEN, reflejando el estado más actual del documento. </xs:documentation>
+        </xs:annotation>
+
+        <xs:sequence>
+
+            <!-- Fecha de emisión del documento -->
+            <xs:element name="dFecEmi" type="tns:tipoFechaEmision">
+                <xs:annotation>
+                    <xs:documentation> Fecha de emisión original del documento electrónico
+                        CARACTERÍSTICAS: - Tipo: Date (solo fecha, sin hora) - Formato: YYYY-MM-DD
+                        (ISO 8601) - Inmutable: No cambia después de emisión - Obligatorio: Siempre
+                        presente en documentos válidos PROPÓSITO: - Identificar cuándo fue emitido
+                        el documento - Validar plazos de transmisión y vigencia - Ordenamiento
+                        cronológico de documentos - Auditoría y control fiscal VALIDACIONES: - No
+                        puede ser fecha futura - Debe ser coherente con período fiscal - Formato
+                        estricto YYYY-MM-DD EJEMPLO: 2024-06-24 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- RUC del emisor -->
+            <xs:element name="dRucEm" type="tns:tipoRUCEmisor">
+                <xs:annotation>
+                    <xs:documentation> RUC del emisor del documento (sin dígito verificador)
+                        CARACTERÍSTICAS: - Longitud: Exactamente 8 dígitos numéricos - Sin guiones
+                        ni separadores - Sin dígito verificador (se incluye en dDVEm) -
+                        Identificador único del contribuyente emisor VALIDACIÓN: - Solo dígitos 0-9
+                        - Longitud exacta 8 caracteres - Debe existir en padrón RUC de SET -
+                        Coherente con certificado PSC usado para firmar EJEMPLO: 12345678 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Dígito verificador del RUC -->
+            <xs:element name="dDVEm" type="tns:tipoDigitoVerificador">
+                <xs:annotation>
+                    <xs:documentation> Dígito verificador del RUC del emisor CARACTERÍSTICAS: -
+                        Longitud: 1 dígito numérico (0-9) - Calculado con algoritmo módulo 11 -
+                        Validación automática de integridad del RUC CÁLCULO: Algoritmo módulo 11
+                        aplicado sobre los 8 dígitos del RUC VALIDACIÓN: - Debe coincidir con
+                        cálculo sobre dRucEm - Valor 0-9 únicamente EJEMPLO: 9 (para RUC 12345678) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Nombre del emisor -->
+            <xs:element name="dNomEm" type="tns:tipoNombreEmisor">
+                <xs:annotation>
+                    <xs:documentation> Nombre o razón social del emisor CARACTERÍSTICAS: - Longitud:
+                        4-60 caracteres - Texto libre alfanumérico - Según registro oficial en SET -
+                        Inmutable durante vigencia del documento CONTENIDO: - Personas físicas:
+                        Nombre completo - Personas jurídicas: Razón social oficial - Sin
+                        abreviaciones no oficiales EJEMPLO: "Empresa Ejemplo Sociedad Anónima" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tipo de documento electrónico -->
+            <xs:element name="iTiDE" type="tns:tipoDocumentoElectronico">
+                <xs:annotation>
+                    <xs:documentation> Tipo de documento electrónico VALORES VÁLIDOS: - 1: Factura
+                        Electrónica (FE) - 4: Autofactura Electrónica (AFE) - 5: Nota de Crédito
+                        Electrónica (NCE) - 6: Nota de Débito Electrónica (NDE) - 7: Nota de
+                        Remisión Electrónica (NRE) PROPÓSITO: - Identificar la naturaleza del
+                        documento - Determinar reglas de validación aplicables - Facilitar
+                        procesamiento específico por tipo INMUTABLE: El tipo no cambia una vez
+                        emitido el documento EJEMPLO: 1 (Factura Electrónica) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número del documento -->
+            <xs:element name="dNumDoc" type="tns:tipoNumeroDocumento">
+                <xs:annotation>
+                    <xs:documentation> Número secuencial del documento CARACTERÍSTICAS: - Longitud:
+                        7 dígitos numéricos - Completar con ceros a la izquierda - Secuencial por
+                        establecimiento y punto expedición - Único dentro del timbrado específico
+                        FORMATO: - Siempre 7 dígitos: 0000001, 0000002, etc. - Sin separadores ni
+                        caracteres especiales VALIDACIÓN: - Rango: 0000001 a 9999999 - Secuencial
+                        dentro del timbrado - No debe estar duplicado EJEMPLO: 0000001 </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Total general de la operación -->
+            <xs:element name="dTotGralOpe" type="tns:tipoMontoTotal">
+                <xs:annotation>
+                    <xs:documentation> Total general de la operación (monto final) CARACTERÍSTICAS:
+                        - Tipo: Decimal con hasta 2 decimales - Sin separadores de miles en XML -
+                        Incluye IVA y todos los conceptos - Moneda según documento original CÁLCULO:
+                        - Subtotal gravado + IVA + otros conceptos - Menos descuentos globales -
+                        Monto final a pagar FORMATO XML: - Sin comas ni puntos de miles - Punto
+                        decimal para centavos - Ejemplo: 110000.50 (ciento diez mil guaraníes con 50
+                        céntimos) VALIDACIÓN: - Debe ser mayor que 0 - Coherente con dTotIVA y otros
+                        subtotales - Máximo 15 dígitos enteros + 2 decimales EJEMPLO: 110000 (ciento
+                        diez mil guaraníes) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Total de IVA -->
+            <xs:element name="dTotIVA" type="tns:tipoMontoIVA">
+                <xs:annotation>
+                    <xs:documentation> Total de IVA incluido en la operación CARACTERÍSTICAS: -
+                        Tipo: Decimal con hasta 2 decimales - Sin separadores de miles en XML - Suma
+                        de IVA 5% + IVA 10% + otros - Puede ser 0 para operaciones exentas CÁLCULO:
+                        - Suma de todos los IVA por tasa - IVA 5% + IVA 10% + IVA Comisión - Solo el
+                        componente IVA, sin la base gravada VALIDACIÓN: - Debe ser >= 0 - No puede
+                        exceder dTotGralOpe - Coherente con bases gravadas informadas EJEMPLO: 10000
+                        (diez mil guaraníes de IVA) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Estado del documento en SIFEN -->
+            <xs:element name="cEstDE" type="tns:tipoCodigoEstadoDocumento">
+                <xs:annotation>
+                    <xs:documentation> Código del estado actual del documento en SIFEN VALORES
+                        POSIBLES: - 1: Aprobado (documento válido y autorizado) - 2: Aprobado con
+                        observación (válido pero con observaciones) - 3: Rechazado (documento no
+                        válido) - 4: Cancelado (documento anulado por el emisor) INMUTABILIDAD: -
+                        Estados 1 y 2: No cambian (documentos válidos) - Estado 3: No cambia
+                        (rechazo definitivo) - Estado 4: Resultado de evento de cancelación
+                        IMPLICACIONES: - Estado 1/2: Documento fiscal válido - Estado 3: Sin valor
+                        fiscal - Estado 4: Anulado oficialmente EJEMPLO: 1 (Aprobado) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Descripción del estado -->
+            <xs:element name="dDesEstDE" type="tns:tipoDescripcionEstado">
+                <xs:annotation>
+                    <xs:documentation> Descripción textual del estado del documento VALORES
+                        CORRESPONDIENTES: - "Aprobado": Para cEstDE = 1 - "Aprobado con
+                        observación": Para cEstDE = 2 - "Rechazado": Para cEstDE = 3 - "Cancelado":
+                        Para cEstDE = 4 CARACTERÍSTICAS: - Texto fijo según código de estado - En
+                        español, legible para usuarios - Coherente con cEstDE siempre - Inmutable
+                        según estado PROPÓSITO: - Mostrar en interfaces de usuario - Reportes e
+                        impresiones legibles - Logs descriptivos - Auditoría textual VALIDACIÓN
+                        AUTOMÁTICA: - Debe corresponder exactamente con cEstDE - Texto estándar sin
+                        variaciones EJEMPLO: "Aprobado" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS SIMPLES AUXILIARES                                             -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para timestamp de procesamiento -->
+    <xs:simpleType name="tipoTimestampProcesamiento">
+        <xs:annotation>
+            <xs:documentation> Tipo para fecha y hora de procesamiento en SIFEN CARACTERÍSTICAS: -
+                Base: dateTime con timezone obligatorio - Timezone: America/Asuncion (-03:00 o
+                -04:00) - Precisión: Segundos (sin milisegundos) - Formato: YYYY-MM-DDThh:mm:ss±TZ
+                VALIDACIÓN: - Debe incluir timezone válido - No puede ser fecha futura - Formato ISO
+                8601 estricto </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:dateTime">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de resultado de consulta -->
+    <xs:simpleType name="tipoCodigoResultadoConsulta">
+        <xs:annotation>
+            <xs:documentation> Código específico del resultado de consulta CÓDIGOS VÁLIDOS: - 0280:
+                Consulta exitosa, documento encontrado - 0420: CDC no encontrado - 05xx: Errores de
+                autenticación - 06xx: Errores de validación - 99xx: Errores técnicos temporales
+                FORMATO: - 4 dígitos numéricos exactos - Sin espacios ni caracteres especiales </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{4}" />
+            <xs:length value="4" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para mensaje de resultado -->
+    <xs:simpleType name="tipoMensajeResultado">
+        <xs:annotation>
+            <xs:documentation> Mensaje descriptivo del resultado CARACTERÍSTICAS: - Texto en español
+                - Longitud variable 10-200 caracteres - Sin información sensible - Coherente con
+                código de resultado </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="10" />
+            <xs:maxLength value="200" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para fecha de emisión -->
+    <xs:simpleType name="tipoFechaEmision">
+        <xs:annotation>
+            <xs:documentation> Fecha de emisión del documento (solo fecha, sin hora) FORMATO:
+                YYYY-MM-DD VALIDACIÓN: No puede ser fecha futura </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:date">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para RUC del emisor -->
+    <xs:simpleType name="tipoRUCEmisor">
+        <xs:annotation>
+            <xs:documentation> RUC del emisor (sin dígito verificador) CARACTERÍSTICAS: -
+                Exactamente 8 dígitos numéricos - Sin separadores ni espacios - Sin dígito
+                verificador </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{8}" />
+            <xs:length value="8" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para dígito verificador -->
+    <xs:simpleType name="tipoDigitoVerificador">
+        <xs:annotation>
+            <xs:documentation> Dígito verificador calculado con módulo 11 CARACTERÍSTICAS: - 1
+                dígito numérico (0-9) - Calculado automáticamente - Validación de integridad del RUC </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]" />
+            <xs:length value="1" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para nombre del emisor -->
+    <xs:simpleType name="tipoNombreEmisor">
+        <xs:annotation>
+            <xs:documentation> Nombre o razón social del emisor CARACTERÍSTICAS: - Longitud: 4-60
+                caracteres - Alfanumérico con espacios permitidos - Según registro oficial en SET </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="4" />
+            <xs:maxLength value="60" />
+            <xs:whiteSpace value="collapse" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para tipo de documento electrónico -->
+    <xs:simpleType name="tipoDocumentoElectronico">
+        <xs:annotation>
+            <xs:documentation> Tipo de documento electrónico según especificación SIFEN VALORES
+                VÁLIDOS: - 1: Factura Electrónica (FE) - 4: Autofactura Electrónica (AFE) - 5: Nota
+                de Crédito Electrónica (NCE) - 6: Nota de Débito Electrónica (NDE) - 7: Nota de
+                Remisión Electrónica (NRE) </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1" />
+            <xs:enumeration value="4" />
+            <xs:enumeration value="5" />
+            <xs:enumeration value="6" />
+            <xs:enumeration value="7" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para número de documento -->
+    <xs:simpleType name="tipoNumeroDocumento">
+        <xs:annotation>
+            <xs:documentation> Número secuencial del documento CARACTERÍSTICAS: - 7 dígitos
+                numéricos exactos - Completar con ceros a la izquierda - Rango: 0000001 a 9999999 </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{7}" />
+            <xs:length value="7" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para montos totales -->
+    <xs:simpleType name="tipoMontoTotal">
+        <xs:annotation>
+            <xs:documentation> Monto total de la operación CARACTERÍSTICAS: - Decimal con hasta 2
+                decimales - Sin separadores de miles en XML - Valor mínimo: 0 - Máximo: 15 dígitos
+                enteros + 2 decimales </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0" />
+            <xs:fractionDigits value="2" />
+            <xs:totalDigits value="17" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para monto de IVA -->
+    <xs:simpleType name="tipoMontoIVA">
+        <xs:annotation>
+            <xs:documentation> Monto total de IVA CARACTERÍSTICAS: - Decimal con hasta 2 decimales -
+                Sin separadores de miles en XML - Valor mínimo: 0 (puede ser 0 para exentos) -
+                Máximo: 15 dígitos enteros + 2 decimales </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0" />
+            <xs:fractionDigits value="2" />
+            <xs:totalDigits value="17" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para código de estado del documento -->
+    <xs:simpleType name="tipoCodigoEstadoDocumento">
+        <xs:annotation>
+            <xs:documentation> Código del estado del documento en SIFEN VALORES VÁLIDOS: - 1:
+                Aprobado - 2: Aprobado con observación - 3: Rechazado - 4: Cancelado </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="1" />
+            <xs:enumeration value="2" />
+            <xs:enumeration value="3" />
+            <xs:enumeration value="4" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para descripción del estado -->
+    <xs:simpleType name="tipoDescripcionEstado">
+        <xs:annotation>
+            <xs:documentation> Descripción textual del estado del documento VALORES FIJOS: -
+                "Aprobado" - "Aprobado con observación" - "Rechazado" - "Cancelado" </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Aprobado" />
+            <xs:enumeration value="Aprobado con observación" />
+            <xs:enumeration value="Rechazado" />
+            <xs:enumeration value="Cancelado" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS PARA ANÁLISIS Y DEBUGGING                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo auxiliar para análisis de response -->
+    <xs:complexType name="tipoAnalisisResponse">
+        <xs:annotation>
+            <xs:documentation> Tipo auxiliar para análisis programático de responses USOS: - Parsing
+                automatizado de respuestas - Clasificación de resultados por tipo - Testing
+                automatizado de casos - Generación de reportes y estadísticas NO INCLUIR EN
+                RESPONSES REALES Solo para análisis interno y desarrollo </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="exitoso" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si la consulta fue exitosa true: dCodRes = 0280
+                        (documento encontrado) false: cualquier otro código </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="documentoEncontrado" type="xs:boolean">
+                <xs:annotation>
+                    <xs:documentation> Indica si el documento fue encontrado true: dCodRes = 0280
+                        false: dCodRes = 0420 o error </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="categoriaResultado" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation> Categoría del resultado para métricas Valores: "encontrado",
+                        "no_encontrado", "error_validacion", "error_autenticacion", "error_tecnico" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="tiempoRespuesta" type="xs:duration" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Tiempo de respuesta del servicio Para métricas de performance </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tipo para métricas de uso -->
+    <xs:complexType name="tipoMetricasConsulta">
+        <xs:annotation>
+            <xs:documentation> Métricas de uso para análisis estadístico PROPÓSITO: - Análisis de
+                patrones de consulta - Optimización de performance - Monitoreo de sistema - Reportes
+                de uso </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="tipoDocumentoConsultado" type="tns:tipoDocumentoElectronico"
+                minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Tipo de documento más consultado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="antiguedadDocumento" type="xs:int" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Días desde emisión del documento consultado</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="origenConsulta" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Origen de la consulta: "emisor", "receptor", "tercero"</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>

@@ -74,10 +74,10 @@ backend/app/services/xml_generator/schemas/v150/
 │   │   │   └── ✅ ProtProcesLoteDE_v150.xsd # Protocolo lote
 │   │   │
 │   │   ├── queries/                         # Consultas
-│   │   │   ├── ❌ siConsDE_v150.xsd         # Request consulta documento
-│   │   │   ├── ❌ resConsDE_v150.xsd        # Response consulta documento
-│   │   │   ├── ❌ siConsRUC_v150.xsd        # Request consulta RUC
-│   │   │   └── ❌ resConsRUC_v150.xsd       # Response consulta RUC
+│   │   │   ├── ✅ siConsDE_v150.xsd         # Request consulta documento
+│   │   │   ├── ✅ resConsDE_v150.xsd        # Response consulta documento
+│   │   │   ├── ✅ siConsRUC_v150.xsd        # Request consulta RUC
+│   │   │   └── ✅ resConsRUC_v150.xsd       # Response consulta RUC
 │   │   │
 │   │   └── events/                          # Eventos
 │   │       ├── ❌ siRecepEvento_v150.xsd    # Request eventos
