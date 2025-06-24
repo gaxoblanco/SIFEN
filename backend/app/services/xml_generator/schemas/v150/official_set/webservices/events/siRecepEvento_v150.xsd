@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Request Envío de Eventos
+  Archivo: siRecepEvento_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/events/
+  
+  PROPÓSITO:
+  - Define la estructura del request para envío de eventos al sistema SIFEN
+  - Maneja eventos de cancelación, inutilización, conformidad, etc.
+  - Valida estructura XML antes de envío vía web service
+  - Integra con sistema de firma digital para eventos
+  
+  TIPOS DE EVENTOS SOPORTADOS:
+  1. Eventos del Emisor:
+     - Cancelación (código 1): Cancelar DTE aprobado
+     - Inutilización (código 2): Inutilizar números de timbrado
+     - Endoso (código 3): Transferir documentos (futuro)
+  
+  2. Eventos del Receptor:
+     - Acuse de recepción (código 10): Confirmar recepción
+     - Conformidad (código 11): Conformidad con documento
+     - Disconformidad (código 12): Disconformidad con documento
+     - Desconocimiento (código 13): Desconocer documento
+  
+  VALIDACIONES REQUERIDAS:
+  - Evento debe estar firmado digitalmente
+  - Certificado PSC válido y vigente
+  - Estructura XML bien formada
+  - Cumplir plazos según tipo de evento
+  - CDC válido para eventos relacionados a documentos
+  
+  ENDPOINT DE DESTINO:
+  - Producción: https://sifen.set.gov.py/de/ws/eventos/evento.wsdl
+  - Test: https://sifen-test.set.gov.py/de/ws/eventos/evento.wsdl
+  
+  FLUJO DE PROCESAMIENTO:
+  1. Cliente prepara evento con estructura definida
+  2. Cliente firma digitalmente el evento
+  3. Cliente envía vía web service siRecepEvento
+  4. SIFEN valida, procesa y registra evento
+  5. SIFEN retorna resultado del procesamiento
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ XML Schema 1.0 estándar
+  ✅ Firma digital XML DSig W3C
+  ✅ Certificados PSC Paraguay
+  ✅ UTF-8 encoding obligatorio
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES DE SCHEMAS DEPENDIENTES                                -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos del sistema SIFEN -->
+    <xs:include schemaLocation="../../../modular/common/basic_types.xsd" />
+
+    <!-- Estructura completa de eventos -->
+    <xs:include schemaLocation="Evento_v150.xsd" />
+
+    <!-- Firma digital XML -->
+    <xs:import namespace="http://www.w3.org/2000/09/xmldsig#"
+        schemaLocation="../../security/xmldsig-core-schema-v150.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA REQUEST DE EVENTOS                            -->
+    <!-- ===================================================================== -->
+
+    <!-- ID de control del request -->
+    <xs:simpleType name="tipoIdControlEvento">
+        <xs:annotation>
+            <xs:documentation> Identificador único de control para el request de evento PROPÓSITO: -
+                Identificación unívoca de cada envío - Correlación en logs y auditoría - Control de
+                duplicados - Tracking de transacciones FORMATO: Entero positivo de hasta 10 dígitos
+                RECOMENDACIÓN: Timestamp Unix o secuencial EJEMPLO: 1719158400 (timestamp) o
+                0000000001 (secuencial) VALIDACIONES: - Único por sesión de envío - No debe
+                repetirse en requests simultáneos - Mayor a 0 y menor a 9999999999 CASOS DE USO: ✅
+                Control de envíos duplicados ✅ Correlación en logs SIFEN ✅ Debugging de integración
+                ✅ Tracking de performance </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:long">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="9999999999" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para versión del formato de evento -->
+    <xs:simpleType name="tipoVersionFormatoEvento">
+        <xs:annotation>
+            <xs:documentation> Versión del formato de estructura de eventos VERSIÓN ACTUAL: "150"
+                SIGNIFICADO: Alineado con SIFEN v1.5.0 EVOLUCIÓN: - v100: Implementación inicial
+                eventos básicos - v120: Agregado eventos del receptor - v150: Versión actual con
+                eventos completos COMPATIBILIDAD: - Retrocompatible dentro de la misma versión mayor
+                - Validación estricta en SIFEN - Debe coincidir con versión del schema
+                IMPLEMENTACIÓN: - Campo obligatorio en todos los eventos - Validado contra catálogo
+                SIFEN - Usado para routing interno </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="150">
+                <xs:annotation>
+                    <xs:documentation>Versión 1.5.0 - Implementación completa de eventos</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Estado de procesamiento del evento -->
+    <xs:simpleType name="tipoEstadoEvento">
+        <xs:annotation>
+            <xs:documentation> Estado actual del evento en el sistema ESTADOS DISPONIBLES: -
+                PENDIENTE: Evento creado pero no enviado - ENVIADO: Evento enviado a SIFEN,
+                esperando procesamiento - APROBADO: Evento procesado y registrado exitosamente -
+                RECHAZADO: Evento rechazado por validaciones o errores - ERROR: Error técnico
+                durante procesamiento TRANSICIONES VÁLIDAS: PENDIENTE → ENVIADO →
+                APROBADO/RECHAZADO/ERROR CASOS DE USO: ✅ Control de flujo en sistema emisor ✅ Retry
+                logic para eventos fallidos ✅ Auditoría de eventos procesados ✅ Reportes de
+                éxito/fallo </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PENDIENTE" />
+            <xs:enumeration value="ENVIADO" />
+            <xs:enumeration value="APROBADO" />
+            <xs:enumeration value="RECHAZADO" />
+            <xs:enumeration value="ERROR" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ESTRUCTURA PRINCIPAL DEL REQUEST                                     -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento principal del request de evento -->
+    <xs:element name="rEnviEventoDe">
+        <xs:annotation>
+            <xs:documentation> Request principal para envío de eventos al sistema SIFEN ESTRUCTURA
+                JERÁRQUICA: rEnviEventoDe (root) ├── dId (ID de control) └── dEvReg (Evento
+                registrado - XML firmado) └── rGesEve (Estructura completa del evento) ├── rEve
+                (Evento con datos específicos) └── Signature (Firma digital XML DSig) VALIDACIONES
+                CRÍTICAS: ✅ Estructura XML bien formada ✅ Namespace SIFEN correcto ✅ Evento firmado
+                digitalmente con certificado PSC ✅ Todos los campos obligatorios presentes ✅ Formato
+                de fecha ISO 8601 ✅ CDC válido para eventos relacionados a documentos TAMAÑO
+                LÍMITES: - Máximo: 1000 KB por evento - Recomendado: (mayor que) 100 KB para mejor
+                performance CASOS DE USO: ✅ Cancelación de documentos aprobados ✅ Inutilización de
+                numeración de timbrados ✅ Confirmación de recepción por receptor ✅ Manifestación de
+                conformidad/disconformidad ✅ Desconocimiento de documentos FLUJO DE ENVÍO: 1. Crear
+                estructura de evento según tipo 2. Firmar digitalmente con certificado PSC 3. Crear
+                request con ID de control único 4. Enviar vía web service siRecepEvento 5. Procesar
+                respuesta resRecepEvento </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- ID de control único -->
+                <xs:element name="dId" type="tipoIdControlEvento">
+                    <xs:annotation>
+                        <xs:documentation> Identificador único de control para este envío de evento
+                            PROPÓSITO: - Correlación entre request y response - Control de
+                            duplicados en el sistema - Tracking en logs de SIFEN - Debugging de
+                            transacciones RECOMENDACIONES: - Usar timestamp Unix:
+                            Math.floor(Date.now() / 1000) - O secuencial por día: YYYYMMDD + número
+                            - Debe ser único durante la sesión EJEMPLOS: - 1719158400 (timestamp
+                            Unix) - 20250623001 (fecha + secuencial) - 2025062315301 (fecha + hora +
+                            secuencial) VALIDACIÓN SIFEN: ✅ Formato numérico válido ✅ Rango
+                            permitido (1 a 9999999999) ✅ No duplicado en ventana de tiempo </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Evento registrado (firmado) -->
+                <xs:element name="dEvReg">
+                    <xs:annotation>
+                        <xs:documentation> Evento registrado completo con firma digital CONTENIDO: -
+                            Estructura completa del evento (rGesEve) - Firma digital XML DSig
+                            obligatoria - Metadatos de firma y certificado VALIDACIONES DE FIRMA: ✅
+                            Certificado PSC válido y vigente ✅ Cadena de certificación completa ✅
+                            Algoritmo de firma permitido (RSA-SHA256) ✅ Certificado no revocado
+                            (validación CRL/OCSP) ✅ Período de validez del certificado ALGORITMOS
+                            SOPORTADOS: - RSA con SHA-256 (recomendado) - RSA con SHA-512
+                            (alternativo) CERTIFICADOS REQUERIDOS: - PSC (Proveedor de Servicios de
+                            Certificación) Paraguay - Autoridades certificadoras reconocidas por SET
+                            - Válidos para persona física o jurídica ESTRUCTURA INTERNA: ```xml <dEvReg>
+                                <rGesEve>
+                                    <rEve Id="evento_123">
+                                        <!-- Datos específicos del evento -->
+                                    </rEve>
+                                    <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                                        <!-- Firma digital XML DSig -->
+                                    </Signature>
+                                </rGesEve>
+                            </dEvReg>
+                            ``` </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+
+                            <!-- Gestión de evento completa -->
+                            <xs:element name="rGesEve">
+                                <xs:annotation>
+                                    <xs:documentation> Estructura completa de gestión del evento
+                                        COMPONENTES PRINCIPALES: 1. rEve: Datos específicos del
+                                        evento 2. Signature: Firma digital XML DSig TIPOS DE EVENTOS
+                                        SOPORTADOS: EVENTOS DEL EMISOR: - Cancelación (1): Cancelar
+                                        DTE aprobado * Plazo FE: 48 horas desde aprobación * Plazo
+                                        otros: 168 horas desde aprobación * Requiere: CDC, motivo
+                                        justificado - Inutilización (2): Anular numeración timbrado
+                                        * Plazo: 15 días del mes siguiente * Rango: hasta 1000
+                                        números secuenciales * Requiere: timbrado, establecimiento,
+                                        rango EVENTOS DEL RECEPTOR: - Acuse recepción (10):
+                                        Confirmar recepción - Conformidad (11): Conformidad con
+                                        documento - Disconformidad (12): Disconformidad justificada
+                                        - Desconocimiento (13): Desconocer documento * Plazo común:
+                                        45 días desde emisión VALIDACIONES COMUNES: ✅ Estructura
+                                        específica por tipo de evento ✅ Campos obligatorios según
+                                        tipo ✅ Formato de fechas ISO 8601 ✅ CDC válido cuando
+                                        aplique ✅ Motivos justificados donde se requiera ✅
+                                        Cumplimiento de plazos legales PROCESO DE FIRMA: 1.
+                                        Serializar rEve con canonicalization C14N 2. Calcular hash
+                                        SHA-256 del contenido 3. Firmar hash con clave privada RSA
+                                        4. Incluir certificado completo en Signature 5. Validar
+                                        firma antes de envío </xs:documentation>
+                                </xs:annotation>
+                                <xs:complexType>
+                                    <xs:sequence>
+
+                                        <!-- Evento específico -->
+                                        <xs:element ref="rEve">
+                                            <xs:annotation>
+                                                <xs:documentation> Elemento que contiene los datos
+                                                    específicos del evento ESTRUCTURA COMPLETA
+                                                    (definida en Evento_v150.xsd): - Id:
+                                                    Identificador único del evento - dFecFirma:
+                                                    Fecha y hora de firma del evento - dVerFor:
+                                                    Versión del formato (150) - dTiGDE: Tipo de
+                                                    evento (1-13) - gGroupTiEvt: Grupo específico
+                                                    según tipo: * rGeVeCan: Cancelación (dTiGDE=1) *
+                                                    rGeVeInu: Inutilización (dTiGDE=2) *
+                                                    rGeVeNotRec: Notificación recepción (dTiGDE=10)
+                                                    * rGeVeConf: Conformidad (dTiGDE=11) *
+                                                    rGeVeDisconf: Disconformidad (dTiGDE=12) *
+                                                    rGeVeDescon: Desconocimiento (dTiGDE=13)
+                                                    VALIDACIONES AUTOMÁTICAS: ✅ Coherencia entre
+                                                    dTiGDE y elemento específico ✅ Campos
+                                                    obligatorios según tipo de evento ✅ Validación
+                                                    de plazos específicos ✅ CDC válido cuando
+                                                    aplique ✅ Motivos justificados donde se requiera </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                        <!-- Firma digital XML DSig -->
+                                        <xs:element ref="ds:Signature">
+                                            <xs:annotation>
+                                                <xs:documentation> Firma digital XML siguiendo
+                                                    estándar W3C XML Signature REQUERIMIENTOS: ✅
+                                                    Certificado PSC Paraguay válido ✅ Algoritmo
+                                                    RSA-SHA256 o superior ✅ Canonicalization C14N ✅
+                                                    Certificado incluido completo ✅ Timestamp de
+                                                    firma válido VALIDACIONES SIFEN: - Verificación
+                                                    de certificado contra PSC - Validación de cadena
+                                                    de certificación - Verificación de revocación
+                                                    (CRL/OCSP) - Validación de período de validez -
+                                                    Verificación de algoritmo de firma ESTRUCTURA
+                                                    TÍPICA: ```xml <Signature
+                                                        xmlns="http://www.w3.org/2000/09/xmldsig#">
+                                                        <SignedInfo>
+                                                            <CanonicalizationMethod Algorithm="..." />
+                                                            <SignatureMethod Algorithm="..." />
+                                                            <Reference URI="">
+                                                                <Transforms>...</Transforms>
+                                                                <DigestMethod Algorithm="..." />
+                                                                <DigestValue>...</DigestValue>
+                                                            </Reference>
+                                                        </SignedInfo>
+                                                        <SignatureValue>...</SignatureValue>
+                                                        <KeyInfo>
+                                                            <X509Data>
+                                                                <X509Certificate>...</X509Certificate>
+                                                            </X509Data>
+                                                        </KeyInfo>
+                                                    </Signature>
+                                                    ``` </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+
+            <!-- Atributos del request -->
+            <xs:attribute name="version" type="tipoVersionFormatoEventoSIFEN" use="required">
+                <xs:annotation>
+                    <xs:documentation> Versión del formato de evento utilizado Debe coincidir con la
+                        versión del schema (150) </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS AUXILIARES PARA VALIDACIÓN                                     -->
+    <!-- ===================================================================== -->
+
+    <!-- Información de contexto del envío -->
+    <xs:complexType name="tipoContextoEnvioEvento">
+        <xs:annotation>
+            <xs:documentation> Información de contexto para el envío del evento Usado para
+                debugging, logs y auditoría </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Sistema que origina el evento -->
+            <xs:element name="sistemaOrigen" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Identificación del sistema que origina el evento EJEMPLO:
+                        "ERP_Empresa_v2.1", "POS_Tienda_v1.3" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Usuario que registra el evento -->
+            <xs:element name="usuarioRegistro" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Usuario del sistema que registra el evento Para auditoría y
+                        trazabilidad </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de creación del evento -->
+            <xs:element name="fechaCreacion" type="tipoFechaHora" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Timestamp de creación del evento en el sistema local Formato
+                        ISO 8601: YYYY-MM-DDTHH:mm:ss </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Información adicional -->
+            <xs:element name="informacionAdicional" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:any namespace="##any" processContents="lax"
+                            minOccurs="0" maxOccurs="unbounded" />
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS AUXILIARES PARA TESTING Y VALIDACIÓN                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento para testing del schema de eventos -->
+    <xs:element name="testRequestEvento">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para testing del schema de request de eventos
+                PROPÓSITO: - Validación de estructura antes de envío real - Testing de integración
+                local - Verificación de tipos de datos - Debugging de XML generado TESTS INCLUIDOS:
+                - Estructura de request completa - Validación de tipos de datos - Verificación de
+                elementos obligatorios - Compatibilidad de namespaces USO EN DESARROLLO: ```python #
+                Validar XML antes de envío validator = XMLValidator("siRecepEvento_v150.xsd")
+                is_valid = validator.validate(xml_evento) if not is_valid: print("Error en
+                estructura XML") ``` COMPATIBILIDAD: ✅ XSD 1.0 (estándar SET Paraguay) ✅ Parsers XML
+                estándar ✅ Herramientas de validación comerciales ✅ IDEs con soporte XML Schema </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Test de request completo -->
+                <xs:element name="requestTest">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rEnviEventoDe" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Test de contexto -->
+                <xs:element name="contextoTest" type="tipoContextoEnvioEvento" minOccurs="0" />
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 
+     ===================================================================== 
+     EJEMPLOS DE USO DEL SCHEMA - ACTUALIZADO CON EVENTO_V150.XSD
+     =====================================================================
+     
+     EJEMPLO 1: Cancelación de Factura Electrónica (ESTRUCTURA COMPLETA)
+     ```xml
+     <rEnviEventoDe version="150">
+         <dId>1719158400</dId>
+         <dEvReg>
+             <rGesEve>
+                 <rEve Id="CANCEL_20250623_001">
+                     <dFecFirma>2025-06-23T14:30:00</dFecFirma>
+                     <dVerFor>150</dVerFor>
+                     <dTiGDE>1</dTiGDE>
+                     <rGeVeCan>
+                         <Id>01234567890123456789012345678901234567890123</Id>
+                         <mOtEve>Error en cálculo de impuestos detectado</mOtEve>
+                     </rGeVeCan>
+                 </rEve>
+                 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                     <!- Firma digital completa ->
+                 </Signature>
+             </rGesEve>
+         </dEvReg>
+     </rEnviEventoDe>
+     ```
+     
+     EJEMPLO 2: Inutilización de Numeración (ESTRUCTURA COMPLETA)
+     ```xml
+     <rEnviEventoDe version="150">
+         <dId>1719158401</dId>
+         <dEvReg>
+             <rGesEve>
+                 <rEve Id="INUT_20250623_002">
+                     <dFecFirma>2025-06-23T14:35:00</dFecFirma>
+                     <dVerFor>150</dVerFor>
+                     <dTiGDE>2</dTiGDE>
+                     <rGeVeInu>
+                         <dNumTim>12345678</dNumTim>
+                         <dEst>001</dEst>
+                         <dPunExp>001</dPunExp>
+                         <dNumIn>0000001</dNumIn>
+                         <dNumFin>0000010</dNumFin>
+                         <iTiDE>1</iTiDE>
+                         <mOtEve>Error en sistema, salto numeración</mOtEve>
+                     </rGeVeInu>
+                 </rEve>
+                 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                     <!- Firma digital completa ->
+                 </Signature>
+             </rGesEve>
+         </dEvReg>
+     </rEnviEventoDe>
+     ```
+     
+     EJEMPLO 3: Conformidad del Receptor (ESTRUCTURA COMPLETA)
+     ```xml
+     <rEnviEventoDe version="150">
+         <dId>1719158402</dId>
+         <dEvReg>
+             <rGesEve>
+                 <rEve Id="CONF_20250623_003">
+                     <dFecFirma>2025-06-23T14:40:00</dFecFirma>
+                     <dVerFor>150</dVerFor>
+                     <dTiGDE>11</dTiGDE>
+                     <rGeVeConf>
+                         <Id>01234567890123456789012345678901234567890123</Id>
+                         <dFecEmi>2025-06-20T10:00:00</dFecEmi>
+                         <dConf>1</dConf>
+                     </rGeVeConf>
+                 </rEve>
+                 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                     <!- Firma digital completa ->
+                 </Signature>
+             </rGesEve>
+         </dEvReg>
+     </rEnviEventoDe>
+     ```
+     
+     EJEMPLO 4: Disconformidad con Justificación (ESTRUCTURA COMPLETA)
+     ```xml
+     <rEnviEventoDe version="150">
+         <dId>1719158403</dId>
+         <dEvReg>
+             <rGesEve>
+                 <rEve Id="DISCONF_20250623_004">
+                     <dFecFirma>2025-06-23T14:45:00</dFecFirma>
+                     <dVerFor>150</dVerFor>
+                     <dTiGDE>12</dTiGDE>
+                     <rGeVeDisconf>
+                         <Id>01234567890123456789012345678901234567890123</Id>
+                         <dFecEmi>2025-06-20T10:00:00</dFecEmi>
+                         <mOtEve>Mercadería entregada no corresponde a facturada</mOtEve>
+                     </rGeVeDisconf>
+                 </rEve>
+                 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                     <!- Firma digital completa ->
+                 </Signature>
+             </rGesEve>
+         </dEvReg>
+     </rEnviEventoDe>
+     ```
+     
+     ===================================================================== 
+     INTEGRACIÓN CON EVENTO_V150.XSD
+     =====================================================================
+     
+     VALIDACIONES AUTOMÁTICAS DISPONIBLES:
+     ✅ Estructura rEve completa con todos los tipos de eventos
+     ✅ Validación cruzada dTiGDE ↔ elemento específico  
+     ✅ Campos obligatorios según tipo de evento
+     ✅ Formatos y longitudes específicas
+     ✅ Plazos y restricciones por tipo
+     ✅ Coherencia entre códigos y elementos
+     
+     TIPOS DE EVENTOS SOPORTADOS:
+     - Emisor: rGeVeCan (1), rGeVeInu (2)
+     - Receptor: rGeVeNotRec (10), rGeVeConf (11), rGeVeDisconf (12), rGeVeDescon (13)
+     
+     BENEFICIOS DE LA INTEGRACIÓN:
+     ✅ Reutilización completa de Evento_v150.xsd
+     ✅ Consistencia en validaciones
+     ✅ Mantenimiento centralizado de eventos
+     ✅ Extensibilidad para futuros tipos
+     ✅ Documentación unificada
+     
+     =====================================================================
+    -->
+
+</xs:schema>

@@ -1,0 +1,896 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Estructura Completa de Eventos
+  Archivo: Evento_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/events/
+  
+  PROPÓSITO:
+  - Define la estructura completa de todos los tipos de eventos SIFEN
+  - Implementa eventos del emisor (cancelación, inutilización, endoso)
+  - Implementa eventos del receptor (conformidad, disconformidad, desconocimiento)
+  - Proporciona validaciones específicas para cada tipo de evento
+  - Base para todos los web services de eventos
+  
+  ARQUITECTURA DE EVENTOS:
+  
+  rEve (Evento Principal)
+  ├── dFecFirma: Fecha y hora de firma del evento
+  ├── dVerFor: Versión del formato (150)
+  ├── dTiGDE: Tipo de evento (1=Cancelación, 2=Inutilización, etc.)
+  └── gGroupTiEvt: Grupo específico según tipo
+      ├── rGeVeCan: Evento de cancelación (emisor)
+      ├── rGeVeInu: Evento de inutilización (emisor)
+      ├── rGeVeNotRec: Evento notificación recepción (receptor)
+      ├── rGeVeConf: Evento de conformidad (receptor)
+      ├── rGeVeDisconf: Evento de disconformidad (receptor)
+      └── rGeVeDescon: Evento de desconocimiento (receptor)
+  
+  TIPOS DE EVENTOS IMPLEMENTADOS:
+  
+  EMISOR (1-9):
+  1. Cancelación: Cancelar DTE aprobado
+  2. Inutilización: Anular numeración de timbrado
+  3. Endoso: Transferir documentos (futuro)
+  
+  RECEPTOR (10-19):
+  10. Acuse/Notificación: Confirmar recepción
+  11. Conformidad: Conformidad con documento
+  12. Disconformidad: Disconformidad con documento  
+  13. Desconocimiento: Desconocer documento
+  
+  VALIDACIONES IMPLEMENTADAS:
+  - Estructura XML obligatoria para cada tipo
+  - Validación de plazos específicos por evento
+  - CDC válido para eventos relacionados a documentos
+  - Motivos justificados según tipo de evento
+  - Campos específicos según actor (emisor/receptor)
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ XML Schema 1.0 estándar
+  ✅ Integración con web services siRecepEvento
+  ✅ Reutilizable en múltiples contextos
+  ✅ Extensible para futuros tipos de eventos
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES DE SCHEMAS DEPENDIENTES                                -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos del sistema SIFEN -->
+    <xs:include schemaLocation="../../../modular/common/basic_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- ENUMERACIONES Y TIPOS BÁSICOS DE EVENTOS                             -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos de eventos soportados -->
+    <xs:simpleType name="tipoCodigoEvento">
+        <xs:annotation>
+            <xs:documentation> Código que identifica el tipo de evento según normativa SET EVENTOS
+                DEL EMISOR (1-9): - 1: Cancelación de DTE aprobado - 2: Inutilización de numeración
+                - 3: Endoso de documento (futuro) EVENTOS DEL RECEPTOR (10-19): - 10:
+                Acuse/Notificación de recepción - 11: Conformidad con el documento - 12:
+                Disconformidad con el documento - 13: Desconocimiento del documento EVENTOS DE LA
+                SET (90-99): - Reservados para uso futuro de la administración VALIDACIONES: - Cada
+                código tiene validaciones específicas - Plazos diferentes según tipo - Campos
+                obligatorios específicos - Actores permitidos por código </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <!-- Eventos del Emisor -->
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Cancelación - Cancelar DTE aprobado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Inutilización - Anular numeración de timbrado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="3">
+                <xs:annotation>
+                    <xs:documentation>Endoso - Transferir documentos (futuro)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Eventos del Receptor -->
+            <xs:enumeration value="10">
+                <xs:annotation>
+                    <xs:documentation>Acuse/Notificación - Confirmar recepción</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="11">
+                <xs:annotation>
+                    <xs:documentation>Conformidad - Conformidad con documento</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="12">
+                <xs:annotation>
+                    <xs:documentation>Disconformidad - Disconformidad con documento</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="13">
+                <xs:annotation>
+                    <xs:documentation>Desconocimiento - Desconocer documento</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ID único del evento -->
+    <xs:simpleType name="tipoIdEvento">
+        <xs:annotation>
+            <xs:documentation> Identificador único del evento generado por el sistema emisor
+                CARACTERÍSTICAS: - String alfanumérico de hasta 20 caracteres - Debe ser único por
+                emisor/receptor - Recomendado: timestamp + secuencial - Usado para tracking y
+                correlación EJEMPLOS: - "EVT_20250623_001" - "CANCEL_1719158400" -
+                "INUT_20250623_123" PROPÓSITO: - Identificación única en logs - Correlación en
+                sistemas - Referencia en respuestas SIFEN - Debugging de eventos </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[A-Za-z0-9_\-]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Versión del formato de evento -->
+    <xs:simpleType name="tipoVersionFormatoEventoSIFEN">
+        <xs:annotation>
+            <xs:documentation> Versión del formato de eventos, alineada con SIFEN v150 VERSIÓN
+                ACTUAL: "150" SIGNIFICADO: Compatible con SIFEN versión 1.5.0 EVOLUCIÓN: - 100:
+                Versión inicial con eventos básicos - 120: Agregados eventos del receptor - 150:
+                Versión actual con eventos completos VALIDACIÓN: - Obligatorio en todos los eventos
+                - Debe coincidir con versión del sistema - Usado para routing interno en SIFEN </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="150" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo de conformidad (para eventos del receptor) -->
+    <xs:simpleType name="tipoConformidad">
+        <xs:annotation>
+            <xs:documentation> Tipo de conformidad expresada por el receptor VALORES: - 1:
+                Conformidad total (acepta completamente) - 2: Conformidad parcial (acepta con
+                observaciones) USO: - Solo en eventos de conformidad (código 11) - Determina el
+                grado de aceptación - Puede requerir justificación adicional </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:int">
+            <xs:enumeration value="1">
+                <xs:annotation>
+                    <xs:documentation>Conformidad total</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="2">
+                <xs:annotation>
+                    <xs:documentation>Conformidad parcial</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- EVENTOS DEL EMISOR                                                   -->
+    <!-- ===================================================================== -->
+
+    <!-- Evento de Cancelación (Código 1) -->
+    <xs:complexType name="tipoEventoCancelacion">
+        <xs:annotation>
+            <xs:documentation> Evento de cancelación de DTE aprobado por el emisor PROPÓSITO: -
+                Cancelar DTE cuando la transacción no se concreta - Errores detectados después de
+                aprobación - Mercadería no entregada o servicio no prestado PLAZOS: - Factura
+                Electrónica (FE): 48 horas desde aprobación - Otros documentos (AFE, NCE, NDE, NRE):
+                168 horas RESTRICCIONES: - DTE debe estar aprobado en SIFEN - No puede tener
+                confirmación del receptor - Para documentos asociados: cancelar en orden inverso
+                VALIDACIONES SIFEN: - CDC existe y está aprobado - Dentro del plazo permitido - No
+                tiene eventos previos del mismo tipo - Firmante autorizado - Motivo justificado
+                obligatorio </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- CDC del documento a cancelar -->
+            <xs:element name="Id" type="tipoCDC">
+                <xs:annotation>
+                    <xs:documentation> CDC (Código de Control) del documento electrónico a cancelar
+                        FORMATO: 44 dígitos numéricos VALIDACIONES: - Debe existir en SIFEN como
+                        aprobado - No puede tener eventos de cancelación previos - No puede estar
+                        confirmado por receptor - Debe pertenecer al emisor del evento EJEMPLO:
+                        "01234567890123456789012345678901234567890123" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Motivo de la cancelación -->
+            <xs:element name="mOtEve" type="tipoTextoLargo">
+                <xs:annotation>
+                    <xs:documentation> Motivo detallado de la cancelación del documento
+                        CARACTERÍSTICAS: - Campo obligatorio y de texto libre - Hasta 2000
+                        caracteres - Debe ser justificación válida - Será visible en consultas
+                        posteriores MOTIVOS COMUNES: - "Error en cálculo de impuestos detectado" -
+                        "Mercadería no entregada por falta de stock" - "Servicio no prestado por
+                        cancelación cliente" - "Error en datos del receptor" - "Duplicación de
+                        facturación detectada" VALIDACIONES: - No puede estar vacío - No puede
+                        contener solo espacios - Debe ser descriptivo y específico </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Evento de Inutilización (Código 2) -->
+    <xs:complexType name="tipoEventoInutilizacion">
+        <xs:annotation>
+            <xs:documentation> Evento de inutilización de numeración de timbrado PROPÓSITO: -
+                Comunicar números no utilizados o que deben anularse - Saltos en numeración por
+                errores de sistema - Errores técnicos antes de la aprobación PLAZOS: - Hasta 15 días
+                del mes siguiente al período - Antes de la fecha límite del timbrado RESTRICCIONES:
+                - Máximo 1000 números secuenciales por evento - Números no deben existir como
+                aprobados - Solo para números no utilizados CASOS DE USO: - Error en sistema de
+                facturación - Saltos intencionales en numeración - Rechazo por parte de SIFEN que
+                requiere nuevo CDC </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- Número de timbrado -->
+            <xs:element name="dNumTim" type="tipoTimbrado">
+                <xs:annotation>
+                    <xs:documentation> Número de timbrado afectado por la inutilización FORMATO: 8
+                        dígitos numéricos VALIDACIONES: - Debe ser timbrado válido y vigente - Debe
+                        pertenecer al emisor - No puede estar vencido - Debe estar autorizado para
+                        el establecimiento </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Establecimiento -->
+            <xs:element name="dEst" type="tipoEstablecimiento">
+                <xs:annotation>
+                    <xs:documentation> Código de establecimiento (3 dígitos con ceros a la
+                        izquierda) EJEMPLO: "001", "002", "010" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Punto de expedición -->
+            <xs:element name="dPunExp" type="tipoPuntoExpedicion">
+                <xs:annotation>
+                    <xs:documentation> Código de punto de expedición (3 dígitos con ceros a la
+                        izquierda) EJEMPLO: "001", "002", "010" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número inicial del rango -->
+            <xs:element name="dNumIn" type="tipoNumeroDocumento">
+                <xs:annotation>
+                    <xs:documentation> Número inicial del rango a inutilizar (7 dígitos, completar
+                        con ceros) EJEMPLO: "0000001", "0000100", "0001500" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Número final del rango -->
+            <xs:element name="dNumFin" type="tipoNumeroDocumento">
+                <xs:annotation>
+                    <xs:documentation> Número final del rango a inutilizar (7 dígitos, completar con
+                        ceros) VALIDACIONES: - Debe ser mayor o igual a dNumIn - Rango máximo: 1000
+                        números (dNumFin - dNumIn + 1 ≤ 1000) - Todos los números del rango deben
+                        estar disponibles </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tipo de documento electrónico -->
+            <xs:element name="iTiDE" type="tipoDocumento">
+                <xs:annotation>
+                    <xs:documentation> Tipo de documento electrónico a inutilizar VALORES: - 1:
+                        Factura Electrónica (FE) - 4: Autofactura Electrónica (AFE) - 5: Nota de
+                        Crédito Electrónica (NCE) - 6: Nota de Débito Electrónica (NDE) - 7: Nota de
+                        Remisión Electrónica (NRE) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Motivo de la inutilización -->
+            <xs:element name="mOtEve" type="tipoTextoLargo">
+                <xs:annotation>
+                    <xs:documentation> Motivo detallado de la inutilización MOTIVOS COMUNES: -
+                        "Error en sistema de facturación, salto de numeración" - "Detección de error
+                        técnico antes de envío" - "Cambio de configuración de sistema" - "Rechazo
+                        SIFEN que requiere nuevo CDC" - "Mantenimiento de sistema" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- EVENTOS DEL RECEPTOR                                                 -->
+    <!-- ===================================================================== -->
+
+    <!-- Evento de Notificación de Recepción (Código 10) -->
+    <xs:complexType name="tipoEventoNotificacionRecepcion">
+        <xs:annotation>
+            <xs:documentation> Evento informativo de notificación de recepción del documento
+                PROPÓSITO: - Confirmar que el receptor recibió el documento - Evento informativo sin
+                efectos legales - Base para eventos posteriores de conformidad PLAZOS: - 45 días
+                desde fecha de emisión del documento CARACTERÍSTICAS: - No es obligatorio - Puede
+                ser seguido por eventos de conformidad - Facilita trazabilidad de documentos </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- CDC del documento recibido -->
+            <xs:element name="Id" type="tipoCDC">
+                <xs:annotation>
+                    <xs:documentation> CDC del documento electrónico recibido Debe existir como
+                        aprobado en SIFEN </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de emisión del documento -->
+            <xs:element name="dFecEmi" type="tipoFechaHora">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora de emisión del documento original FORMATO:
+                        YYYY-MM-DDTHH:mm:ss VALIDACIÓN: Debe coincidir con la fecha del documento en
+                        SIFEN </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de recepción -->
+            <xs:element name="dFecRecep" type="tipoFechaHora">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora en que el receptor recibió el documento
+                        VALIDACIONES: - No puede ser anterior a dFecEmi - No puede ser futura
+                        (máximo +5 minutos tolerancia) - Debe estar dentro del plazo de 45 días </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Evento de Conformidad (Código 11) -->
+    <xs:complexType name="tipoEventoConformidad">
+        <xs:annotation>
+            <xs:documentation> Evento de conformidad del receptor con el documento PROPÓSITO: -
+                Receptor confirma estar conforme con el documento - Puede ser total o parcial -
+                Bloquea cancelación posterior por el emisor PLAZOS: - 45 días desde fecha de emisión
+                del documento TIPOS: - Conformidad total: Acepta completamente - Conformidad
+                parcial: Acepta con observaciones EFECTOS LEGALES: - Impide cancelación unilateral
+                por emisor - Confirma validez del documento - Puede generar obligaciones adicionales </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- CDC del documento -->
+            <xs:element name="Id" type="tipoCDC">
+                <xs:annotation>
+                    <xs:documentation>CDC del documento con el que se está conforme</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de emisión del documento -->
+            <xs:element name="dFecEmi" type="tipoFechaHora">
+                <xs:annotation>
+                    <xs:documentation> Fecha y hora de emisión del documento original Debe coincidir
+                        con SIFEN </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tipo de conformidad -->
+            <xs:element name="dConf" type="tipoConformidad">
+                <xs:annotation>
+                    <xs:documentation> Tipo de conformidad expresada 1 = Conformidad total 2 =
+                        Conformidad parcial </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Observaciones (opcional, obligatorio si conformidad parcial) -->
+            <xs:element name="dObsConf" type="tipoTextoLargo" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation> Observaciones sobre la conformidad OBLIGATORIO cuando dConf =
+                        2 (conformidad parcial) OPCIONAL cuando dConf = 1 (conformidad total)
+                        CONTENIDO: - Detalles específicos de la conformidad parcial - Elementos
+                        aceptados y no aceptados - Condiciones adicionales </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Evento de Disconformidad (Código 12) -->
+    <xs:complexType name="tipoEventoDisconformidad">
+        <xs:annotation>
+            <xs:documentation> Evento de disconformidad del receptor con el documento PROPÓSITO: -
+                Receptor manifiesta desacuerdo con el documento - Justifica rechazo de la
+                transacción - Bloquea cancelación por parte del emisor PLAZOS: - 45 días desde fecha
+                de emisión del documento EFECTOS: - Impide cancelación unilateral por emisor - Puede
+                generar disputas comerciales - Requiere justificación obligatoria - Puede requerir
+                resolución administrativa </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- CDC del documento -->
+            <xs:element name="Id" type="tipoCDC">
+                <xs:annotation>
+                    <xs:documentation>CDC del documento con el que no está conforme</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de emisión del documento -->
+            <xs:element name="dFecEmi" type="tipoFechaHora">
+                <xs:annotation>
+                    <xs:documentation>Fecha y hora de emisión del documento original</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Motivo de disconformidad (obligatorio) -->
+            <xs:element name="mOtEve" type="tipoTextoLargo">
+                <xs:annotation>
+                    <xs:documentation> Motivo detallado de la disconformidad (OBLIGATORIO) DEBE
+                        INCLUIR: - Razones específicas del desacuerdo - Elementos incorrectos del
+                        documento - Situación real vs documentada - Evidencias o referencias
+                        EJEMPLOS: - "Mercadería entregada no corresponde a facturada" - "Cantidades
+                        incorrectas en el documento" - "Precios no acordados previamente" -
+                        "Servicio no prestado según especificaciones" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Evento de Desconocimiento (Código 13) -->
+    <xs:complexType name="tipoEventoDesconocimiento">
+        <xs:annotation>
+            <xs:documentation> Evento de desconocimiento del documento por el receptor PROPÓSITO: -
+                Receptor declara no conocer el documento - No haber participado en la operación -
+                Posible uso indebido de datos PLAZOS: - 45 días desde fecha de emisión del documento
+                GRAVEDAD: - Evento de mayor impacto - Puede generar investigación por SET - Implica
+                posible fraude o error grave - Requiere verificación administrativa EFECTOS: -
+                Bloquea cualquier acción del emisor - Puede generar proceso administrativo -
+                Requiere investigación de las partes </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+
+            <!-- CDC del documento -->
+            <xs:element name="Id" type="tipoCDC">
+                <xs:annotation>
+                    <xs:documentation>CDC del documento que se desconoce</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Fecha de emisión del documento -->
+            <xs:element name="dFecEmi" type="tipoFechaHora">
+                <xs:annotation>
+                    <xs:documentation>Fecha y hora de emisión del documento original</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Motivo del desconocimiento (obligatorio) -->
+            <xs:element name="mOtEve" type="tipoTextoLargo">
+                <xs:annotation>
+                    <xs:documentation> Motivo detallado del desconocimiento (OBLIGATORIO) DEBE
+                        EXPLICAR: - Por qué no conoce el documento - Si participó o no en la
+                        transacción - Cuándo se enteró del documento - Cualquier circunstancia
+                        relevante EJEMPLOS: - "No participé en ninguna transacción con este emisor"
+                        - "Documento emitido sin mi conocimiento" - "No recibí mercadería ni
+                        servicios descritos" - "Posible uso indebido de mis datos fiscales" </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- ESTRUCTURA PRINCIPAL DE EVENTOS                                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Grupo dinámico de tipos de eventos -->
+    <xs:group name="gGroupTiEvt">
+        <xs:annotation>
+            <xs:documentation> Grupo dinámico que contiene el evento específico según su tipo
+                FUNCIONAMIENTO: - Solo UNO de los elementos puede estar presente - La elección
+                depende del valor de dTiGDE - Validación cruzada entre dTiGDE y elemento presente
+                MAPEO CÓDIGO → ELEMENTO: - dTiGDE = 1 → rGeVeCan (cancelación) - dTiGDE = 2 →
+                rGeVeInu (inutilización) - dTiGDE = 10 → rGeVeNotRec (notificación recepción) -
+                dTiGDE = 11 → rGeVeConf (conformidad) - dTiGDE = 12 → rGeVeDisconf (disconformidad)
+                - dTiGDE = 13 → rGeVeDescon (desconocimiento) VALIDACIONES: - Coherencia entre
+                dTiGDE y elemento presente - Solo un elemento del grupo puede aparecer - Elemento
+                debe cumplir validaciones específicas </xs:documentation>
+        </xs:annotation>
+        <xs:choice>
+
+            <!-- Evento de Cancelación -->
+            <xs:element name="rGeVeCan" type="tipoEventoCancelacion">
+                <xs:annotation>
+                    <xs:documentation> Evento de cancelación de DTE aprobado (dTiGDE = 1) Usado por
+                        emisor para cancelar documentos dentro del plazo </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Evento de Inutilización -->
+            <xs:element name="rGeVeInu" type="tipoEventoInutilizacion">
+                <xs:annotation>
+                    <xs:documentation> Evento de inutilización de numeración (dTiGDE = 2) Usado por
+                        emisor para anular rangos de numeración </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Evento de Notificación de Recepción -->
+            <xs:element name="rGeVeNotRec" type="tipoEventoNotificacionRecepcion">
+                <xs:annotation>
+                    <xs:documentation> Evento de notificación de recepción (dTiGDE = 10) Usado por
+                        receptor para confirmar recepción del documento </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Evento de Conformidad -->
+            <xs:element name="rGeVeConf" type="tipoEventoConformidad">
+                <xs:annotation>
+                    <xs:documentation> Evento de conformidad con el documento (dTiGDE = 11) Usado
+                        por receptor para expresar conformidad total o parcial </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Evento de Disconformidad -->
+            <xs:element name="rGeVeDisconf" type="tipoEventoDisconformidad">
+                <xs:annotation>
+                    <xs:documentation> Evento de disconformidad con el documento (dTiGDE = 12) Usado
+                        por receptor para expresar desacuerdo justificado </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Evento de Desconocimiento -->
+            <xs:element name="rGeVeDescon" type="tipoEventoDesconocimiento">
+                <xs:annotation>
+                    <xs:documentation> Evento de desconocimiento del documento (dTiGDE = 13) Usado
+                        por receptor para declarar no conocer el documento </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+        </xs:choice>
+    </xs:group>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO PRINCIPAL DEL EVENTO                                        -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento principal rEve -->
+    <xs:element name="rEve">
+        <xs:annotation>
+            <xs:documentation> Elemento principal que contiene toda la estructura de un evento
+                ARQUITECTURA: rEve (con atributo Id único) ├── dFecFirma: Timestamp de firma del
+                evento ├── dVerFor: Versión del formato (150) ├── dTiGDE: Tipo de evento (1-13) └──
+                gGroupTiEvt: Evento específico según tipo FLUJO DE VALIDACIÓN: 1. Verificar atributo
+                Id único y válido 2. Validar dFecFirma en formato ISO 8601 3. Confirmar dVerFor =
+                "150" 4. Verificar dTiGDE en rango permitido 5. Validar coherencia entre dTiGDE y
+                elemento en gGroupTiEvt 6. Ejecutar validaciones específicas del tipo de evento
+                CASOS DE USO: ✅ Cancelación urgente de factura con error ✅ Inutilización de
+                numeración por falla técnica ✅ Confirmación de recepción por parte del receptor ✅
+                Manifestación de conformidad o disconformidad ✅ Declaración de desconocimiento de
+                documento INTEGRACIÓN: - Usado en siRecepEvento_v150.xsd como elemento central -
+                Firmado digitalmente en rGesEve - Validado contra reglas de negocio SIFEN -
+                Procesado por web services de eventos </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- Fecha y hora de firma del evento -->
+                <xs:element name="dFecFirma" type="tipoFechaHora">
+                    <xs:annotation>
+                        <xs:documentation> Fecha y hora de firma digital del evento FORMATO: ISO
+                            8601 (YYYY-MM-DDTHH:mm:ss) TIMEZONE: Local Paraguay (GMT-3)
+                            VALIDACIONES: - No puede ser futura (tolerancia +5 minutos) - No puede
+                            ser muy antigua (máximo -24 horas) - Debe coincidir con timestamp de
+                            firma digital - Usado para cálculo de plazos PROPÓSITO: - Base temporal
+                            para validación de plazos - Timestamp oficial del evento - Auditoría y
+                            trazabilidad - Correlación con firma digital EJEMPLO:
+                            "2025-06-23T14:30:00" </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Versión del formato -->
+                <xs:element name="dVerFor" type="tipoVersionFormatoEventoSIFEN">
+                    <xs:annotation>
+                        <xs:documentation> Versión del formato de evento utilizado VALOR FIJO: "150"
+                            (SIFEN v1.5.0) PROPÓSITO: - Versionado del formato de eventos -
+                            Compatibilidad hacia atrás - Routing interno en SIFEN - Validación de
+                            estructura VALIDACIÓN: - Debe ser exactamente "150" - Campo obligatorio
+                            - Usado para determinar schema aplicable </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Tipo de evento -->
+                <xs:element name="dTiGDE" type="tipoCodigoEvento">
+                    <xs:annotation>
+                        <xs:documentation> Código que identifica el tipo específico de evento
+                            VALORES SOPORTADOS: EMISOR: - 1: Cancelación de DTE aprobado - 2:
+                            Inutilización de numeración - 3: Endoso (futuro) RECEPTOR: - 10:
+                            Notificación de recepción - 11: Conformidad con documento - 12:
+                            Disconformidad con documento - 13: Desconocimiento de documento
+                            VALIDACIÓN CRUZADA: - Debe coincidir con elemento presente en
+                            gGroupTiEvt - Determina validaciones específicas aplicables - Define
+                            plazos y restricciones - Establece campos obligatorios EJEMPLOS: -
+                            dTiGDE=1 requiere rGeVeCan presente - dTiGDE=2 requiere rGeVeInu
+                            presente - dTiGDE=11 requiere rGeVeConf presente </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Grupo de evento específico -->
+                <xs:group ref="gGroupTiEvt">
+                    <xs:annotation>
+                        <xs:documentation> Grupo que contiene el evento específico según dTiGDE
+                            COHERENCIA OBLIGATORIA: - Si dTiGDE=1, debe aparecer rGeVeCan - Si
+                            dTiGDE=2, debe aparecer rGeVeInu - Si dTiGDE=10, debe aparecer
+                            rGeVeNotRec - Si dTiGDE=11, debe aparecer rGeVeConf - Si dTiGDE=12, debe
+                            aparecer rGeVeDisconf - Si dTiGDE=13, debe aparecer rGeVeDescon
+                            VALIDACIÓN: - Solo uno de los elementos puede estar presente - Elemento
+                            presente debe corresponder al código dTiGDE - Contenido debe cumplir
+                            validaciones específicas </xs:documentation>
+                    </xs:annotation>
+                </xs:group>
+
+            </xs:sequence>
+
+            <!-- Atributo ID del evento -->
+            <xs:attribute name="Id" type="tipoIdEvento" use="required">
+                <xs:annotation>
+                    <xs:documentation> Identificador único del evento CARACTERÍSTICAS: - Único por
+                        emisor/receptor - Hasta 20 caracteres alfanuméricos - Usado para correlación
+                        y tracking - Requerido para firma digital RECOMENDACIONES: - Incluir
+                        timestamp para unicidad - Prefijo identificativo del tipo - Secuencial por
+                        día/período EJEMPLOS: - "CANCEL_1719158400" - "INUT_20250623_001" -
+                        "CONF_EVT_123456" </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTO DE GESTIÓN COMPLETA DE EVENTOS                              -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento rGesEve para gestión completa -->
+    <xs:element name="rGesEve">
+        <xs:annotation>
+            <xs:documentation> Elemento de gestión completa de eventos que incluye el evento y su
+                firma ESTRUCTURA: rGesEve ├── rEve: Evento con toda su información └── Signature:
+                Firma digital XML DSig PROPÓSITO: - Contenedor completo para envío a SIFEN - Incluye
+                evento y firma digital obligatoria - Base para validación integral - Elemento raíz
+                para procesamiento USO: - En requests de siRecepEvento - Como contenido de dEvReg -
+                Para validación completa antes de envío - En respuestas de procesamiento
+                VALIDACIONES: - Evento rEve debe ser válido y completo - Firma digital debe ser
+                válida y verificable - Certificado debe ser PSC Paraguay - Coherencia entre evento
+                firmado y contenido </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- Evento principal -->
+                <xs:element ref="rEve">
+                    <xs:annotation>
+                        <xs:documentation> Evento principal con toda su estructura específica Debe
+                            cumplir todas las validaciones según su tipo </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Firma digital XML DSig (será referenciada desde xmldsig-core-schema) -->
+                <xs:any namespace="http://www.w3.org/2000/09/xmldsig#" processContents="lax">
+                    <xs:annotation>
+                        <xs:documentation> Firma digital XML siguiendo estándar W3C XML Signature
+                            REQUERIMIENTOS: ✅ Certificado PSC Paraguay válido y vigente ✅ Algoritmo
+                            RSA-SHA256 o superior ✅ Canonicalization C14N ✅ Certificado incluido
+                            completo en KeyInfo ✅ Timestamp de firma coherente con dFecFirma
+                            VALIDACIONES SIFEN: - Verificación de certificado contra PSC -
+                            Validación de cadena de certificación - Verificación de revocación
+                            (CRL/OCSP) - Validación de período de validez - Verificación de
+                            algoritmo de firma - Coherencia temporal con evento NOTA: Definición
+                            completa en xmldsig-core-schema-v150.xsd </xs:documentation>
+                    </xs:annotation>
+                </xs:any>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS AUXILIARES PARA TESTING Y VALIDACIÓN                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento para testing completo de eventos -->
+    <xs:element name="testEventoCompleto">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para testing completo de la estructura de eventos
+                PROPÓSITO: - Validación de todos los tipos de eventos - Testing de coherencia entre
+                códigos y elementos - Verificación de estructura antes de firma - Debugging de XML
+                generado TESTS INCLUIDOS: - Estructura de rEve para cada tipo - Validación de
+                gGroupTiEvt - Coherencia dTiGDE con elemento específico - Formatos de fecha y
+                timestamp - Longitudes y patrones de campos USO EN DESARROLLO: ```python # Validar
+                evento antes de firma validator = XMLValidator("Evento_v150.xsd") is_valid =
+                validator.validate(xml_evento) if not is_valid: print("Error en estructura del
+                evento") ``` </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- Test de cada tipo de evento -->
+                <xs:element name="testCancelacion" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rEve" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="testInutilizacion" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rEve" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="testNotificacion" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rEve" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="testConformidad" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rEve" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="testGestionCompleta" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rGesEve" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 
+     ===================================================================== 
+     EJEMPLOS DE USO DE EVENTOS
+     =====================================================================
+     
+     EJEMPLO 1: Evento de Cancelación
+     ```xml
+     <rEve Id="CANCEL_20250623_001">
+         <dFecFirma>2025-06-23T14:30:00</dFecFirma>
+         <dVerFor>150</dVerFor>
+         <dTiGDE>1</dTiGDE>
+         <rGeVeCan>
+             <Id>01234567890123456789012345678901234567890123</Id>
+             <mOtEve>Error en cálculo de impuestos detectado post-aprobación</mOtEve>
+         </rGeVeCan>
+     </rEve>
+     ```
+     
+     EJEMPLO 2: Evento de Inutilización
+     ```xml
+     <rEve Id="INUT_20250623_002">
+         <dFecFirma>2025-06-23T14:35:00</dFecFirma>
+         <dVerFor>150</dVerFor>
+         <dTiGDE>2</dTiGDE>
+         <rGeVeInu>
+             <dNumTim>12345678</dNumTim>
+             <dEst>001</dEst>
+             <dPunExp>001</dPunExp>
+             <dNumIn>0000001</dNumIn>
+             <dNumFin>0000010</dNumFin>
+             <iTiDE>1</iTiDE>
+             <mOtEve>Error en sistema de facturación, salto de numeración</mOtEve>
+         </rGeVeInu>
+     </rEve>
+     ```
+     
+     EJEMPLO 3: Evento de Conformidad del Receptor
+     ```xml
+     <rEve Id="CONF_20250623_003">
+         <dFecFirma>2025-06-23T14:40:00</dFecFirma>
+         <dVerFor>150</dVerFor>
+         <dTiGDE>11</dTiGDE>
+         <rGeVeConf>
+             <Id>01234567890123456789012345678901234567890123</Id>
+             <dFecEmi>2025-06-20T10:00:00</dFecEmi>
+             <dConf>1</dConf>
+         </rGeVeConf>
+     </rEve>
+     ```
+     
+     EJEMPLO 4: Gestión Completa con Firma
+     ```xml
+     <rGesEve>
+         <rEve Id="DISCONF_20250623_004">
+             <dFecFirma>2025-06-23T14:45:00</dFecFirma>
+             <dVerFor>150</dVerFor>
+             <dTiGDE>12</dTiGDE>
+             <rGeVeDisconf>
+                 <Id>01234567890123456789012345678901234567890123</Id>
+                 <dFecEmi>2025-06-20T10:00:00</dFecEmi>
+                 <mOtEve>Mercadería entregada no corresponde a la facturada</mOtEve>
+             </rGeVeDisconf>
+         </rEve>
+         <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+             <SignedInfo>
+                 <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+                 <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
+                 <Reference URI="">
+                     <Transforms>
+                         <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                     </Transforms>
+                     <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+                     <DigestValue>...</DigestValue>
+                 </Reference>
+             </SignedInfo>
+             <SignatureValue>...</SignatureValue>
+             <KeyInfo>
+                 <X509Data>
+                     <X509Certificate>...</X509Certificate>
+                 </X509Data>
+             </KeyInfo>
+         </Signature>
+     </rGesEve>
+     ```
+     
+     ===================================================================== 
+     CÓDIGOS DE ERROR ESPECÍFICOS POR TIPO DE EVENTO
+     =====================================================================
+     
+     CANCELACIÓN (4000-4019):
+     4000: Versión no corresponde
+     4001: CDC inválido o malformado
+     4002: CDC no existe en SIFEN
+     4003: CDC ya tiene evento de cancelación
+     4004: CDC confirmado por receptor
+     4005: DTE no está aprobado
+     4006: Firmador no autorizado
+     4007: Certificado revocado o inválido
+     4008: Fecha firma inválida
+     4009: Plazo FE extemporáneo (>48h)
+     4010: Plazo otros DE extemporáneo (>168h)
+     4011: Motivo cancelación inválido
+     
+     INUTILIZACIÓN (4050-4069):
+     4050: Timbrado inválido
+     4051: Timbrado no pertenece al emisor
+     4052: Rango excede máximo (1000 números)
+     4053: Números ya utilizados
+     4054: Fecha límite timbrado excedida
+     4055: Establecimiento no autorizado
+     4056: Punto expedición no autorizado
+     4057: Tipo documento incompatible
+     4058: Numeración fuera de secuencia
+     4059: Plazo inutilización extemporáneo
+     
+     RECEPTOR (4100-4139):
+     4100: Evento receptor fuera de plazo (>45 días)
+     4101: CDC no dirigido al firmante
+     4102: Receptor no autorizado
+     4103: Evento conflictivo con anterior
+     4104: Conformidad parcial sin observaciones
+     4105: Disconformidad sin motivo
+     4106: Desconocimiento sin justificación
+     4107: Fecha emisión incorrecta
+     4108: Evento duplicado
+     
+     =====================================================================
+    -->
+
+</xs:schema>

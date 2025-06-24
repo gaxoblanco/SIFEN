@@ -1,0 +1,806 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Web Service Envío de Eventos
+  Archivo: WS_SiRecepEvento_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/events/
+  
+  PROPÓSITO:
+  - Define la estructura completa del web service SiRecepEvento
+  - Orquesta la interacción request-response del envío de eventos
+  - Especifica los tipos de datos para la comunicación SOAP de eventos
+  - Valida la estructura completa del servicio web de eventos
+  
+  ARQUITECTURA DEL WEB SERVICE:
+  1. Operación: SiRecepEvento (envío de eventos)
+  2. Input: siRecepEvento (request con evento firmado)
+  3. Output: resRecepEvento (response con resultado)
+  4. Protocol: SOAP 1.2 sobre HTTPS/TLS 1.2
+  5. Authentication: Mutual TLS con certificados PSC
+  
+  ENDPOINTS OFICIALES:
+  - Producción: https://sifen.set.gov.py/de/ws/eventos/evento.wsdl
+  - Test: https://sifen-test.set.gov.py/de/ws/eventos/evento.wsdl
+  
+  FLUJO COMPLETO EVENTOS:
+  1. Cliente prepara evento (cancelación, inutilización, etc.)
+  2. Cliente firma digitalmente el evento con certificado PSC
+  3. Cliente crea request siRecepEvento con evento firmado
+  4. Cliente invoca operación SiRecepEvento vía SOAP
+  5. SIFEN valida estructura, firma digital y reglas de negocio
+  6. SIFEN procesa evento según tipo específico
+  7. SIFEN retorna response resRecepEvento con resultado
+  8. Cliente procesa respuesta y actualiza estado del evento
+  
+  TIPOS DE EVENTOS SOPORTADOS:
+  - Emisor: Cancelación (1), Inutilización (2), Endoso (3-futuro)
+  - Receptor: Acuse (10), Conformidad (11), Disconformidad (12), Desconocimiento (13)
+  
+  DIFERENCIAS CON DOCUMENTOS:
+  - Procesamiento síncrono (respuesta inmediata)
+  - Validaciones específicas por tipo de evento
+  - Sin número de autorización tradicional
+  - Códigos de error específicos (4xxx para eventos)
+  - Límite menor de tamaño (1000 KB vs 10 MB)
+  
+  VALIDACIONES ESPECÍFICAS:
+  - Plazos según tipo evento (48h FE, 168h otros, 45 días receptor)
+  - CDC válido y existente en SIFEN
+  - Certificado firmante autorizado
+  - Rangos válidos para inutilización (máx 1000 números)
+  - Estado del documento compatible con evento
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ SOAP 1.2 / WSDL 2.0
+  ✅ TLS 1.2 con autenticación mutua
+  ✅ Certificados PSC Paraguay
+  ✅ XML Schema 1.0 estándar
+  ✅ Integración con Evento_v150.xsd
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES DE SCHEMAS DEPENDIENTES                                -->
+    <!-- ===================================================================== -->
+
+    <!-- Request y Response del envío de eventos -->
+    <xs:include schemaLocation="siRecepEvento_v150.xsd" />
+    <xs:include schemaLocation="resRecepEvento_v150.xsd" />
+
+    <!-- Estructura de eventos -->
+    <xs:include schemaLocation="Evento_v150.xsd" />
+
+    <!-- Tipos básicos del sistema -->
+    <xs:include schemaLocation="../../../modular/common/basic_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA WEB SERVICE DE EVENTOS                        -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipo para identificación del servicio de eventos -->
+    <xs:simpleType name="tipoIdentificadorServicioEvento">
+        <xs:annotation>
+            <xs:documentation> Identificador único del servicio web de eventos SIFEN VALORES
+                VÁLIDOS: - "SiRecepEvento": Servicio de envío de eventos - Version: "1.5.0"
+                PROPÓSITO: - Identificación unívoca del servicio de eventos - Diferenciación con
+                servicio de documentos - Versionado para compatibilidad - Routing interno en SIFEN
+                específico para eventos - Logs y auditoría especializados DIFERENCIAS CON
+                DOCUMENTOS: - Servicio dedicado exclusivamente a eventos - Endpoint específico
+                (/eventos/evento.wsdl) - Validaciones diferentes - Códigos de error específicos -
+                Timeouts y límites específicos </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SiRecepEvento">
+                <xs:annotation>
+                    <xs:documentation>Servicio de Recepción de Eventos SIFEN</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tipo para versión del protocolo de eventos -->
+    <xs:simpleType name="tipoVersionProtocoloEvento">
+        <xs:annotation>
+            <xs:documentation> Versión del protocolo de comunicación para eventos VERSIÓN ACTUAL:
+                "1.5.0" COMPATIBILIDAD: Backward compatible con versiones menores EVOLUCIÓN: -
+                v1.0.0: Implementación inicial eventos básicos - v1.2.0: Agregados eventos del
+                receptor - v1.5.0: Versión actual con eventos completos CARACTERÍSTICAS v1.5.0: -
+                Soporte completo para eventos emisor y receptor - Validaciones específicas por tipo
+                de evento - Códigos de error detallados - Integración con estructura Evento_v150.xsd
+                - Plazos diferenciados por tipo </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1.5.0" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Configuración específica para web service de eventos -->
+    <xs:complexType name="tipoConfiguracionWSEvento">
+        <xs:annotation>
+            <xs:documentation> Configuración específica del web service de eventos PARÁMETROS
+                ESPECÍFICOS: - Timeout: 30 segundos (menor que documentos) - Tamaño máximo: 1000 KB
+                (menor que documentos) - Retry automático: No (eventos son únicos) - Validación
+                firma: Obligatoria siempre DIFERENCIAS CON DOCUMENTOS: - Timeout menor por ser
+                síncrono - Tamaño menor (eventos vs documentos) - Sin batch processing -
+                Validaciones específicas por tipo evento </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- Timeout específico para eventos -->
+            <xs:element name="timeoutEvento" type="xs:int" default="30">
+                <xs:annotation>
+                    <xs:documentation> Timeout en segundos para procesamiento de eventos Valor por
+                        defecto: 30 segundos (menor que documentos) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Tamaño máximo de evento -->
+            <xs:element name="tamanoMaximoKB" type="xs:int" default="1000">
+                <xs:annotation>
+                    <xs:documentation> Tamaño máximo de evento en KB Valor por defecto: 1000 KB
+                        (menor que documentos) </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Validación firma obligatoria -->
+            <xs:element name="firmaObligatoria" type="xs:boolean" default="true">
+                <xs:annotation>
+                    <xs:documentation> Indica si la firma digital es obligatoria Siempre true para
+                        eventos SIFEN </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+
+            <!-- Información adicional de configuración -->
+            <xs:element name="configuracionAdicional" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:any namespace="##any" processContents="lax"
+                            minOccurs="0" maxOccurs="unbounded" />
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ===================================================================== -->
+    <!-- DEFINICIÓN DE OPERACIONES DEL WEB SERVICE                            -->
+    <!-- ===================================================================== -->
+
+    <!-- Operación principal: SiRecepEvento -->
+    <xs:element name="SiRecepEvento">
+        <xs:annotation>
+            <xs:documentation> Operación principal del web service para envío de eventos
+                FUNCIONALIDAD: - Recibe evento firmado digitalmente (cancelación, inutilización,
+                etc.) - Valida estructura específica según tipo de evento - Valida firma digital con
+                certificado PSC - Procesa evento según reglas de negocio específicas - Registra
+                evento en sistema SIFEN si es válido - Retorna resultado inmediato del procesamiento
+                CARACTERÍSTICAS: - Procesamiento síncrono (respuesta inmediata) - Timeout máximo: 30
+                segundos - Un evento por invocación - Validación completa en tiempo real - Sin batch
+                processing PARÁMETROS DE ENTRADA: - dId: Identificador único de control - dEvReg:
+                Evento registrado firmado (XML completo) RESULTADO: - Código de resultado específico
+                para eventos - Mensaje descriptivo del resultado - Protocolo y ID evento (si
+                aprobado) - Fecha/hora de procesamiento CASOS DE USO: ✅ Cancelación urgente de
+                facturas con errores ✅ Inutilización de numeración por fallas técnicas ✅
+                Confirmación de recepción por receptores ✅ Manifestación de
+                conformidad/disconformidad ✅ Eventos de desconocimiento por receptores CASOS NO
+                VÁLIDOS: ❌ Envío masivo de eventos (no soportado) ❌ Eventos sin firma digital ❌
+                Certificados no PSC ❌ Eventos fuera de plazo VALIDACIONES AUTOMÁTICAS: ✅ Estructura
+                XML bien formada ✅ Namespace SIFEN correcto ✅ Evento firmado digitalmente con PSC ✅
+                Certificado válido y vigente ✅ Tipo de evento soportado ✅ Campos obligatorios según
+                tipo ✅ Plazos específicos por tipo evento ✅ CDC válido cuando aplique ✅ Permisos del
+                firmante </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Request de envío de evento -->
+                <xs:element ref="rEnviEventoDe">
+                    <xs:annotation>
+                        <xs:documentation> Request de envío de evento que contiene: - dId: ID de
+                            control único del evento - dEvReg: Evento registrado firmado completo
+                            VALIDACIONES AUTOMÁTICAS: - Estructura XML bien formada según
+                            siRecepEvento_v150.xsd - Namespace SIFEN correcto - Evento firmado
+                            digitalmente con certificado PSC - Certificado válido y vigente - Todos
+                            los campos obligatorios presentes - Coherencia entre dTiGDE y elemento
+                            específico - Validaciones específicas por tipo de evento ESTRUCTURA
+                            INTERNA: rEnviEventoDe ├── dId (control) └── dEvReg └── rGesEve ├── rEve
+                            (evento específico) └── Signature (firma digital) TIPOS EVENTOS VÁLIDOS:
+                            - dTiGDE=1: Cancelación (rGeVeCan) - dTiGDE=2: Inutilización (rGeVeInu)
+                            - dTiGDE=10: Acuse recepción (rGeVeNotRec) - dTiGDE=11: Conformidad
+                            (rGeVeConf) - dTiGDE=12: Disconformidad (rGeVeDisconf) - dTiGDE=13:
+                            Desconocimiento (rGeVeDescon) </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+
+            <!-- Atributos de la operación -->
+            <xs:attribute name="servicio" type="tipoIdentificadorServicioEvento"
+                fixed="SiRecepEvento">
+                <xs:annotation>
+                    <xs:documentation> Identificador del servicio web de eventos invocado Valor
+                        fijo: "SiRecepEvento" </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+            <xs:attribute name="version" type="tipoVersionProtocoloEvento" fixed="1.5.0">
+                <xs:annotation>
+                    <xs:documentation> Versión del protocolo de comunicación de eventos Valor fijo:
+                        "1.5.0" </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Respuesta de la operación SiRecepEvento -->
+    <xs:element name="SiRecepEventoResponse">
+        <xs:annotation>
+            <xs:documentation> Respuesta estructurada de la operación SiRecepEvento CONTENIDO: -
+                Resultado del procesamiento del evento - Código específico del resultado - Mensaje
+                descriptivo - Datos de tracking (si exitoso) ESTRUCTURA: SiRecepEventoResponse └──
+                resRecepEvento ├── dFecProc (timestamp procesamiento) └── gResProcEVe ├── dEstRes
+                (estado resultado) ├── dProtAut (protocolo, opcional) ├── id (ID evento SIFEN,
+                opcional) └── gResProc ├── dCodRes (código resultado) └── dMsgRes (mensaje
+                resultado) TIPOS DE RESULTADO: - Aprobado: Evento registrado exitosamente -
+                Rechazado: Error de validación o reglas negocio - Error: Error técnico durante
+                procesamiento CÓDIGOS COMUNES: - 0600: Evento registrado correctamente - 4001: CDC
+                inválido - 4009: Plazo cancelación extemporáneo - 4052: Rango inutilización excedido
+                - 9000: Error interno servidor </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Response de evento -->
+                <xs:element ref="rRetEnviEventoDe">
+                    <xs:annotation>
+                        <xs:documentation> Response del procesamiento del evento según
+                            resRecepEvento_v150.xsd COMPONENTES: - Timestamp de procesamiento SIFEN
+                            - Estado del resultado (Aprobado/Rechazado/Error) - Código y mensaje
+                            específicos - Datos de tracking (protocolo, ID evento) LÓGICA DE
+                            CONTENIDO: - Siempre presente: fecha, estado, código, mensaje - Solo si
+                            aprobado: protocolo autorización, ID evento - Código determina mensaje
+                            automáticamente - Estado deriva del código de resultado </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+
+            <!-- Atributos de la respuesta -->
+            <xs:attribute name="version" type="tipoVersionProtocoloEvento" use="required">
+                <xs:annotation>
+                    <xs:documentation> Versión del protocolo de respuesta Debe coincidir con versión
+                        del request </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- DEFINICIÓN DE HEADERS SOAP REQUERIDOS                               -->
+    <!-- ===================================================================== -->
+
+    <!-- Header de autenticación para eventos -->
+    <xs:element name="SifenAuthenticationEvento">
+        <xs:annotation>
+            <xs:documentation> Header SOAP para autenticación específica de eventos PROPÓSITO: -
+                Identificación del sistema cliente para eventos - Validación de certificados PSC
+                específicos - Control de acceso y autorización para eventos - Auditoría de accesos
+                especializados IMPLEMENTACIÓN: - Incluir en SOAP Header de cada request de evento -
+                Certificado client SSL para mutual TLS - Información del sistema emisor de eventos -
+                Tracking específico para eventos SEGURIDAD: - TLS 1.2 obligatorio - Certificados PSC
+                Paraguay válidos - Validación de cadena de certificación - Control de revocación
+                (CRL/OCSP) - Permisos específicos para tipos de eventos DIFERENCIAS CON DOCUMENTOS:
+                - Validación específica para eventos - Permisos diferenciados por tipo evento -
+                Logging especializado - Timeout menor (30s vs 60s) </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Identificación del sistema para eventos -->
+                <xs:element name="sistemaEmisorEvento" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation> Identificación del sistema que envía el evento FORMATO:
+                            Nombre del sistema + versión + "Eventos" EJEMPLO: "MiSistemaERP v2.1.5 -
+                            Módulo Eventos" PROPÓSITO: - Identificación en logs específicos de
+                            eventos - Estadísticas de uso por sistema y tipo evento - Soporte
+                            técnico especializado para eventos - Diferenciación con envío de
+                            documentos </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Versión del cliente de eventos -->
+                <xs:element name="versionClienteEvento" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation> Versión específica del cliente SIFEN para eventos
+                            FORMATO: Número de versión semántica EJEMPLO: "1.5.0" VALIDACIÓN: - Debe
+                            ser compatible con versión mínima soportada - Usado para features
+                            específicas de eventos - Control de compatibilidad hacia atrás
+                            PROPÓSITO: - Versionado específico para eventos - Control de
+                            características disponibles - Debugging de problemas específicos </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Tipo de evento que se envía -->
+                <xs:element name="tipoEventoEnvio" type="xs:string" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation> Tipo de evento que se está enviando (opcional) VALORES:
+                            "CANCELACION", "INUTILIZACION", "CONFORMIDAD", etc. PROPÓSITO: -
+                            Pre-validación del tipo de evento - Routing interno optimizado - Logging
+                            especializado por tipo - Métricas específicas </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- VALIDACIONES DEL WEB SERVICE DE EVENTOS                             -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento para testing del web service completo de eventos -->
+    <xs:element name="testWebServiceEvento">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para testing del web service completo de eventos
+                PROPÓSITO: - Validación de estructura request-response específica - Testing de
+                conectividad con endpoint de eventos - Verificación de configuración específica -
+                Debugging de integración de eventos TESTS INCLUIDOS: - Estructura de operación
+                SiRecepEvento - Validación de headers SOAP específicos - Verificación de tipos de
+                datos de eventos - Compatibilidad de versiones - Testing de diferentes tipos de
+                eventos - Validación de códigos de error específicos CASOS DE TEST: - Evento
+                cancelación exitoso - Evento inutilización exitoso - Error plazo extemporáneo -
+                Error CDC inválido - Error certificado no autorizado - Error rango inutilización
+                excedido COMPATIBILIDAD: ✅ XSD 1.0 (oficial SET Paraguay) ✅ SOAP 1.2 específico para
+                eventos ✅ Endpoint eventos SIFEN ✅ Certificados PSC Paraguay </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Test de operación completa de eventos -->
+                <xs:element name="operacionTestEvento">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="SiRecepEvento" />
+                            <xs:element ref="SiRecepEventoResponse" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Test de configuración específica de eventos -->
+                <xs:element name="configuracionTestEvento" type="tipoConfiguracionWSEvento" />
+
+                <!-- Test de diferentes tipos de eventos -->
+                <xs:element name="testTiposEvento" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <!-- Test evento cancelación -->
+                            <xs:element name="testCancelacion" minOccurs="0">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element ref="SiRecepEvento" />
+                                        <xs:element ref="SiRecepEventoResponse" />
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+
+                            <!-- Test evento inutilización -->
+                            <xs:element name="testInutilizacion" minOccurs="0">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element ref="SiRecepEvento" />
+                                        <xs:element ref="SiRecepEventoResponse" />
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+
+                            <!-- Test eventos receptor -->
+                            <xs:element name="testEventosReceptor" minOccurs="0">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element ref="SiRecepEvento" />
+                                        <xs:element ref="SiRecepEventoResponse" />
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 
+     ===================================================================== 
+     EJEMPLOS DE OPERACIONES COMPLETAS
+     =====================================================================
+     
+     EJEMPLO 1: Operación Completa - Cancelación Exitosa
+     ```xml
+     <!- REQUEST ->
+     <SiRecepEvento servicio="SiRecepEvento" version="1.5.0">
+         <rEnviEventoDe version="150">
+             <dId>1719158400</dId>
+             <dEvReg>
+                 <rGesEve>
+                     <rEve Id="CANCEL_20250623_001">
+                         <dFecFirma>2025-06-23T14:30:00</dFecFirma>
+                         <dVerFor>150</dVerFor>
+                         <dTiGDE>1</dTiGDE>
+                         <rGeVeCan>
+                             <Id>01234567890123456789012345678901234567890123</Id>
+                             <mOtEve>Error en cálculo de impuestos detectado</mOtEve>
+                         </rGeVeCan>
+                     </rEve>
+                     <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                         <!- Firma digital completa ->
+                     </Signature>
+                 </rGesEve>
+             </dEvReg>
+         </rEnviEventoDe>
+     </SiRecepEvento>
+     
+     <!- RESPONSE ->
+     <SiRecepEventoResponse version="1.5.0">
+         <rRetEnviEventoDe>
+             <dFecProc>2025-06-23T14:35:22</dFecProc>
+             <gResProcEVe>
+                 <dEstRes>Aprobado</dEstRes>
+                 <dProtAut>1234567890123</dProtAut>
+                 <id>12345678901234567890</id>
+                 <gResProc>
+                     <dCodRes>0600</dCodRes>
+                     <dMsgRes>Evento registrado correctamente</dMsgRes>
+                 </gResProc>
+             </gResProcEVe>
+         </rRetEnviEventoDe>
+     </SiRecepEventoResponse>
+     ```
+     
+     EJEMPLO 2: Operación con Error - Plazo Extemporáneo
+     ```xml
+     <!- REQUEST ->
+     <SiRecepEvento servicio="SiRecepEvento" version="1.5.0">
+         <rEnviEventoDe version="150">
+             <dId>1719158401</dId>
+             <dEvReg>
+                 <rGesEve>
+                     <rEve Id="CANCEL_20250623_002">
+                         <dFecFirma>2025-06-23T14:35:00</dFecFirma>
+                         <dVerFor>150</dVerFor>
+                         <dTiGDE>1</dTiGDE>
+                         <rGeVeCan>
+                             <Id>01234567890123456789012345678901234567890123</Id>
+                             <mOtEve>Cancelación tardía</mOtEve>
+                         </rGeVeCan>
+                     </rEve>
+                     <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                         <!- Firma digital completa ->
+                     </Signature>
+                 </rGesEve>
+             </dEvReg>
+         </rEnviEventoDe>
+     </SiRecepEvento>
+     
+     <!- RESPONSE ->
+     <SiRecepEventoResponse version="1.5.0">
+         <rRetEnviEventoDe>
+             <dFecProc>2025-06-23T14:35:25</dFecProc>
+             <gResProcEVe>
+                 <dEstRes>Rechazado</dEstRes>
+                 <gResProc>
+                     <dCodRes>4009</dCodRes>
+                     <dMsgRes>Plazo de cancelación extemporáneo para Factura Electrónica (máximo 48 horas)</dMsgRes>
+                 </gResProc>
+             </gResProcEVe>
+         </rRetEnviEventoDe>
+     </SiRecepEventoResponse>
+     ```
+     
+     ===================================================================== 
+     CONFIGURACIÓN DEL WEB SERVICE
+     =====================================================================
+     
+     ENDPOINT CONFIGURACIÓN:
+     - URL Producción: https://sifen.set.gov.py/de/ws/eventos/evento.wsdl
+     - URL Test: https://sifen-test.set.gov.py/de/ws/eventos/evento.wsdl
+     - Método SOAP: SiRecepEvento
+     - Versión: 1.5.0
+     - Timeout: 30 segundos
+     - Tamaño máximo: 1000 KB
+     
+     SEGURIDAD:
+     - TLS 1.2 obligatorio
+     - Mutual TLS con certificados PSC
+     - Validación de cadena de certificación
+     - Control de revocación (CRL/OCSP)
+     - Firma digital XML DSig obligatoria
+     
+     HEADERS SOAP REQUERIDOS:
+     - SifenAuthenticationEvento (identificación sistema)
+     - Content-Type: application/soap+xml
+     - User-Agent: identificación cliente
+     
+     CÓDIGOS HTTP:
+     - 200: Operación exitosa (independiente del resultado evento)
+     - 401: No autorizado (certificado inválido)
+     - 500: Error interno servidor SIFEN
+     - 503: Servicio no disponible
+     
+     ===================================================================== 
+     INTEGRACIÓN CON OTROS SCHEMAS
+     =====================================================================
+     
+     DEPENDENCIAS:
+     - siRecepEvento_v150.xsd: Estructura del request
+     - resRecepEvento_v150.xsd: Estructura del response  
+     - Evento_v150.xsd: Definición completa de eventos
+     - basic_types.xsd: Tipos básicos comunes
+     
+     FLUJO DE INTEGRACIÓN:
+     1. Cliente usa Evento_v150.xsd para crear evento específico
+     2. Cliente usa siRecepEvento_v150.xsd para estructurar request
+     3. Cliente usa WS_SiRecepEvento_v150.xsd para operación SOAP ← ESTE ARCHIVO
+     4. SIFEN responde usando resRecepEvento_v150.xsd
+     5. Cliente procesa response usando códigos específicos
+     
+     VALIDACIÓN EN CASCADA:
+     1. WS_SiRecepEvento_v150.xsd valida operación SOAP
+     2. siRecepEvento_v150.xsd valida estructura request
+     3. Evento_v150.xsd valida evento específico
+     4. basic_types.xsd valida tipos básicos
+     5. SIFEN valida reglas de negocio específicas
+     
+     ===================================================================== 
+     CASOS DE USO EN CÓDIGO PYTHON
+     =====================================================================
+     
+     IMPLEMENTACIÓN CON ZEEP:
+     ```python
+     import zeep
+     from zeep.wsse.signature import Signature
+     import xml.etree.ElementTree as ET
+     
+     class SifenEventoClient:
+         def __init__(self, cert_path, cert_password, ambiente="test"):
+             self.cert_path = cert_path
+             self.cert_password = cert_password
+             
+             # URLs según ambiente
+             if ambiente == "test":
+                 wsdl_url = "https://sifen-test.set.gov.py/de/ws/eventos/evento.wsdl"
+             else:
+                 wsdl_url = "https://sifen.set.gov.py/de/ws/eventos/evento.wsdl"
+             
+             # Configurar cliente ZEEP
+             self.client = zeep.Client(
+                 wsdl=wsdl_url,
+                 transport=self._configurar_transporte()
+             )
+         
+         def _configurar_transporte(self):
+             """Configurar transporte con certificados PSC"""
+             import requests
+             from zeep import Transport
+             
+             session = requests.Session()
+             session.cert = (self.cert_path, self.cert_password)
+             session.verify = True  # Verificar certificados servidor
+             
+             return Transport(session=session)
+         
+         async def enviar_evento(self, xml_evento_firmado: str, id_control: int = None):
+             """Enviar evento a SIFEN usando operación SiRecepEvento"""
+             
+             if id_control is None:
+                 import time
+                 id_control = int(time.time())
+             
+             # Preparar request según siRecepEvento_v150.xsd
+             request_data = {
+                 'rEnviEventoDe': {
+                     'dId': id_control,
+                     'dEvReg': xml_evento_firmado,
+                     'version': '150'
+                 }
+             }
+             
+             try:
+                 # Invocar operación SiRecepEvento
+                 response = self.client.service.SiRecepEvento(
+                     **request_data,
+                     servicio="SiRecepEvento",
+                     version="1.5.0"
+                 )
+                 
+                 # Procesar respuesta según resRecepEvento_v150.xsd
+                 return self._procesar_respuesta(response)
+                 
+             except Exception as e:
+                 return {
+                     'success': False,
+                     'error': f"Error enviando evento: {str(e)}",
+                     'codigo': 'CLIENT_ERROR'
+                 }
+         
+         def _procesar_respuesta(self, response):
+             """Procesar respuesta SIFEN según resRecepEvento_v150.xsd"""
+             
+             resultado = {
+                 'success': False,
+                 'fecha_procesamiento': response.dFecProc,
+                 'evento': None
+             }
+             
+             if hasattr(response, 'gResProcEVe'):
+                 evt = response.gResProcEVe
+                 
+                 evento_resultado = {
+                     'estado': evt.dEstRes,
+                     'codigo_resultado': evt.gResProc.dCodRes,
+                     'mensaje_resultado': evt.gResProc.dMsgRes,
+                     'protocolo_autorizacion': getattr(evt, 'dProtAut', None),
+                     'id_evento_sifen': getattr(evt, 'id', None),
+                     'aprobado': evt.dEstRes == 'Aprobado'
+                 }
+                 
+                 resultado['evento'] = evento_resultado
+                 resultado['success'] = evento_resultado['aprobado']
+             
+             return resultado
+     
+     # Ejemplo de uso específico
+     async def cancelar_documento_urgente():
+         """Ejemplo: cancelar documento por error urgente"""
+         
+         # 1. Crear cliente de eventos
+         cliente = SifenEventoClient(
+             cert_path="/path/to/cert.p12",
+             cert_password="password",
+             ambiente="test"
+         )
+         
+         # 2. XML del evento de cancelación (generado previamente con Evento_v150.xsd)
+         xml_evento = '''<?xml version="1.0" encoding="UTF-8"?>
+         <rGesEve xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+             <rEve Id="CANCEL_20250623_001">
+                 <dFecFirma>2025-06-23T14:30:00</dFecFirma>
+                 <dVerFor>150</dVerFor>
+                 <dTiGDE>1</dTiGDE>
+                 <rGeVeCan>
+                     <Id>01234567890123456789012345678901234567890123</Id>
+                     <mOtEve>Error en cálculo de impuestos detectado post-aprobación</mOtEve>
+                 </rGeVeCan>
+             </rEve>
+             <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                 <!- Firma digital completa ->
+             </Signature>
+         </rGesEve>'''
+         
+         # 3. Enviar evento usando web service
+         resultado = await cliente.enviar_evento(xml_evento)
+         
+         # 4. Procesar resultado
+         if resultado['success']:
+             print(f"✅ Cancelación exitosa!")
+             print(f"   ID Evento SIFEN: {resultado['evento']['id_evento_sifen']}")
+             print(f"   Protocolo: {resultado['evento']['protocolo_autorizacion']}")
+             
+             # Actualizar estado local del documento
+             actualizar_documento_cancelado(
+                 cdc="01234567890123456789012345678901234567890123",
+                 evento_id=resultado['evento']['id_evento_sifen']
+             )
+             
+         else:
+             print(f"❌ Error en cancelación: {resultado['evento']['mensaje_resultado']}")
+             print(f"   Código: {resultado['evento']['codigo_resultado']}")
+             
+             # Manejar según tipo de error
+             codigo = resultado['evento']['codigo_resultado']
+             if codigo == "4009":
+                 print("   > Plazo extemporáneo - no se puede cancelar")
+             elif codigo == "4001":
+                 print("   > CDC inválido - verificar número")
+             elif codigo.startswith("9"):
+                 print("   > Error técnico - reintentar en 5 minutos")
+         
+         return resultado
+     ```
+     
+     ===================================================================== 
+     TESTING DEL WEB SERVICE
+     =====================================================================
+     
+     TEST UNITARIO:
+     ```python
+     import pytest
+     from lxml import etree
+     
+     class TestWebServiceEvento:
+         def test_schema_web_service_evento_valido(self):
+             """Test que el schema del web service se carga correctamente"""
+             schema_path = "WS_SiRecepEvento_v150.xsd"
+             schema = etree.XMLSchema(file=schema_path)
+             assert schema is not None
+         
+         def test_operacion_sirecepevento_estructura(self):
+             """Test estructura de operación SiRecepEvento"""
+             xml_operacion = '''
+             <SiRecepEvento servicio="SiRecepEvento" version="1.5.0"
+                 xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                 <rEnviEventoDe version="150">
+                     <dId>1719158400</dId>
+                     <dEvReg>
+                         <!- Evento completo ->
+                     </dEvReg>
+                 </rEnviEventoDe>
+             </SiRecepEvento>
+             '''
+             
+             schema = etree.XMLSchema(file="WS_SiRecepEvento_v150.xsd")
+             doc = etree.fromstring(xml_operacion)
+             assert schema.validate(doc)
+         
+         def test_response_sirecepevento_estructura(self):
+             """Test estructura de response SiRecepEvento"""
+             xml_response = '''
+             <SiRecepEventoResponse version="1.5.0"
+                 xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+                 <rRetEnviEventoDe>
+                     <dFecProc>2025-06-23T14:35:22</dFecProc>
+                     <gResProcEVe>
+                         <dEstRes>Aprobado</dEstRes>
+                         <gResProc>
+                             <dCodRes>0600</dCodRes>
+                             <dMsgRes>Evento registrado correctamente</dMsgRes>
+                         </gResProc>
+                     </gResProcEVe>
+                 </rRetEnviEventoDe>
+             </SiRecepEventoResponse>
+             '''
+             
+             schema = etree.XMLSchema(file="WS_SiRecepEvento_v150.xsd")
+             doc = etree.fromstring(xml_response)
+             assert schema.validate(doc)
+     ```
+     
+     ===================================================================== 
+     MÉTRICAS Y MONITOREO
+     =====================================================================
+     
+     MÉTRICAS ESPECÍFICAS EVENTOS:
+     - Eventos por tipo (cancelación, inutilización, etc.)
+     - Tiempo promedio de procesamiento por tipo
+     - Tasa de éxito por tipo de evento
+     - Códigos de error más frecuentes
+     - Volumen por hora/día
+     
+     ALERTAS RECOMENDADAS:
+     - Tiempo procesamiento > 25 segundos
+     - Tasa error > 10% en ventana de 15 minutos
+     - Certificados próximos a vencer
+     - Volumen anómalo de eventos
+     
+     LOGGING ESPECÍFICO:
+     - Timestamp envío y respuesta
+     - Tipo de evento enviado
+     - Código de resultado
+     - ID evento SIFEN (si exitoso)
+     - Sistema cliente que envía
+     - CDC afectado (si aplica)
+     
+     =====================================================================
+    -->
+
+</xs:schema>

@@ -1,0 +1,701 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema SIFEN v150 - Response Envío de Eventos
+  Archivo: resRecepEvento_v150.xsd
+  Ubicación: schemas/v150/official_set/webservices/events/
+  
+  PROPÓSITO:
+  - Define la estructura de respuesta del web service siRecepEvento
+  - Valida el formato de respuesta enviado por SIFEN tras procesar eventos
+  - Contiene resultado del procesamiento y registro del evento
+  - Proporciona información de éxito/error y datos de tracking
+  
+  FLUJO DE RESPUESTA:
+  1. SIFEN recibe evento via siRecepEvento
+  2. SIFEN valida estructura, firma digital y reglas de negocio
+  3. SIFEN procesa evento según su tipo (cancelación, inutilización, etc.)
+  4. SIFEN genera respuesta con este formato
+  5. Cliente procesa respuesta y actualiza estado del evento
+  
+  TIPOS DE RESPUESTA:
+  ✅ Aprobado (0600) - Evento registrado correctamente
+  🟡 Aprobado con observación (0601) - Registrado con warnings
+  ❌ Rechazado (4xxx) - Errores de validación específicos por tipo evento
+  ⚠️ Error técnico (9xxx) - Problemas sistema SIFEN o infraestructura
+  
+  CÓDIGOS ESPECÍFICOS DE EVENTOS:
+  - 4000-4019: Errores de cancelación
+  - 4050-4069: Errores de inutilización  
+  - 4100-4139: Errores de eventos del receptor
+  - 0600: Evento registrado exitosamente
+  - 0601: Evento registrado con observaciones
+  
+  DIFERENCIAS CON DOCUMENTOS:
+  - Procesamiento síncrono (respuesta inmediata)
+  - Sin número de autorización (protocolo simple)
+  - Validaciones específicas por tipo de evento
+  - Sin firma digital en respuesta
+  
+  COMPATIBILIDAD:
+  ✅ SIFEN v150 oficial SET Paraguay
+  ✅ Protocolo SOAP 1.2
+  ✅ Estándar W3C XML Schema 1.0
+  ✅ Compatible con todos los procesadores XSD
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0
+  Fecha: 2025-06-23
+  Estado: Implementación oficial SET
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    targetNamespace="http://ekuatia.set.gov.py/sifen/xsd"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    version="1.5.0">
+
+    <!-- ===================================================================== -->
+    <!-- IMPORTACIONES Y DEPENDENCIAS                                         -->
+    <!-- ===================================================================== -->
+
+    <!-- Tipos básicos del sistema modular -->
+    <xs:include schemaLocation="../../../modular/common/basic_types.xsd" />
+
+    <!-- ===================================================================== -->
+    <!-- TIPOS ESPECÍFICOS PARA CÓDIGOS DE RESPUESTA DE EVENTOS              -->
+    <!-- ===================================================================== -->
+
+    <!-- Códigos de resultado específicos para eventos -->
+    <xs:simpleType name="tipoCodigoResultadoEvento">
+        <xs:annotation>
+            <xs:documentation> Códigos de resultado específicos para procesamiento de eventos SIFEN
+                CATEGORÍAS DE CÓDIGOS: ÉXITO (0600-0699): - 0600: Evento registrado correctamente -
+                0601: Evento registrado con observaciones menores ERRORES DE CANCELACIÓN
+                (4000-4019): - 4000: Versión no corresponde - 4001: CDC inválido o malformado -
+                4002: CDC no existe en SIFEN - 4003: CDC ya tiene evento de cancelación - 4004: CDC
+                confirmado por receptor (no cancelable) - 4005: DTE no está aprobado - 4006:
+                Firmador no autorizado para este emisor - 4007: Certificado revocado o inválido -
+                4008: Fecha firma inválida o futura - 4009: Plazo FE extemporáneo (>48h) - 4010:
+                Plazo otros DE extemporáneo (>168h) - 4011: Motivo cancelación inválido ERRORES DE
+                INUTILIZACIÓN (4050-4069): - 4050: Timbrado inválido o inexistente - 4051: Timbrado
+                no pertenece al emisor - 4052: Rango excede máximo permitido (1000 números) - 4053:
+                Números ya utilizados en rango - 4054: Fecha límite timbrado excedida - 4055:
+                Establecimiento no autorizado - 4056: Punto expedición no autorizado - 4057: Tipo
+                documento incompatible con timbrado - 4058: Numeración fuera de secuencia permitida
+                - 4059: Plazo inutilización extemporáneo (>15 días mes siguiente) ERRORES EVENTOS
+                RECEPTOR (4100-4139): - 4100: Evento receptor fuera de plazo (>45 días) - 4101: CDC
+                no dirigido al firmante del evento - 4102: Receptor no autorizado para este
+                documento - 4103: Evento conflictivo con evento anterior - 4104: Conformidad parcial
+                sin observaciones requeridas - 4105: Disconformidad sin motivo obligatorio - 4106:
+                Desconocimiento sin justificación - 4107: Fecha emisión document incorrecta - 4108:
+                Evento duplicado ya registrado ERRORES TÉCNICOS (9000-9999): - 9000: Error interno
+                del servidor SIFEN - 9001: Servicio de eventos temporalmente no disponible - 9002:
+                Timeout en procesamiento de evento - 9003: Error en base de datos SIFEN - 9004:
+                Error en validación de firma digital VALIDACIÓN: - Códigos son strings de 4 dígitos
+                - Cada código tiene mensaje específico asociado - Categorización por rango facilita
+                manejo de errores - Códigos están alineados con Manual Técnico SIFEN </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <!-- Códigos de éxito -->
+            <xs:enumeration value="0600">
+                <xs:annotation>
+                    <xs:documentation>Evento registrado correctamente</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="0601">
+                <xs:annotation>
+                    <xs:documentation>Evento registrado con observaciones</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Errores de cancelación (4000-4019) -->
+            <xs:enumeration value="4000">
+                <xs:annotation>
+                    <xs:documentation>Versión no corresponde</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4001">
+                <xs:annotation>
+                    <xs:documentation>CDC inválido</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4002">
+                <xs:annotation>
+                    <xs:documentation>CDC no existe en SIFEN</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4003">
+                <xs:annotation>
+                    <xs:documentation>CDC ya tiene evento de cancelación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4004">
+                <xs:annotation>
+                    <xs:documentation>CDC confirmado por receptor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4009">
+                <xs:annotation>
+                    <xs:documentation>Plazo FE extemporáneo (>48h)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4010">
+                <xs:annotation>
+                    <xs:documentation>Plazo otros DE extemporáneo (>168h)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Errores de inutilización (4050-4069) -->
+            <xs:enumeration value="4052">
+                <xs:annotation>
+                    <xs:documentation>Rango excede máximo (1000 números)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4053">
+                <xs:annotation>
+                    <xs:documentation>Números ya utilizados</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4059">
+                <xs:annotation>
+                    <xs:documentation>Plazo inutilización extemporáneo</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Errores eventos receptor (4100-4139) -->
+            <xs:enumeration value="4100">
+                <xs:annotation>
+                    <xs:documentation>Evento receptor fuera de plazo (>45 días)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="4108">
+                <xs:annotation>
+                    <xs:documentation>Evento duplicado</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+
+            <!-- Errores técnicos (9000-9999) -->
+            <xs:enumeration value="9000">
+                <xs:annotation>
+                    <xs:documentation>Error interno del servidor</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="9001">
+                <xs:annotation>
+                    <xs:documentation>Servicio no disponible</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Estado del resultado del evento -->
+    <xs:simpleType name="tipoEstadoResultadoEvento">
+        <xs:annotation>
+            <xs:documentation> Estado final del procesamiento del evento VALORES POSIBLES: -
+                Aprobado: Evento registrado exitosamente - Rechazado: Evento rechazado por
+                validaciones - Error: Error técnico durante procesamiento USO: - Aprobado: Códigos
+                0600, 0601 - Rechazado: Códigos 4000-4999 - Error: Códigos 9000-9999 LÓGICA DE
+                NEGOCIO: - Solo eventos "Aprobados" se registran en SIFEN - Eventos "Rechazados"
+                requieren corrección y reenvío - Eventos "Error" pueden reintentarse sin cambios </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Aprobado">
+                <xs:annotation>
+                    <xs:documentation>Evento registrado exitosamente</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Rechazado">
+                <xs:annotation>
+                    <xs:documentation>Evento rechazado por validaciones</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Error">
+                <xs:annotation>
+                    <xs:documentation>Error técnico durante procesamiento</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ID del evento en SIFEN -->
+    <xs:simpleType name="tipoIdEventoSIFEN">
+        <xs:annotation>
+            <xs:documentation> Identificador único del evento asignado por SIFEN CARACTERÍSTICAS: -
+                Asignado automáticamente por SIFEN - Único en todo el sistema - Usado para
+                referencia futura - Solo presente en eventos aprobados FORMATO: String numérico de
+                hasta 20 dígitos EJEMPLO: "1234567890123456789" USO: - Tracking interno en SIFEN -
+                Referencia en consultas posteriores - Correlación en logs y auditoría -
+                Identificación en reportes </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{1,20}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Número de protocolo/transacción -->
+    <xs:simpleType name="tipoNumeroProtocoloEvento">
+        <xs:annotation>
+            <xs:documentation> Número de protocolo de la transacción del evento PROPÓSITO: -
+                Identificación única de la transacción - Correlación entre request y response -
+                Tracking para soporte técnico - Referencia en logs SIFEN FORMATO: String numérico de
+                hasta 15 dígitos GENERACIÓN: Automática por SIFEN PRESENCIA: Solo en respuestas
+                exitosas EJEMPLO: "123456789012345" </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{1,15}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================================== -->
+    <!-- ESTRUCTURA PRINCIPAL DE LA RESPUESTA                                 -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento principal de la respuesta -->
+    <xs:element name="rRetEnviEventoDe">
+        <xs:annotation>
+            <xs:documentation> Elemento raíz de la respuesta del web service siRecepEvento
+                ESTRUCTURA JERÁRQUICA: rRetEnviEventoDe (root) ├── dFecProc (Fecha procesamiento)
+                └── gResProcEVe (Grupo resultado procesamiento) ├── dEstRes (Estado resultado) ├──
+                dProtAut (Protocolo autorización) ├── id (ID evento) └── gResProc (Grupo resultado)
+                ├── dCodRes (Código resultado) └── dMsgRes (Mensaje resultado) FLUJO DE
+                PROCESAMIENTO: 1. SIFEN recibe evento y asigna timestamp (dFecProc) 2. SIFEN valida
+                estructura y reglas de negocio 3. SIFEN procesa evento según tipo específico 4.
+                SIFEN genera resultado con código y mensaje 5. SIFEN asigna ID y protocolo si
+                exitoso 6. SIFEN envía respuesta estructurada CASOS DE USO: ✅ Cancelación exitosa de
+                factura ✅ Inutilización de rango numérico aprobada ✅ Confirmación de recepción
+                registrada ❌ Error de plazo en cancelación ❌ Rango inutilización excede límite ❌ CDC
+                no existe para evento receptor VALIDACIONES INCLUIDAS: - Timestamp de procesamiento
+                válido - Estado resultado coherente con código - ID evento presente solo si aprobado
+                - Mensaje descriptivo del resultado - Protocolo de transacción para tracking </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+
+                <!-- Fecha de procesamiento -->
+                <xs:element name="dFecProc" type="tipoFechaHora">
+                    <xs:annotation>
+                        <xs:documentation> Fecha y hora de procesamiento del evento por SIFEN
+                            CARACTERÍSTICAS: - Timestamp exacto del servidor SIFEN - Formato ISO
+                            8601: YYYY-MM-DDTHH:mm:ss - Timezone: Local Paraguay (GMT-3) -
+                            Precisión: Segundos PROPÓSITO: - Registro temporal oficial del
+                            procesamiento - Base para cálculos de tiempo - Auditoría y trazabilidad
+                            - Correlación de logs EJEMPLO: "2025-06-23T14:35:22" VALIDACIONES: -
+                            Debe ser timestamp válido - No puede ser futura - Coherente con tiempo
+                            de recepción - Usado para SLA y métricas </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+
+                <!-- Grupo resultado procesamiento evento -->
+                <xs:element name="gResProcEVe">
+                    <xs:annotation>
+                        <xs:documentation> Grupo que contiene toda la información del resultado del
+                            procesamiento COMPONENTES: - Estado del resultado
+                            (Aprobado/Rechazado/Error) - Protocolo de autorización (si exitoso) - ID
+                            del evento en SIFEN (si aprobado) - Código y mensaje específico del
+                            resultado LÓGICA DE CONTENIDO: - Siempre presente: dEstRes, gResProc -
+                            Solo si aprobado: dProtAut, id - Código determina mensaje
+                            automáticamente - Estado derivado del código de resultado CASOS TÍPICOS:
+                            1. Éxito: dEstRes="Aprobado", dProtAut presente, id presente 2. Error:
+                            dEstRes="Rechazado", sin dProtAut, sin id 3. Técnico: dEstRes="Error",
+                            sin dProtAut, sin id </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+
+                            <!-- Estado del resultado -->
+                            <xs:element name="dEstRes" type="tipoEstadoResultadoEvento">
+                                <xs:annotation>
+                                    <xs:documentation> Estado final del procesamiento del evento
+                                        VALORES Y SIGNIFICADO: - "Aprobado": Evento registrado
+                                        exitosamente en SIFEN - "Rechazado": Evento rechazado por
+                                        validaciones de negocio - "Error": Error técnico durante
+                                        procesamiento DETERMINACIÓN AUTOMÁTICA: - Aprobado: Códigos
+                                        0600, 0601 - Rechazado: Códigos 4000-4999 - Error: Códigos
+                                        9000-9999 ACCIONES SUGERIDAS: - Aprobado: Actualizar estado
+                                        local, registrar éxito - Rechazado: Revisar y corregir
+                                        evento, reenviar - Error: Reintentar sin cambios o contactar
+                                        soporte </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Número de protocolo/autorización (opcional) -->
+                            <xs:element name="dProtAut" type="tipoNumeroProtocoloEvento"
+                                minOccurs="0">
+                                <xs:annotation>
+                                    <xs:documentation> Número de protocolo de autorización de la
+                                        transacción PRESENCIA: Solo cuando dEstRes = "Aprobado"
+                                        CARACTERÍSTICAS: - Único por transacción en SIFEN - Generado
+                                        automáticamente - Usado para tracking y soporte - Referencia
+                                        en logs internos FORMATO: Numérico hasta 15 dígitos EJEMPLO:
+                                        "1234567890123" USO: - Correlación entre sistemas -
+                                        Referencia en consultas posteriores - Debugging de
+                                        transacciones - Soporte técnico especializado NOTA:
+                                        Diferente del ID del evento (id) </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- ID del evento (opcional) -->
+                            <xs:element name="id" type="tipoIdEventoSIFEN" minOccurs="0">
+                                <xs:annotation>
+                                    <xs:documentation> Identificador único del evento asignado por
+                                        SIFEN PRESENCIA: Solo cuando dEstRes = "Aprobado"
+                                        CARACTERÍSTICAS: - Único en todo el sistema SIFEN - Asignado
+                                        secuencialmente por SIFEN - Permanente para el evento -
+                                        Usado en consultas futuras FORMATO: Numérico hasta 20
+                                        dígitos EJEMPLO: "12345678901234567890" DIFERENCIAS: - id:
+                                        Identificador del evento registrado - dProtAut: Número de
+                                        transacción/protocolo - Id (atributo request): ID del
+                                        cliente USO FUTURO: - Consultas específicas del evento -
+                                        Reportes y estadísticas - Referencias en otros sistemas -
+                                        Trazabilidad histórica </xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+
+                            <!-- Grupo resultado específico -->
+                            <xs:element name="gResProc">
+                                <xs:annotation>
+                                    <xs:documentation> Grupo que contiene el código y mensaje
+                                        específico del resultado COMPONENTES OBLIGATORIOS: -
+                                        dCodRes: Código numérico específico del resultado - dMsgRes:
+                                        Mensaje descriptivo correspondiente al código RELACIÓN
+                                        CÓDIGO-MENSAJE: - Cada código tiene mensaje oficial
+                                        predefinido - Mensajes en español según Manual SIFEN -
+                                        Coherencia automática entre código y mensaje - Descripción
+                                        específica del error/éxito EJEMPLOS: - 0600: "Evento
+                                        registrado correctamente" - 4001: "CDC inválido" - 4009:
+                                        "Plazo de cancelación extemporáneo" - 9000: "Error interno
+                                        del servidor" </xs:documentation>
+                                </xs:annotation>
+                                <xs:complexType>
+                                    <xs:sequence>
+
+                                        <!-- Código de resultado -->
+                                        <xs:element name="dCodRes" type="tipoCodigoResultadoEvento">
+                                            <xs:annotation>
+                                                <xs:documentation> Código específico del resultado
+                                                    del procesamiento CATEGORIZACIÓN: - 0600-0699:
+                                                    Éxito y warnings - 4000-4019: Errores
+                                                    cancelación - 4050-4069: Errores inutilización -
+                                                    4100-4139: Errores eventos receptor - 9000-9999:
+                                                    Errores técnicos CÓDIGOS MÁS COMUNES: - 0600:
+                                                    Evento registrado correctamente - 4001: CDC
+                                                    inválido - 4009: Plazo FE extemporáneo (>48h) -
+                                                    4052: Rango inutilización excede máximo - 4100:
+                                                    Evento receptor fuera de plazo USO EN CÓDIGO:
+                                                    ```python if codigo == "0600": # Evento exitoso
+                                                    elif codigo.startswith("40"): # Error de
+                                                    validación elif codigo.startswith("90"): # Error
+                                                    técnico - reintentar ``` </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                        <!-- Mensaje de resultado -->
+                                        <xs:element name="dMsgRes" type="tipoTextoLargo">
+                                            <xs:annotation>
+                                                <xs:documentation> Mensaje descriptivo del resultado
+                                                    del procesamiento CARACTERÍSTICAS: - Texto
+                                                    descriptivo oficial SIFEN - Español, hasta 2000
+                                                    caracteres - Corresponde exactamente al código
+                                                    dCodRes - Describe el problema específico o
+                                                    éxito EJEMPLOS POR CÓDIGO: - 0600: "Evento
+                                                    registrado correctamente" - 4001: "CDC inválido
+                                                    o malformado" - 4002: "CDC no existe en SIFEN" -
+                                                    4009: "Plazo de cancelación extemporáneo para
+                                                    Factura Electrónica" - 4052: "Rango de
+                                                    inutilización excede el máximo permitido de 1000
+                                                    números" - 4100: "Evento del receptor fuera del
+                                                    plazo de 45 días" - 9000: "Error interno del
+                                                    servidor SIFEN" USO: - Mostrar al usuario final
+                                                    - Logging detallado - Debugging de integraciones
+                                                    - Reportes de errores NOTA: Mensaje puede
+                                                    incluir detalles específicos del caso (ej: "CDC
+                                                    01234... no existe") </xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ===================================================================== -->
+    <!-- ELEMENTOS AUXILIARES PARA TESTING Y VALIDACIÓN                      -->
+    <!-- ===================================================================== -->
+
+    <!-- Elemento para testing del schema de respuesta -->
+    <xs:element name="testResponseEvento">
+        <xs:annotation>
+            <xs:documentation> Elemento auxiliar para testing del schema de response de eventos
+                PROPÓSITO: - Validación de estructura antes de procesamiento - Testing de diferentes
+                tipos de respuesta - Verificación de coherencia código-mensaje-estado - Debugging de
+                respuestas SIFEN TESTS INCLUIDOS: - Respuestas exitosas (0600, 0601) - Errores de
+                cancelación (4000-4019) - Errores de inutilización (4050-4069) - Errores de eventos
+                receptor (4100-4139) - Errores técnicos (9000-9999) - Validación de campos
+                opcionales USO EN DESARROLLO: ```python # Validar respuesta SIFEN validator =
+                XMLValidator("resRecepEvento_v150.xsd") is_valid = validator.validate(response_xml)
+                if not is_valid: print("Error en respuesta SIFEN") ``` COMPATIBILIDAD: ✅ XSD 1.0
+                (estándar SET Paraguay) ✅ Parsers XML estándar ✅ Herramientas de validación
+                comerciales ✅ IDEs con soporte XML Schema </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Test de respuesta exitosa -->
+                <xs:element name="responseExitosa" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rRetEnviEventoDe" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Test de respuesta con error -->
+                <xs:element name="responseError" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="rRetEnviEventoDe" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 
+     ===================================================================== 
+     EJEMPLOS DE RESPUESTAS TÍPICAS
+     =====================================================================
+     
+     EJEMPLO 1: Respuesta Exitosa - Cancelación Aprobada
+     ```xml
+     <rRetEnviEventoDe>
+         <dFecProc>2025-06-23T14:35:22</dFecProc>
+         <gResProcEVe>
+             <dEstRes>Aprobado</dEstRes>
+             <dProtAut>1234567890123</dProtAut>
+             <id>12345678901234567890</id>
+             <gResProc>
+                 <dCodRes>0600</dCodRes>
+                 <dMsgRes>Evento registrado correctamente</dMsgRes>
+             </gResProc>
+         </gResProcEVe>
+     </rRetEnviEventoDe>
+     ```
+     
+     EJEMPLO 2: Error - CDC Inválido
+     ```xml
+     <rRetEnviEventoDe>
+         <dFecProc>2025-06-23T14:35:25</dFecProc>
+         <gResProcEVe>
+             <dEstRes>Rechazado</dEstRes>
+             <gResProc>
+                 <dCodRes>4001</dCodRes>
+                 <dMsgRes>CDC inválido o malformado</dMsgRes>
+             </gResProc>
+         </gResProcEVe>
+     </rRetEnviEventoDe>
+     ```
+     
+     EJEMPLO 3: Error - Plazo Extemporáneo Cancelación FE
+     ```xml
+     <rRetEnviEventoDe>
+         <dFecProc>2025-06-23T14:35:28</dFecProc>
+         <gResProcEVe>
+             <dEstRes>Rechazado</dEstRes>
+             <gResProc>
+                 <dCodRes>4009</dCodRes>
+                 <dMsgRes>Plazo de cancelación extemporáneo para Factura Electrónica (máximo 48 horas)</dMsgRes>
+             </gResProc>
+         </gResProcEVe>
+     </rRetEnviEventoDe>
+     ```
+     
+     EJEMPLO 4: Error - Rango Inutilización Excedido
+     ```xml
+     <rRetEnviEventoDe>
+         <dFecProc>2025-06-23T14:35:30</dFecProc>
+         <gResProcEVe>
+             <dEstRes>Rechazado</dEstRes>
+             <gResProc>
+                 <dCodRes>4052</dCodRes>
+                 <dMsgRes>Rango de inutilización excede el máximo permitido de 1000 números</dMsgRes>
+             </gResProc>
+         </gResProcEVe>
+     </rRetEnviEventoDe>
+     ```
+     
+     EJEMPLO 5: Error Técnico - Servidor SIFEN
+     ```xml
+     <rRetEnviEventoDe>
+         <dFecProc>2025-06-23T14:35:32</dFecProc>
+         <gResProcEVe>
+             <dEstRes>Error</dEstRes>
+             <gResProc>
+                 <dCodRes>9000</dCodRes>
+                 <dMsgRes>Error interno del servidor SIFEN. Intente nuevamente en unos minutos</dMsgRes>
+             </gResProc>
+         </gResProcEVe>
+     </rRetEnviEventoDe>
+     ```
+     
+     EJEMPLO 6: Aprobado con Observaciones
+     ```xml
+     <rRetEnviEventoDe>
+         <dFecProc>2025-06-23T14:35:35</dFecProc>
+         <gResProcEVe>
+             <dEstRes>Aprobado</dEstRes>
+             <dProtAut>1234567890124</dProtAut>
+             <id>12345678901234567891</id>
+             <gResProc>
+                 <dCodRes>0601</dCodRes>
+                 <dMsgRes>Evento registrado correctamente con observaciones menores</dMsgRes>
+             </gResProc>
+         </gResProcEVe>
+     </rRetEnviEventoDe>
+     ```
+     
+     ===================================================================== 
+     MANEJO DE RESPUESTAS EN CÓDIGO
+     =====================================================================
+     
+     CLASE PYTHON PARA PROCESAR RESPUESTAS:
+     ```python
+     from dataclasses import dataclass
+     from typing import Optional
+     from datetime import datetime
+     
+     @dataclass
+     class ResultadoEventoSIFEN:
+         exitoso: bool
+         codigo: str
+         mensaje: str
+         fecha_procesamiento: datetime
+         estado: str  # Aprobado/Rechazado/Error
+         protocolo_autorizacion: Optional[str] = None
+         id_evento_sifen: Optional[str] = None
+         
+         @property
+         def es_aprobado(self) -> bool:
+             return self.codigo in ["0600", "0601"] and self.estado == "Aprobado"
+         
+         @property
+         def es_error_tecnico(self) -> bool:
+             return self.codigo.startswith("9")
+         
+         @property
+         def es_error_validacion(self) -> bool:
+             return self.codigo.startswith("4")
+         
+         @property
+         def puede_reintentar(self) -> bool:
+             return self.es_error_tecnico
+         
+         @property
+         def requiere_correccion(self) -> bool:
+             return self.es_error_validacion
+     
+     def procesar_respuesta_evento(response_xml: str) -> ResultadoEventoSIFEN:
+         """Procesa respuesta XML de SIFEN y retorna resultado estructurado"""
+         import xml.etree.ElementTree as ET
+         
+         root = ET.fromstring(response_xml)
+         ns = {"ns": "http://ekuatia.set.gov.py/sifen/xsd"}
+         
+         # Extraer datos principales
+         fecha_proc = root.find("ns:dFecProc", ns).text
+         grupo_resultado = root.find("ns:gResProcEVe", ns)
+         
+         estado = grupo_resultado.find("ns:dEstRes", ns).text
+         protocolo_elem = grupo_resultado.find("ns:dProtAut", ns)
+         id_evento_elem = grupo_resultado.find("ns:id", ns)
+         
+         grupo_res_proc = grupo_resultado.find("ns:gResProc", ns)
+         codigo = grupo_res_proc.find("ns:dCodRes", ns).text
+         mensaje = grupo_res_proc.find("ns:dMsgRes", ns).text
+         
+         return ResultadoEventoSIFEN(
+             exitoso=estado == "Aprobado",
+             codigo=codigo,
+             mensaje=mensaje,
+             fecha_procesamiento=datetime.fromisoformat(fecha_proc),
+             estado=estado,
+             protocolo_autorizacion=protocolo_elem.text if protocolo_elem is not None else None,
+             id_evento_sifen=id_evento_elem.text if id_evento_elem is not None else None
+         )
+     
+     # Ejemplo de uso
+     def manejar_respuesta_cancelacion(response_xml: str):
+         resultado = procesar_respuesta_evento(response_xml)
+         
+         if resultado.es_aprobado:
+             print(f"✅ Cancelación aprobada!")
+             print(f"   ID Evento SIFEN: {resultado.id_evento_sifen}")
+             print(f"   Protocolo: {resultado.protocolo_autorizacion}")
+             # Actualizar estado local del documento
+             
+         elif resultado.es_error_validacion:
+             print(f"❌ Error de validación: {resultado.mensaje}")
+             print(f"   Código: {resultado.codigo}")
+             # Revisar y corregir evento antes de reenviar
+             
+         elif resultado.es_error_tecnico:
+             print(f"⚠️ Error técnico: {resultado.mensaje}")
+             print(f"   Código: {resultado.codigo}")
+             # Reintentar sin cambios después de un tiempo
+             
+         return resultado
+     ```
+     
+     ===================================================================== 
+     CÓDIGOS DE ERROR DETALLADOS Y ACCIONES RECOMENDADAS
+     =====================================================================
+     
+     CANCELACIÓN (4000-4019):
+     4000 - Versión no corresponde → Verificar dVerFor="150"
+     4001 - CDC inválido → Validar formato CDC (44 dígitos)
+     4002 - CDC no existe → Verificar que CDC esté aprobado en SIFEN
+     4003 - CDC ya cancelado → El evento ya existe, no reenviar
+     4004 - CDC confirmado por receptor → No se puede cancelar
+     4009 - Plazo FE extemporáneo → Máximo 48h desde aprobación
+     4010 - Plazo otros extemporáneo → Máximo 168h desde aprobación
+     
+     INUTILIZACIÓN (4050-4069):
+     4052 - Rango excede máximo → Máximo 1000 números por evento
+     4053 - Números ya utilizados → Verificar disponibilidad números
+     4059 - Plazo extemporáneo → Máximo 15 días del mes siguiente
+     
+     EVENTOS RECEPTOR (4100-4139):
+     4100 - Fuera de plazo → Máximo 45 días desde emisión
+     4108 - Evento duplicado → El evento ya fue registrado
+     
+     TÉCNICOS (9000-9999):
+     9000 - Error servidor → Reintentar en 5-10 minutos
+     9001 - Servicio no disponible → Verificar estado SIFEN
+     
+     ===================================================================== 
+     INTEGRACIÓN CON WEB SERVICE COMPLETO
+     =====================================================================
+     
+     Este schema se integra con:
+     - siRecepEvento_v150.xsd (Request)
+     - WS_SiRecepEvento_v150.xsd (Web Service completo)
+     - Evento_v150.xsd (Estructura de eventos)
+     
+     Flujo completo:
+     1. Cliente: Crear evento (Evento_v150.xsd)
+     2. Cliente: Enviar evento (siRecepEvento_v150.xsd)
+     3. SIFEN: Procesar y responder (resRecepEvento_v150.xsd) ← ESTE ARCHIVO
+     4. Cliente: Procesar respuesta y actualizar estado
+     
+     =====================================================================
+    -->
+
+</xs:schema>
