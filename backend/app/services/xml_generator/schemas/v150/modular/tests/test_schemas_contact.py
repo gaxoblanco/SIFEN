@@ -16,7 +16,7 @@ import os
 import logging
 
 # Imports directos sin magia de __init__
-from app.services.xml_generator.schemas.v150.tests.utils.schema_validator import SchemaValidator
+from app.services.xml_generator.schemas.v150.modular.tests.utils.schema_validator import SchemaValidator
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)

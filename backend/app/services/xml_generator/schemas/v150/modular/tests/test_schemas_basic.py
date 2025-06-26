@@ -31,11 +31,11 @@ from lxml import etree
 import os
 
 # Reutilizar utils ya implementados
-from app.services.xml_generator.schemas.v150.tests.utils.schema_validator import (
+from app.services.xml_generator.schemas.v150.modular.tests.utils.schema_validator import (
     SchemaValidator,
     ValidationResult
 )
-from app.services.xml_generator.schemas.v150.tests.utils.xml_generator import (
+from app.services.xml_generator.schemas.v150.modular.tests.utils.xml_generator import (
     SifenValidator,
     SampleData,
     quick_validate_ruc,

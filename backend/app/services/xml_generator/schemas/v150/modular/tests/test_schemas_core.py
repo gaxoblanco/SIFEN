@@ -29,8 +29,8 @@ from typing import Dict, List, Any
 from lxml import etree
 
 # Utils solo donde realmente agregan valor
-from app.services.xml_generator.schemas.v150.tests.utils.test_helpers.data_factory import SifenDataFactory
-from app.services.xml_generator.schemas.v150.tests.utils.test_helpers.constants import SIFEN_NAMESPACE_URI
+from app.services.xml_generator.schemas.v150.modular.tests.utils.test_helpers.data_factory import SifenDataFactory
+from app.services.xml_generator.schemas.v150.modular.tests.utils.test_helpers.constants import SIFEN_NAMESPACE_URI
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
