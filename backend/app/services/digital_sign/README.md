@@ -31,8 +31,8 @@ backend/app/services/digital_sign/
     ├── test_xml_signer.py       # ✅ Tests firmado XML (95%)
     ├── test_multiple_certificates.py # ✅ Tests múltiples certificados (90%)
     ├── test_signature_validation.py # ✅ Tests validación firmas (85%)
-    ├── test_csc_manager.py      # ❌ Tests CSC Manager (PENDIENTE)
-    ├── test_certificate_expiration.py # ❌ Tests vencimiento (PENDIENTE)
+    ├── test_csc_manager.py      # ✅ Tests CSC Manager (PENDIENTE)
+    ├── test_certificate_expiration.py # ✅ Tests vencimiento (PENDIENTE)
     ├── test_performance_signing.py # ❌ Tests performance (PENDIENTE)
     ├── test_paths.txt           # ✅ Documentación rutas de prueba
     ├── run_tests.py             # ✅ Runner de tests específico
