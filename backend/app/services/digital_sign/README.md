@@ -13,7 +13,7 @@ backend/app/services/digital_sign/
 ├── certificate_manager.py        # ✅ Gestión certificados PFX/P12 PSC
 ├── xml_signer.py                 # ✅ Firmado XML con XMLDSig W3C
 ├── signer.py                     # ✅ API principal DigitalSigner
-├── csc_manager.py                # ❌ Gestión CSC SIFEN (PENDIENTE)
+├── csc_manager.py                # ✅ Gestión CSC SIFEN (PENDIENTE)
 ├── exceptions.py                 # ✅ Excepciones específicas del módulo
 ├── run.py                        # ✅ CLI para firma/verificación manual
 ├── run_all.py                    # ✅ Ejecutor completo del módulo
