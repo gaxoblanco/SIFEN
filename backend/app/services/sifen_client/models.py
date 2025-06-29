@@ -299,7 +299,7 @@ class SifenParsingError(SifenError):
         self,
         message: str,
         xml_content: Optional[str] = None,
-        parsing_stage: Optional[str] = None,
+        parsing_stage: str = "unknown",
         **kwargs
     ):
         super().__init__(message, **kwargs)

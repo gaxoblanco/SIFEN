@@ -495,6 +495,8 @@ class SifenParsingError(SifenClientError):
         kwargs['details'] = details
 
         super().__init__(message, **kwargs)
+        self.xml_content = xml_content or ""
+        self.parsing_stage = parsing_stage
 
     @staticmethod
     def _get_safe_xml_preview(xml_content: Optional[str], max_length: int = 200) -> Optional[str]:
