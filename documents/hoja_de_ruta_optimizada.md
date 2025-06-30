@@ -335,7 +335,7 @@ python
     TEST: Generar PDF KuDE válido
 
 🏗️ FASE 3: APIs y Funcionalidades (Semanas 9-11)
-
+=================================================
 Objetivo: APIs REST funcionales con todos los módulos integrados
 📍 Semana 9: APIs de Negocio
 🎯 Paso 9.1: API Facturas

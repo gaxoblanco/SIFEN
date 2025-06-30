@@ -4,6 +4,11 @@
 
 Desarrollar un **software SaaS de facturación electrónica** para el cumplimiento del Sistema Integrado de Facturación Electrónica Nacional (SIFEN) de Paraguay, enfocado en **PyMEs con necesidades de facturación simple**.
 
+## 📌 Competencia
+https://www.getdpy.com/
+
+
+
 ## 📋 Tipos de Documentos Electrónicos Soportados
 
 ### ✅ Implementación Actual
