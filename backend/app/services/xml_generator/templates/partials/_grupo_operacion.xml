@@ -1,0 +1,41 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE OPERACIÓN (gOpeDE) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para datos de operación (A002-A099)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gOpeDE - Información básica del documento electrónico
+
+VARIABLES REQUERIDAS:
+- tipo_documento: "1", "4", "5", "6", "7"
+- descripcion_tipo_documento: Descripción según tipo
+- fecha_emision: ISO datetime "2025-06-30T14:30:00"
+
+VARIABLES OPCIONALES:
+- certificado_serie: Número de serie del certificado
+- codigo_control_emision: Código de control específico
+
+MAPEO POR TIPO DE DOCUMENTO:
+- "1": "Factura electrónica"
+- "4": "Autofactura electrónica"
+- "5": "Nota de crédito electrónica"
+- "6": "Nota de débito electrónica"
+- "7": "Nota de remisión electrónica"
+
+VALIDACIONES:
+- tipo_documento debe estar en rango 1-7
+- fecha_emision debe ser formato ISO válido
+- descripcion_tipo_documento debe corresponder con tipo
+#}
+
+{# ================================================================= #}
+{# GRUPO: gOpeDE - Datos de la operación (A002-A099) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gOpeDE> {# A002 - Tipo de documento electrónico (OBLIGATORIO) #} <iTipDE>{{ tipo_documento }}</iTipDE>
+    {# A003 - Descripción del tipo de documento (OBLIGATORIO) #} <dDesTipDE>{{
+    descripcion_tipo_documento }}</dDesTipDE> {# A004 - Fecha y hora de emisión (OBLIGATORIO) #} <dFecEmiDE>{{
+    fecha_emision }}</dFecEmiDE> {# A005 - Número de serie del certificado (OPCIONAL) #} {% if
+    certificado_serie %} <dNumSer>{{ certificado_serie }}</dNumSer> {% endif %} {# A006 - Código de
+    control de la emisión (OPCIONAL) #} {% if codigo_control_emision %} <dEmiTer>{{
+    codigo_control_emision }}</dEmiTer> {% endif %} </gOpeDE>

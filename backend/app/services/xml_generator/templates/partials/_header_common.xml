@@ -1,0 +1,52 @@
+{# ===================================================================== #}
+{# PARTIAL: HEADER COMÚN (Declaración XML + Namespaces) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial para header común de todos los documentos XML SIFEN
+USADO EN: Todos los templates como include al inicio
+SCOPE: Declaración XML, namespaces y estructura raíz
+
+VARIABLES REQUERIDAS:
+- cdc: CDC de 44 caracteres para el atributo Id
+
+VARIABLES OPCIONALES:
+- version: Versión del formato (default: "150")
+- schema_location: Ubicación del XSD (default: estándar SIFEN)
+
+NAMESPACES SIFEN v150:
+- Principal: http://ekuatia.set.gov.py/sifen/xsd
+- XSI: http://www.w3.org/2001/XMLSchema-instance
+- Schema: DE_v150.xsd
+
+ESTRUCTURA GENERADA:
+- Declaración XML UTF-8
+- Elemento raíz rDE con namespaces
+- Atributos version e Id
+- dVerFor con versión del formato
+- Apertura elemento DE
+
+VALIDACIONES:
+- CDC debe tener exactamente 44 caracteres
+- Versión debe ser formato válido
+- Namespaces deben ser oficiales SIFEN
+
+USO TÍPICO:
+{% include '_header_common.xml' %}
+<!-- Contenido específico del documento -->
+{% include '_footer_common.xml' %}
+#}
+
+<?xml version="1.0" encoding="UTF-8"?>
+<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://ekuatia.set.gov.py/sifen/xsd {{
+                        schema_location |
+                        default('DE_v150.xsd') }}"
+    version="{{ version | default('1.5.0') }}"
+    Id="{{ cdc }}">
+
+{# Versión del formato (OBLIGATORIO) #}
+<dVerFor>{{ version | default('150') }}</dVerFor>
+
+{# Apertura del elemento documento electrónico #}
+<DE Id="{{ cdc }}">

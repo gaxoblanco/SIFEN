@@ -1,0 +1,83 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE RECEPTOR (gDatRec) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para datos del receptor (E001-E199)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gDatRec - Información completa del receptor
+
+VARIABLES REQUERIDAS:
+- receptor.razon_social: Nombre o razón social del receptor
+
+VARIABLES OPCIONALES:
+- receptor.naturaleza: Naturaleza del receptor (default: 1)
+- receptor.descripcion_naturaleza: Descripción naturaleza (default: "No contribuyente")
+- receptor.tipo_operacion: Tipo de operación específica
+- receptor.descripcion_tipo_operacion: Descripción tipo operación
+- receptor.codigo_pais: Código del país (para extranjeros)
+- receptor.descripcion_pais: Descripción del país
+- receptor.tipo_documento: Tipo documento identidad
+- receptor.descripcion_tipo_documento: Descripción tipo documento
+- receptor.numero_documento: Número de documento
+- receptor.nombre_fantasia: Nombre comercial
+- receptor.direccion: Dirección principal
+- receptor.numero_casa: Número específico de casa
+- receptor.codigo_departamento: Código departamento
+- receptor.descripcion_departamento: Descripción departamento
+- receptor.codigo_distrito: Código distrito
+- receptor.descripcion_distrito: Descripción distrito
+- receptor.codigo_ciudad: Código ciudad
+- receptor.descripcion_ciudad: Descripción ciudad
+- receptor.telefono: Teléfono de contacto
+- receptor.email: Correo electrónico
+
+VALIDACIONES:
+- Campos obligatorios según montos y tipo operación
+- RUC válido para contribuyentes
+- Documentos válidos según naturaleza
+- Códigos geográficos existentes
+
+NOTA CRÍTICA AFE:
+En Autofactura Electrónica, receptor = emisor (mismo RUC)
+
+CONDICIONALIDAD:
+- Para montos > cierto umbral, datos obligatorios
+- Para extranjeros, país obligatorio
+- Para contribuyentes, RUC obligatorio
+#}
+
+{# ================================================================= #}
+{# GRUPO: gDatRec - Datos del receptor (E001-E199) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gDatRec> {# E002 - Naturaleza del receptor (OBLIGATORIO) #} <iNatRec>{{ receptor.naturaleza |
+    default(1) }}</iNatRec> {# E003 - Descripción de la naturaleza del receptor (OBLIGATORIO) #} <dDesNatRec>{{
+    receptor.descripcion_naturaleza | default("No contribuyente") }}</dDesNatRec> {# E004 - Tipo de
+    operación (OPCIONAL) #} {% if receptor.tipo_operacion %} <iTiOpe>{{ receptor.tipo_operacion }}</iTiOpe>
+    {% endif %} {# E005 - Descripción del tipo de operación (OPCIONAL) #} {% if
+    receptor.descripcion_tipo_operacion %} <dDesTiOpe>{{ receptor.descripcion_tipo_operacion }}</dDesTiOpe>
+    {% endif %} {# E008 - Código del país del receptor (OPCIONAL) #} {% if receptor.codigo_pais %} <cPaisRec>{{
+    receptor.codigo_pais }}</cPaisRec> {% endif %} {# E009 - Descripción del país del receptor
+    (OPCIONAL) #} {% if receptor.descripcion_pais %} <dDesPaisRe>{{ receptor.descripcion_pais }}</dDesPaisRe>
+    {% endif %} {# E010 - Tipo de documento de identidad del receptor (CONDICIONAL) #} {% if
+    receptor.tipo_documento %} <iTiContRec>{{ receptor.tipo_documento }}</iTiContRec> {% endif %} {#
+    E011 - Descripción del tipo de documento (CONDICIONAL) #} {% if
+    receptor.descripcion_tipo_documento %} <dDesTiConRec>{{ receptor.descripcion_tipo_documento }}</dDesTiConRec>
+    {% endif %} {# E012 - Número de documento del receptor (CONDICIONAL) #} {% if
+    receptor.numero_documento %} <dNumIDRec>{{ receptor.numero_documento }}</dNumIDRec> {% endif %}
+    {# E013 - Nombre o razón social del receptor (OBLIGATORIO) #} <dNomRec>{{ receptor.razon_social
+    }}</dNomRec> {# E014 - Nombre de fantasía del receptor (OPCIONAL) #} {% if
+    receptor.nombre_fantasia %} <dNomFanRec>{{ receptor.nombre_fantasia }}</dNomFanRec> {% endif %}
+    {# E015 - Dirección del receptor (OPCIONAL) #} {% if receptor.direccion %} <dDirRec>{{
+    receptor.direccion }}</dDirRec> {% endif %} {# E016 - Número de casa del receptor (OPCIONAL) #}
+    {% if receptor.numero_casa %} <dNumCasRec>{{ receptor.numero_casa }}</dNumCasRec> {% endif %} {#
+    E017-E026: Campos de ubicación geográfica (OPCIONALES) #} {% if receptor.codigo_departamento %} <cDepRec>{{
+    receptor.codigo_departamento }}</cDepRec> {% endif %} {% if receptor.descripcion_departamento %} <dDesDepRec>{{
+    receptor.descripcion_departamento }}</dDesDepRec> {% endif %} {% if receptor.codigo_distrito %} <cDisRec>{{
+    receptor.codigo_distrito }}</cDisRec> {% endif %} {% if receptor.descripcion_distrito %} <dDesDisRec>{{
+    receptor.descripcion_distrito }}</dDesDisRec> {% endif %} {% if receptor.codigo_ciudad %} <cCiuRec>{{
+    receptor.codigo_ciudad }}</cCiuRec> {% endif %} {% if receptor.descripcion_ciudad %} <dDesCiuRec>{{
+    receptor.descripcion_ciudad }}</dDesCiuRec> {% endif %} {# E027 - Teléfono del receptor
+    (OPCIONAL) #} {% if receptor.telefono %} <dTelRec>{{ receptor.telefono }}</dTelRec> {% endif %}
+    {# E028 - Correo electrónico del receptor (OPCIONAL) #} {% if receptor.email %} <dEmailRec>{{
+    receptor.email }}</dEmailRec> {% endif %} </gDatRec>

@@ -1,0 +1,71 @@
+{# ===================================================================== #}
+{# PARTIAL: DOCUMENTO ASOCIADO (gDocAso) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial específico para referencias a documentos (NCE/NDE)
+USADO EN: nota_credito_electronica.xml, nota_debito_electronica.xml
+SCOPE: gDocAso - Referencia al documento original
+
+CASOS DE USO:
+- NCE (Nota Crédito): Referencia factura original a creditar
+- NDE (Nota Débito): Referencia factura original a debitar
+- Correcciones: Referencia documento a corregir
+
+VARIABLES REQUERIDAS:
+- documento_asociado.tipo_documento_ref: Tipo documento referenciado
+- documento_asociado.descripcion_tipo_ref: Descripción tipo documento
+- documento_asociado.numero_documento_ref: Número documento referenciado
+- documento_asociado.fecha_documento_ref: Fecha documento referenciado
+- documento_asociado.cdc_ref: CDC del documento referenciado
+
+VARIABLES OPCIONALES:
+- documento_asociado.numero_timbrado_ref: Timbrado documento original
+- documento_asociado.establecimiento_ref: Establecimiento documento original
+- documento_asociado.punto_expedicion_ref: Punto expedición documento original
+- documento_asociado.serie_ref: Serie del documento original
+- documento_asociado.numero_completo_ref: Número completo (est-pto-num)
+
+TIPOS DOCUMENTO VÁLIDOS:
+- "1": Factura Electrónica
+- "4": Autofactura Electrónica
+- "5": Nota de Crédito Electrónica (para NDE que referencia NCE)
+- "6": Nota de Débito Electrónica (para NCE que referencia NDE)
+- "7": Nota de Remisión Electrónica
+
+VALIDACIONES:
+- CDC debe tener 44 caracteres
+- Tipo documento debe ser válido
+- Fecha debe ser anterior a fecha emisión actual
+- Timbrado debe existir y ser válido
+
+REGLAS DE NEGOCIO:
+- NCE solo puede referenciar FE, AFE o NDE
+- NDE solo puede referenciar FE, AFE o NCE
+- No se puede referenciar el mismo documento
+- El documento referenciado debe existir y estar autorizado
+#}
+
+{# ================================================================= #}
+{# GRUPO: gDocAso - Documento asociado (SOLO NCE/NDE) #}
+{# ESPECÍFICO: Notas de crédito y débito únicamente #}
+{# ================================================================= #}
+{% if documento_asociado %}
+<gDocAso> {# Tipo de documento referenciado (OBLIGATORIO) #} <iTipDocAso>{{
+    documento_asociado.tipo_documento_ref }}</iTipDocAso> {# Descripción del tipo de documento
+    (OBLIGATORIO) #} <dDesTipDocAso>{{ documento_asociado.descripcion_tipo_ref }}</dDesTipDocAso> {#
+    CDC del documento referenciado (OBLIGATORIO) #} <dCDCREf>{{ documento_asociado.cdc_ref }}</dCDCREf>
+    {# Número de timbrado del documento referenciado (OPCIONAL) #} {% if
+    documento_asociado.numero_timbrado_ref %} <dNTimbre>{{ documento_asociado.numero_timbrado_ref }}</dNTimbre>
+    {% endif %} {# Establecimiento del documento referenciado (OPCIONAL) #} {% if
+    documento_asociado.establecimiento_ref %} <dEstDocAso>{{ documento_asociado.establecimiento_ref
+    }}</dEstDocAso> {% endif %} {# Punto de expedición del documento referenciado (OPCIONAL) #} {%
+    if documento_asociado.punto_expedicion_ref %} <dPExpDocAso>{{
+    documento_asociado.punto_expedicion_ref }}</dPExpDocAso> {% endif %} {# Número del documento
+    referenciado (OBLIGATORIO) #} <dNumDocAso>{{ documento_asociado.numero_documento_ref }}</dNumDocAso>
+    {# Fecha del documento referenciado (OBLIGATORIO) #} <dFecEmiDocAso>{{
+    documento_asociado.fecha_documento_ref }}</dFecEmiDocAso> {# Número completo del documento
+    (Establecimiento-PuntoExp-Numero) (OPCIONAL) #} {% if documento_asociado.numero_completo_ref %} <dNumComRet>{{
+    documento_asociado.numero_completo_ref }}</dNumComRet> {% endif %} {# Serie del documento
+    referenciado (OPCIONAL) #} {% if documento_asociado.serie_ref %} <dSerieNum>{{
+    documento_asociado.serie_ref }}</dSerieNum> {% endif %} </gDocAso>
+{% endif %}

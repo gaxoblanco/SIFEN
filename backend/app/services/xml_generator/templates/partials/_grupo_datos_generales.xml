@@ -1,0 +1,86 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE DATOS GENERALES (gDatGralOpe) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para datos generales operación (C001-C099)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gDatGralOpe - Información general de la operación
+
+VARIABLES REQUERIDAS:
+- fecha_emision: Fecha y hora emisión ISO "2025-06-30T14:30:00"
+
+VARIABLES OPCIONALES:
+- tipo_emision: Tipo de emisión (default: 1)
+- descripcion_tipo_emision: Descripción tipo emisión (default: "Normal")
+- codigo_seguridad: Código de seguridad específico
+- informacion_adicional: Info adicional del emisor
+- informacion_fisco: Info adicional para el fisco
+
+TIPOS DE EMISIÓN:
+- 1: Normal (por defecto)
+- 2: Contingencia
+- 3: Lote
+- 4: Otros casos especiales
+
+VALIDACIONES:
+- Fecha emisión debe ser formato ISO válido
+- Tipo emisión debe estar en rango válido
+- Códigos deben cumplir formatos específicos
+#}
+
+{# ================================================================= #}
+{# GRUPO: gDatGralOpe - Datos generales de la operación (C001-C099) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gDatGralOpe> {# C002 - Fecha y hora de emisión del documento (OBLIGATORIO) #} <dFeEmiDE>{{
+    fecha_emision }}</dFeEmiDE> {# C003 - Tipo de emisión (OPCIONAL) #} <iTipEmi>{{ tipo_emision |
+    default(1) }}</iTipEmi> {# C004 - Descripción del tipo de emisión (OPCIONAL) #} <dDesTipEmi>{{
+    descripcion_tipo_emision | default("Normal") }}</dDesTipEmi> {# C005 - Código de seguridad
+    (OPCIONAL) #} {% if codigo_seguridad %} <dCodSeg>{{ codigo_seguridad }}</dCodSeg> {% endif %} {#
+    C010 - Información adicional de interés del emisor (OPCIONAL) #} {% if informacion_adicional %} <dInfoEmi>{{
+    informacion_adicional }}</dInfoEmi> {% endif %} {# C011 - Información adicional de interés del
+    fisco (OPCIONAL) #} {% if informacion_fisco %} <dInfoFisc>{{ informacion_fisco }}</dInfoFisc> {%
+    endif %} </gDatGralOpe>{# =====================================================================
+#}
+{# PARTIAL: GRUPO DE DATOS GENERALES (gDatGralOpe) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para datos generales operación (C001-C099)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gDatGralOpe - Información general de la operación
+
+VARIABLES REQUERIDAS:
+- fecha_emision: Fecha y hora emisión ISO "2025-06-30T14:30:00"
+
+VARIABLES OPCIONALES:
+- tipo_emision: Tipo de emisión (default: 1)
+- descripcion_tipo_emision: Descripción tipo emisión (default: "Normal")
+- codigo_seguridad: Código de seguridad específico
+- informacion_adicional: Info adicional del emisor
+- informacion_fisco: Info adicional para el fisco
+
+TIPOS DE EMISIÓN:
+- 1: Normal (por defecto)
+- 2: Contingencia
+- 3: Lote
+- 4: Otros casos especiales
+
+VALIDACIONES:
+- Fecha emisión debe ser formato ISO válido
+- Tipo emisión debe estar en rango válido
+- Códigos deben cumplir formatos específicos
+#}
+
+{# ================================================================= #}
+{# GRUPO: gDatGralOpe - Datos generales de la operación (C001-C099) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gDatGralOpe> {# C002 - Fecha y hora de emisión del documento (OBLIGATORIO) #} <dFeEmiDE>{{
+    fecha_emision }}</dFeEmiDE> {# C003 - Tipo de emisión (OPCIONAL) #} <iTipEmi>{{ tipo_emision |
+    default(1) }}</iTipEmi> {# C004 - Descripción del tipo de emisión (OPCIONAL) #} <dDesTipEmi>{{
+    descripcion_tipo_emision | default("Normal") }}</dDesTipEmi> {# C005 - Código de seguridad
+    (OPCIONAL) #} {% if codigo_seguridad %} <dCodSeg>{{ codigo_seguridad }}</dCodSeg> {% endif %} {#
+    C010 - Información adicional de interés del emisor (OPCIONAL) #} {% if informacion_adicional %} <dInfoEmi>{{
+    informacion_adicional }}</dInfoEmi> {% endif %} {# C011 - Información adicional de interés del
+    fisco (OPCIONAL) #} {% if informacion_fisco %} <dInfoFisc>{{ informacion_fisco }}</dInfoFisc> {%
+    endif %} </gDatGralOpe>

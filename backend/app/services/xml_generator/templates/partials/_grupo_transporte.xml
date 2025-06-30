@@ -1,0 +1,113 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE TRANSPORTE (gCamTrans) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial específico para datos de transporte (NRE)
+USADO EN: nota_remision_electronica.xml únicamente
+SCOPE: gCamTrans - Información completa de transporte
+
+VARIABLES REQUERIDAS:
+- transporte.tipo_responsable: Responsable del transporte
+- transporte.modalidad_transporte: Modalidad (propio/tercerizado)
+- transporte.tipo_transporte: Tipo (terrestre/aéreo/acuático)
+- transporte.fecha_inicio_traslado: Fecha inicio del traslado
+- transporte.direccion_salida: Dirección de salida
+- transporte.direccion_llegada: Dirección de llegada
+
+VARIABLES OPCIONALES:
+- transporte.fecha_fin_traslado: Fecha fin estimada
+- transporte.observaciones_transporte: Observaciones del transporte
+- transporte.distancia_km: Distancia en kilómetros
+- transporte.numero_manifiesto: Número de manifiesto
+- transporte.numero_contenedor: Número de contenedor
+
+ARRAYS OPCIONALES:
+- vehiculos: Lista de vehículos utilizados
+- conductores: Lista de conductores
+
+ESTRUCTURA VEHÍCULOS:
+- vehiculo.tipo_vehiculo: Tipo de vehículo
+- vehiculo.marca: Marca del vehículo
+- vehiculo.numero_chapa: Número de chapa/placa
+- vehiculo.numero_senacsa: Número SENACSA (para transporte de alimentos)
+- vehiculo.capacidad_carga: Capacidad de carga
+- vehiculo.observaciones: Observaciones del vehículo
+
+ESTRUCTURA CONDUCTORES:
+- conductor.tipo_documento: Tipo documento conductor
+- conductor.numero_documento: Número documento
+- conductor.nombre_conductor: Nombre completo
+- conductor.numero_licencia: Número de licencia
+- conductor.telefono: Teléfono de contacto
+
+TIPOS RESPONSABLE:
+- 1: Emisor (el emisor se responsabiliza)
+- 2: Receptor (el receptor organiza)
+- 3: Tercero (empresa de transporte)
+
+MODALIDADES TRANSPORTE:
+- 1: Transporte propio
+- 2: Transporte tercerizado
+
+TIPOS TRANSPORTE:
+- 1: Terrestre
+- 2: Aéreo
+- 3: Acuático
+- 4: Multimodal
+
+VALIDACIONES:
+- Fechas coherentes (inicio
+<= fin)
+   - Direcciones válidas
+   - Vehículos apropiados para tipo transporte
+   - Conductores con licencias válidas
+   - SENACSA obligatorio para alimentos
+#}
+
+{# ================================================================= #}
+{# GRUPO: gCamTrans - Datos transporte (SOLO NRE)                   #}
+{# ESPECÍFICO: Nota de remisión electrónica únicamente              #}
+{# ================================================================= #}
+{% if transporte %}
+<gCamTrans> {# Tipo de responsable del transporte (OBLIGATORIO) #} <iTipTrans>{{
+    transporte.tipo_responsable }}</iTipTrans> {# Descripción del tipo de responsable (OBLIGATORIO)
+    #} <dDesTipTrans>{{ transporte.descripcion_tipo_responsable }}</dDesTipTrans> {# Modalidad del
+    transporte (OBLIGATORIO) #} <iModTrans>{{ transporte.modalidad_transporte }}</iModTrans> {#
+    Descripción de la modalidad (OBLIGATORIO) #} <dDesModTrans>{{
+    transporte.descripcion_modalidad_transporte }}</dDesModTrans> {# Tipo de transporte
+    (OBLIGATORIO) #} <iTipImpTrans>{{ transporte.tipo_transporte }}</iTipImpTrans> {# Descripción
+    del tipo de transporte (OBLIGATORIO) #} <dDesTipImpTrans>{{
+    transporte.descripcion_tipo_transporte }}</dDesTipImpTrans> {# Fecha de inicio del traslado
+    (OBLIGATORIO) #} <dFecEniTrans>{{ transporte.fecha_inicio_traslado }}</dFecEniTrans> {# Fecha de
+    fin del traslado (OPCIONAL) #} {% if transporte.fecha_fin_traslado %} <dFecFinTrans>{{
+    transporte.fecha_fin_traslado }}</dFecFinTrans> {% endif %} {# Dirección de salida (OBLIGATORIO)
+    #} <dDirLoc>{{ transporte.direccion_salida }}</dDirLoc> {# Dirección de llegada (OBLIGATORIO) #} <dDirDes>{{
+    transporte.direccion_llegada }}</dDirDes> {# Observaciones del transporte (OPCIONAL) #} {% if
+    transporte.observaciones_transporte %} <dObsTrans>{{ transporte.observaciones_transporte }}</dObsTrans>
+    {% endif %} {# Distancia en kilómetros (OPCIONAL) #} {% if transporte.distancia_km %} <dKmTrans>{{
+    transporte.distancia_km }}</dKmTrans> {% endif %} {# Número de manifiesto (OPCIONAL) #} {% if
+    transporte.numero_manifiesto %} <dNumManif>{{ transporte.numero_manifiesto }}</dNumManif> {%
+    endif %} {# Número de contenedor (OPCIONAL) #} {% if transporte.numero_contenedor %} <dNumCont>{{
+    transporte.numero_contenedor }}</dNumCont> {% endif %} {# ===== VEHÍCULOS UTILIZADOS ===== #} {%
+    if vehiculos %} {% for vehiculo in vehiculos %} <gCamVeh> {# Tipo de vehículo (OBLIGATORIO) #} <iTipVeh>{{
+    vehiculo.tipo_vehiculo }}</iTipVeh> {# Descripción del tipo de vehículo (OBLIGATORIO) #} <dDesTipVeh>{{
+    vehiculo.descripcion_tipo_vehiculo }}</dDesTipVeh> {# Marca del vehículo (OPCIONAL) #} {% if
+    vehiculo.marca %} <dMarVeh>{{ vehiculo.marca }}</dMarVeh> {% endif %} {# Número de chapa/placa
+    (OBLIGATORIO) #} <dNumChapa>{{ vehiculo.numero_chapa }}</dNumChapa> {# Número SENACSA (OPCIONAL
+    pero requerido para alimentos) #} {% if vehiculo.numero_senacsa %} <dNumSenacsa>{{
+    vehiculo.numero_senacsa }}</dNumSenacsa> {% endif %} {# Capacidad de carga (OPCIONAL) #} {% if
+    vehiculo.capacidad_carga %} <dCapVeh>{{ vehiculo.capacidad_carga }}</dCapVeh> {% endif %} {#
+    Observaciones del vehículo (OPCIONAL) #} {% if vehiculo.observaciones %} <dObsVeh>{{
+    vehiculo.observaciones }}</dObsVeh> {% endif %} </gCamVeh> {% endfor %} {% endif %} {# =====
+    CONDUCTORES ===== #} {% if conductores %} {% for conductor in conductores %} <gCamCond> {# Tipo
+    de documento del conductor (OBLIGATORIO) #} <iTipDocCond>{{ conductor.tipo_documento }}</iTipDocCond>
+    {# Descripción del tipo de documento (OBLIGATORIO) #} <dDesTipDocCond>{{
+    conductor.descripcion_tipo_documento }}</dDesTipDocCond> {# Número de documento del conductor
+    (OBLIGATORIO) #} <dNumDocCond>{{ conductor.numero_documento }}</dNumDocCond> {# Nombre del
+    conductor (OBLIGATORIO) #} <dNomCond>{{ conductor.nombre_conductor }}</dNomCond> {# Número de
+    licencia de conducir (OBLIGATORIO) #} <dNumLicCond>{{ conductor.numero_licencia }}</dNumLicCond>
+    {# Teléfono del conductor (OPCIONAL) #} {% if conductor.telefono %} <dTelCond>{{
+    conductor.telefono }}</dTelCond> {% endif %} {# Dirección del conductor (OPCIONAL) #} {% if
+    conductor.direccion %} <dDirCond>{{ conductor.direccion }}</dDirCond> {% endif %} </gCamCond> {%
+    endfor %} {% endif %} </gCamTrans>
+{% endif %}

@@ -1,0 +1,93 @@
+{# ===================================================================== #}
+{# PARTIAL: SECCIÓN AFE (gCamAE) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial específico para Autofactura Electrónica (E300-E399)
+USADO EN: autofactura_electronica.xml únicamente
+SCOPE: gCamAE - Datos del vendedor original en AFE
+
+CARACTERÍSTICAS CRÍTICAS AFE:
+✅ OBLIGATORIO solo para iTipDE = 4 (Autofactura)
+✅ Emisor = Receptor (mismo RUC validado externamente)
+✅ Vendedor original diferente al emisor/receptor
+✅ Naturaleza vendedor: 1=No contribuyente, 2=Extranjero
+
+VARIABLES REQUERIDAS:
+- vendedor.naturaleza_vendedor: "1" o "2"
+- vendedor.descripcion_naturaleza_vendedor: Descripción naturaleza
+- vendedor.tipo_documento_vendedor: Tipo identificación
+- vendedor.descripcion_tipo_documento_vendedor: Descripción tipo doc
+- vendedor.numero_documento_vendedor: Número identificación
+- vendedor.nombre_vendedor: Razón social del vendedor
+- vendedor.direccion_vendedor: Dirección del vendedor
+- vendedor.codigo_departamento_vendedor: Código depto vendedor
+- vendedor.descripcion_departamento_vendedor: Desc depto vendedor
+- vendedor.codigo_distrito_vendedor: Código distrito vendedor
+- vendedor.descripcion_distrito_vendedor: Desc distrito vendedor
+- vendedor.codigo_ciudad_vendedor: Código ciudad vendedor
+- vendedor.descripcion_ciudad_vendedor: Desc ciudad vendedor
+- vendedor.codigo_departamento_transaccion: Código depto transacción
+- vendedor.descripcion_departamento_transaccion: Desc depto transacción
+- vendedor.codigo_distrito_transaccion: Código distrito transacción
+- vendedor.descripcion_distrito_transaccion: Desc distrito transacción
+- vendedor.codigo_ciudad_transaccion: Código ciudad transacción
+- vendedor.descripcion_ciudad_transaccion: Desc ciudad transacción
+
+VARIABLES OPCIONALES:
+- vendedor.numero_casa_vendedor: Número de casa
+- vendedor.complemento_direccion1_vendedor: Complemento dirección 1
+- vendedor.complemento_direccion2_vendedor: Complemento dirección 2
+- vendedor.email_vendedor: Email del vendedor
+
+VALIDACIONES DE COHERENCIA:
+- Si naturaleza=1 -> tipo_documento debe ser 1 (cédula paraguaya)
+- Si naturaleza=2 -> tipo_documento puede ser 2, 3, 4 (docs extranjeros)
+- Ubicación transacción debe ser en Paraguay
+- Datos geográficos deben ser códigos válidos SET
+
+CASOS DE USO:
+- Importaciones: naturaleza=2, docs extranjeros, moneda USD
+- No contribuyentes: naturaleza=1, cédula paraguaya, moneda PYG
+#}
+
+{# ============================================================= #}
+{# SECCIÓN: gCamAE - Campos específicos Autofactura Electrónica #}
+{# OBLIGATORIO: Solo para iTipDE = 4 #}
+{# ============================================================= #}
+<gCamAE> {# E300 - Naturaleza del vendedor (OBLIGATORIO) #} <iNatVen>{{ vendedor.naturaleza_vendedor
+    }}</iNatVen> {# E301 - Descripción de la naturaleza del vendedor (OBLIGATORIO) #} <dDesNatVen>{{
+    vendedor.descripcion_naturaleza_vendedor }}</dDesNatVen> {# E302 - Tipo de documento de
+    identidad del vendedor (OBLIGATORIO) #} <iTipIDVen>{{ vendedor.tipo_documento_vendedor }}</iTipIDVen>
+    {# E303 - Descripción del tipo de documento del vendedor (OBLIGATORIO) #} <dDTipIDVen>{{
+    vendedor.descripcion_tipo_documento_vendedor }}</dDTipIDVen> {# E304 - Número de documento del
+    vendedor (OBLIGATORIO) #} <dNumIDVen>{{ vendedor.numero_documento_vendedor }}</dNumIDVen> {#
+    E305 - Nombre o razón social del vendedor (OBLIGATORIO) #} <dNomVen>{{ vendedor.nombre_vendedor
+    }}</dNomVen> {# E306 - Dirección del vendedor (OBLIGATORIO) #} <dDirVen>{{
+    vendedor.direccion_vendedor }}</dDirVen> {# E307 - Número de casa del vendedor (OPCIONAL) #} {%
+    if vendedor.numero_casa_vendedor %} <dNumCasVen>{{ vendedor.numero_casa_vendedor }}</dNumCasVen>
+    {% endif %} {# E308 - Complemento dirección 1 del vendedor (OPCIONAL) #} {% if
+    vendedor.complemento_direccion1_vendedor %} <dCompDirVen1>{{
+    vendedor.complemento_direccion1_vendedor }}</dCompDirVen1> {% endif %} {# E309 - Complemento
+    dirección 2 del vendedor (OPCIONAL) #} {% if vendedor.complemento_direccion2_vendedor %} <dCompDirVen2>{{
+    vendedor.complemento_direccion2_vendedor }}</dCompDirVen2> {% endif %} {# E310 - Código del
+    departamento del vendedor (OBLIGATORIO) #} <cDepVen>{{ vendedor.codigo_departamento_vendedor }}</cDepVen>
+    {# E311 - Descripción del departamento del vendedor (OBLIGATORIO) #} <dDesDepVen>{{
+    vendedor.descripcion_departamento_vendedor }}</dDesDepVen> {# E312 - Código del distrito del
+    vendedor (OBLIGATORIO) #} <cDisVen>{{ vendedor.codigo_distrito_vendedor }}</cDisVen> {# E313 -
+    Descripción del distrito del vendedor (OBLIGATORIO) #} <dDesDisVen>{{
+    vendedor.descripcion_distrito_vendedor }}</dDesDisVen> {# E314 - Código de la ciudad del
+    vendedor (OBLIGATORIO) #} <cCiuVen>{{ vendedor.codigo_ciudad_vendedor }}</cCiuVen> {# E315 -
+    Descripción de la ciudad del vendedor (OBLIGATORIO) #} <dDesCiuVen>{{
+    vendedor.descripcion_ciudad_vendedor }}</dDesCiuVen> {# E316 - Dirección de email del vendedor
+    (OPCIONAL) #} {% if vendedor.email_vendedor %} <dDirEmailVen>{{ vendedor.email_vendedor }}</dDirEmailVen>
+    {% endif %} {# E317 - Código del departamento de la transacción (OBLIGATORIO) #} <cDepTrans>{{
+    vendedor.codigo_departamento_transaccion }}</cDepTrans> {# E318 - Descripción del departamento
+    de la transacción (OBLIGATORIO) #} <dDesDepTrans>{{
+    vendedor.descripcion_departamento_transaccion }}</dDesDepTrans> {# E319 - Código del distrito de
+    la transacción (OBLIGATORIO) #} <cDisTrans>{{ vendedor.codigo_distrito_transaccion }}</cDisTrans>
+    {# E320 - Descripción del distrito de la transacción (OBLIGATORIO) #} <dDesDisTrans>{{
+    vendedor.descripcion_distrito_transaccion }}</dDesDisTrans> {# E321 - Código de la ciudad de la
+    transacción (OBLIGATORIO) #} <cCiuTrans>{{ vendedor.codigo_ciudad_transaccion }}</cCiuTrans> {#
+    E322 - Descripción de la ciudad de la transacción (OBLIGATORIO) #} <dDesCiuTrans>{{
+    vendedor.descripcion_ciudad_transaccion }}</dDesCiuTrans>
+</gCamAE>

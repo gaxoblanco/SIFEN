@@ -1,0 +1,53 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO QR (gCamFuFD) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial para código QR fuera de la firma digital
+USADO EN: Todos los tipos de documentos SIFEN (OPCIONAL)
+SCOPE: gCamFuFD - Campos fuera de firma digital
+
+VARIABLES REQUERIDAS: Ninguna (todo el grupo es opcional)
+
+VARIABLES OPCIONALES:
+- codigo_qr: Código QR generado para representación gráfica
+- url_consulta: URL para consulta del documento
+- datos_adicionales_qr: Datos adicionales para el QR
+
+CARACTERÍSTICAS QR SIFEN:
+- Contiene información básica del documento
+- Permite verificación rápida del documento
+- Incluye CDC, RUC emisor, fecha, monto
+- URL de verificación SET
+
+FORMATO TÍPICO QR:
+- CDC|RUC_EMISOR|FECHA|MONTO|URL_VERIFICACION
+- Ejemplo:
+01234567890123456789012345678901234567890123|12345678|20250630|100000|https://verificar.set.gov.py
+VALIDACIONES:
+- QR debe ser válido y escaneable
+- URL debe ser accesible
+- Datos deben corresponder con documento
+
+GENERACIÓN:
+- Se genera automáticamente tras autorización
+- Contiene hash del documento autorizado
+- Permite verificación offline
+
+USO:
+- Impresión en documentos físicos
+- Verificación por consumidores
+- Auditorías rápidas
+- Control tributario
+#}
+
+{# ================================================================= #}
+{# GRUPO: gCamFuFD - Campos fuera de firma digital (OPCIONAL) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+{% if codigo_qr or url_consulta %}
+<gCamFuFD> {# Código QR para representación gráfica (OPCIONAL) #} {% if codigo_qr %} <dCarQR>{{
+    codigo_qr }}</dCarQR> {% endif %} {# URL de consulta del documento (OPCIONAL) #} {% if
+    url_consulta %} <dInfoAdicQR>{{ url_consulta }}</dInfoAdicQR> {% endif %} {# Datos adicionales
+    para QR (OPCIONAL) #} {% if datos_adicionales_qr %} <dDatAdicQR>{{ datos_adicionales_qr }}</dDatAdicQR>
+    {% endif %} </gCamFuFD>
+{% endif %}

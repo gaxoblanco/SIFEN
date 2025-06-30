@@ -1,0 +1,125 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE ITEMS (gCamItem) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para items/productos (E700-E899)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gCamItem - Información de productos/servicios (MÚLTIPLE)
+
+VARIABLES REQUERIDAS (por cada item):
+- item.descripcion: Descripción del producto/servicio
+- item.cantidad: Cantidad del ítem
+- item.precio_unitario: Precio unitario
+- item.total_operacion: Total del ítem
+- item.afectacion_iva: Afectación IVA (1=Gravado, 2=Exento, etc.)
+- item.descripcion_afectacion_iva: Descripción afectación IVA
+
+VARIABLES OPCIONALES (por cada item):
+- item.codigo_interno: Código interno del ítem
+- item.codigo_barras: Código de barras
+- item.codigo_ncm: Código NCM (importante para importaciones)
+- item.descripcion_ncm: Descripción NCM
+- item.codigo_gtin: Código GTIN/EAN
+- item.codigo_gtin_receptor: GTIN del receptor
+- item.codigo_unidad_medida: Código unidad medida
+- item.descripcion_unidad_medida: Descripción unidad (default: "Unidad")
+- item.codigo_pais_origen: País origen (importante AFE)
+- item.descripcion_pais_origen: Descripción país origen
+- item.observacion: Observaciones comerciales
+- item.numero_serie: Número de serie
+- item.numero_lote: Número de lote
+- item.fecha_vencimiento: Fecha vencimiento
+- item.numero_senacsa: Número SENACSA
+- item.numero_senave: Número SENAVE
+- item.tipo_item: Tipo de ítem
+- item.descripcion_tipo_item: Descripción tipo ítem
+- item.tipo_cambio: Tipo cambio específico ítem
+- item.total_descuento: Total descuentos
+- item.total_anticipo: Total anticipos
+- item.proporcion_gravada: Proporción gravada
+- item.tasa_iva: Tasa IVA aplicable
+- item.base_gravable: Base gravable IVA
+- item.liquidacion_iva: Liquidación IVA ítem
+- item.base_exenta: Base exenta
+
+ARRAYS OPCIONALES:
+- item.descuentos: Lista de descuentos por ítem
+- item.anticipos: Lista de anticipos por ítem
+
+VALIDACIONES:
+- Cantidad > 0
+- Precios coherentes con totales
+- IVA calculado correctamente
+- NCM válido para importaciones
+- Países válidos según tabla ISO
+
+CASOS ESPECIALES:
+- Importaciones: NCM y país origen recomendados
+- Servicios: Unidades específicas
+- Productos regulados: SENACSA/SENAVE
+- Descuentos: Cálculos coherentes
+#}
+
+{# ================================================================= #}
+{# GRUPO: gCamItem - Campos de ítems (E700-E899) - MÚLTIPLE #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# NOTA: Este partial se incluye dentro de un loop {% for item %} #}
+{# ================================================================= #}
+<gCamItem> {# E701 - Código interno del ítem (OPCIONAL) #} {% if item.codigo_interno %} <dCodInt>{{
+    item.codigo_interno }}</dCodInt> {% endif %} {# E702 - Código de barras del ítem (OPCIONAL) #}
+    {% if item.codigo_barras %} <dParAranc>{{ item.codigo_barras }}</dParAranc> {% endif %} {# E703
+    - Código NCM (OPCIONAL pero importante en importaciones) #} {% if item.codigo_ncm %} <dNCM>{{
+    item.codigo_ncm }}</dNCM> {% endif %} {# E704 - Descripción extra del NCM (OPCIONAL) #} {% if
+    item.descripcion_ncm %} <dDncpE>{{ item.descripcion_ncm }}</dDncpE> {% endif %} {# E705 - Código
+    GTIN del ítem (OPCIONAL) #} {% if item.codigo_gtin %} <dGtin>{{ item.codigo_gtin }}</dGtin> {%
+    endif %} {# E706 - Código del ítem GTIN del receptor (OPCIONAL) #} {% if
+    item.codigo_gtin_receptor %} <dGtinPq>{{ item.codigo_gtin_receptor }}</dGtinPq> {% endif %} {#
+    E708 - Descripción del ítem (OBLIGATORIO) #} <dDesProSer>{{ item.descripcion }}</dDesProSer> {#
+    E709 - Código de unidad de medida (OPCIONAL) #} {% if item.codigo_unidad_medida %} <cUniMed>{{
+    item.codigo_unidad_medida }}</cUniMed> {% endif %} {# E710 - Descripción de la unidad de medida
+    (OBLIGATORIO) #} <dDesUniMed>{{ item.descripcion_unidad_medida | default("Unidad") }}</dDesUniMed>
+    {# E711 - Cantidad (OBLIGATORIO) #} <dCantProSer>{{ item.cantidad }}</dCantProSer> {# E712 -
+    Código del país de origen (OPCIONAL - importante en importaciones) #} {% if
+    item.codigo_pais_origen %} <cPaisOrig>{{ item.codigo_pais_origen }}</cPaisOrig> {% endif %} {#
+    E713 - Descripción del país de origen (OPCIONAL) #} {% if item.descripcion_pais_origen %} <dDesPaisOrig>{{
+    item.descripcion_pais_origen }}</dDesPaisOrig> {% endif %} {# E714 - Observación comercial
+    (OPCIONAL) #} {% if item.observacion %} <dObsComItem>{{ item.observacion }}</dObsComItem> {%
+    endif %} {# E715 - Número de serie (OPCIONAL) #} {% if item.numero_serie %} <dNumSerie>{{
+    item.numero_serie }}</dNumSerie> {% endif %} {# E716 - Número de lote (OPCIONAL) #} {% if
+    item.numero_lote %} <dNumLote>{{ item.numero_lote }}</dNumLote> {% endif %} {# E717 - Fecha de
+    vencimiento (OPCIONAL) #} {% if item.fecha_vencimiento %} <dVencMerc>{{ item.fecha_vencimiento
+    }}</dVencMerc> {% endif %} {# E718 - Número de SENACSA (OPCIONAL) #} {% if item.numero_senacsa
+    %} <dNumSenacsa>{{ item.numero_senacsa }}</dNumSenacsa> {% endif %} {# E719 - Número de SENAVE
+    (OPCIONAL) #} {% if item.numero_senave %} <dNumSenave>{{ item.numero_senave }}</dNumSenave> {%
+    endif %} {# E720 - Tipo de ítem (OPCIONAL) #} {% if item.tipo_item %} <iTipOpItem>{{
+    item.tipo_item }}</iTipOpItem> {% endif %} {# E721 - Descripción del tipo de ítem (OPCIONAL) #}
+    {% if item.descripcion_tipo_item %} <dDesTipOpItem>{{ item.descripcion_tipo_item }}</dDesTipOpItem>
+    {% endif %} {# E725 - Precio unitario (OBLIGATORIO) #} <dPUniProSer>{{ item.precio_unitario }}</dPUniProSer>
+    {# E727 - Cambio de moneda (OPCIONAL - importante en importaciones) #} {% if item.tipo_cambio %} <dTiCamIt>{{
+    item.tipo_cambio }}</dTiCamIt> {% endif %} {# E728 - Total de descuentos (OPCIONAL) #} {% if
+    item.total_descuento %} <dTotBruOpeItem>{{ item.total_descuento }}</dTotBruOpeItem> {% endif %}
+    {# ===== CAMPOS DE DESCUENTOS POR ÍTEM (E729-E734) ===== #} {% if item.descuentos %} {% for
+    descuento in item.descuentos %} <gCamDEsc> {# E729 - Descripción del descuento (OBLIGATORIO) #} <dDescdIt>{{
+    descuento.descripcion }}</dDescdIt> {# E730 - Porcentaje del descuento (OBLIGATORIO) #} <dPorcDesIt>{{
+    descuento.porcentaje }}</dPorcDesIt> {# E731 - Monto del descuento (OBLIGATORIO) #} <dMontoDescIt>{{
+    descuento.monto }}</dMontoDescIt>
+    </gCamDEsc> {% endfor %} {% endif %} {# E735 - Total de
+    anticipos (OPCIONAL) #} {% if item.total_anticipo %} <dTotOpeItem>{{ item.total_anticipo }}</dTotOpeItem>
+    {% endif %} {# ===== CAMPOS DE ANTICIPOS POR ÍTEM (E736-E740) ===== #} {% if item.anticipos %}
+    {% for anticipo in item.anticipos %} <gCamAnt> {# E736 - Descripción del anticipo (OBLIGATORIO)
+    #} <dDesantIt>{{ anticipo.descripcion }}</dDesantIt> {# E737 - Porcentaje del anticipo
+    (OBLIGATORIO) #} <dPorcAntIt>{{ anticipo.porcentaje }}</dPorcAntIt> {# E738 - Monto del anticipo
+    (OBLIGATORIO) #} <dMontoAntIt>{{ anticipo.monto }}</dMontoAntIt>
+    </gCamAnt> {% endfor %} {%
+    endif %} {# E741 - Total de la operación por ítem (OBLIGATORIO) #} <dTotOpeIt>{{
+    item.total_operacion }}</dTotOpeIt> {# ===== CAMPOS DE IVA POR ÍTEM (E750-E769) ===== #} {# E750
+    - Afectación del IVA (OBLIGATORIO) #} <iAfecIVA>{{ item.afectacion_iva }}</iAfecIVA> {# E751 -
+    Descripción de la afectación del IVA (OBLIGATORIO) #} <dDesAfecIVA>{{
+    item.descripcion_afectacion_iva }}</dDesAfecIVA> {# E752 - Proporción gravada (CONDICIONAL) #}
+    {% if item.proporcion_gravada %} <dPropIVA>{{ item.proporcion_gravada }}</dPropIVA> {% endif %}
+    {# E753 - Tasa del IVA (CONDICIONAL) #} {% if item.tasa_iva %} <dTasaIVA>{{ item.tasa_iva }}</dTasaIVA>
+    {% endif %} {# E754 - Base gravable (CONDICIONAL) #} {% if item.base_gravable %} <dBasGravIVA>{{
+    item.base_gravable }}</dBasGravIVA> {% endif %} {# E755 - Liquidación del IVA del ítem
+    (CONDICIONAL) #} {% if item.liquidacion_iva %} <dLiqIVAItem>{{ item.liquidacion_iva }}</dLiqIVAItem>
+    {% endif %} {# E756 - Base exenta (CONDICIONAL) #} {% if item.base_exenta %} <dBasExe>{{
+    item.base_exenta }}</dBasExe> {% endif %} </gCamItem>

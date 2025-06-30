@@ -1,0 +1,76 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE EMISOR (gEmis) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para datos del emisor (D001-D199)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gEmis - Información completa del emisor
+
+VARIABLES REQUERIDAS:
+- emisor.ruc: RUC sin dígito verificador
+- emisor.dv: Dígito verificador del RUC
+- emisor.razon_social: Nombre o razón social
+- emisor.direccion: Dirección principal
+
+VARIABLES OPCIONALES:
+- emisor.tipo_contribuyente: Tipo contribuyente (default: 1)
+- emisor.descripcion_tipo_contribuyente: Descripción tipo (default: "Persona física")
+- emisor.nombre_fantasia: Nombre comercial
+- emisor.numero_casa: Número específico de casa
+- emisor.complemento_direccion1: Complemento dirección 1
+- emisor.complemento_direccion2: Complemento dirección 2
+- emisor.codigo_departamento: Código departamento
+- emisor.descripcion_departamento: Descripción departamento
+- emisor.codigo_distrito: Código distrito
+- emisor.descripcion_distrito: Descripción distrito
+- emisor.codigo_ciudad: Código ciudad
+- emisor.descripcion_ciudad: Descripción ciudad
+- emisor.telefono: Teléfono de contacto
+- emisor.email: Correo electrónico
+- emisor.codigo_actividad_economica: Código actividad económica
+- emisor.descripcion_actividad_economica: Descripción actividad
+
+VALIDACIONES:
+- RUC debe ser válido según algoritmo SET
+- Dígito verificador debe corresponder con RUC
+- Email debe tener formato válido
+- Códigos geográficos deben existir en tablas SET
+
+NOTA CRÍTICA AFE:
+En Autofactura Electrónica, emisor = receptor (mismo RUC)
+#}
+
+{# ================================================================= #}
+{# GRUPO: gEmis - Datos del emisor (D001-D199) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gEmis> {# D002 - RUC del emisor (OBLIGATORIO) #} <dRucEm>{{ emisor.ruc }}{{ emisor.dv }}</dRucEm>
+    {# D003 - Dígito verificador del RUC del emisor (OBLIGATORIO) #} <dDVEmi>{{ emisor.dv }}</dDVEmi>
+    {# D004 - Tipo de contribuyente del emisor (OPCIONAL) #} <iTipCont>{{ emisor.tipo_contribuyente
+    | default(1) }}</iTipCont> {# D005 - Descripción del tipo de contribuyente (OPCIONAL) #} <dDesTipCont>{{
+    emisor.descripcion_tipo_contribuyente | default("Persona física") }}</dDesTipCont> {# D011 -
+    Nombre o razón social del emisor (OBLIGATORIO) #} <dNomEmi>{{ emisor.razon_social }}</dNomEmi>
+    {# D012 - Nombre de fantasía del emisor (OPCIONAL) #} {% if emisor.nombre_fantasia %} <dNomFanEmi>{{
+    emisor.nombre_fantasia }}</dNomFanEmi> {% endif %} {# D013 - Dirección del emisor (OBLIGATORIO)
+    #} <dDirEmi>{{ emisor.direccion }}</dDirEmi> {# D014 - Número de casa del emisor (OPCIONAL) #}
+    {% if emisor.numero_casa %} <dNumCasEmi>{{ emisor.numero_casa }}</dNumCasEmi> {% endif %} {#
+    D015 - Complemento de dirección 1 (OPCIONAL) #} {% if emisor.complemento_direccion1 %} <dCompDir1>{{
+    emisor.complemento_direccion1 }}</dCompDir1> {% endif %} {# D016 - Complemento de dirección 2
+    (OPCIONAL) #} {% if emisor.complemento_direccion2 %} <dCompDir2>{{ emisor.complemento_direccion2
+    }}</dCompDir2> {% endif %} {# D018 - Código del departamento (OPCIONAL) #} {% if
+    emisor.codigo_departamento %} <cDepEmi>{{ emisor.codigo_departamento }}</cDepEmi> {% endif %} {#
+    D019 - Descripción del departamento (OPCIONAL) #} {% if emisor.descripcion_departamento %} <dDesDepEmi>{{
+    emisor.descripcion_departamento }}</dDesDepEmi> {% endif %} {# D020 - Código del distrito
+    (OPCIONAL) #} {% if emisor.codigo_distrito %} <cDisEmi>{{ emisor.codigo_distrito }}</cDisEmi> {%
+    endif %} {# D021 - Descripción del distrito (OPCIONAL) #} {% if emisor.descripcion_distrito %} <dDesDisEmi>{{
+    emisor.descripcion_distrito }}</dDesDisEmi> {% endif %} {# D022 - Código de la ciudad (OPCIONAL)
+    #} {% if emisor.codigo_ciudad %} <cCiuEmi>{{ emisor.codigo_ciudad }}</cCiuEmi> {% endif %} {#
+    D023 - Descripción de la ciudad (OPCIONAL) #} {% if emisor.descripcion_ciudad %} <dDesCiuEmi>{{
+    emisor.descripcion_ciudad }}</dDesCiuEmi> {% endif %} {# D024 - Teléfono del emisor (OPCIONAL)
+    #} {% if emisor.telefono %} <dTelEmi>{{ emisor.telefono }}</dTelEmi> {% endif %} {# D025 -
+    Correo electrónico del emisor (OPCIONAL) #} {% if emisor.email %} <dEmailE>{{ emisor.email }}</dEmailE>
+    {% endif %} {# D026 - Código de la actividad económica del emisor (OPCIONAL) #} {% if
+    emisor.codigo_actividad_economica %} <dCodAcEco>{{ emisor.codigo_actividad_economica }}</dCodAcEco>
+    {% endif %} {# D027 - Descripción de la actividad económica (OPCIONAL) #} {% if
+    emisor.descripcion_actividad_economica %} <dDesAcEco>{{ emisor.descripcion_actividad_economica
+    }}</dDesAcEco> {% endif %} </gEmis>

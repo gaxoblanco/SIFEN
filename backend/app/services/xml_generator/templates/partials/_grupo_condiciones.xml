@@ -1,0 +1,106 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE CONDICIONES (gCamGen) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para condiciones de operación (H001-H099)
+USADO EN: Todos los tipos de documentos SIFEN (OPCIONAL)
+SCOPE: gCamGen - Condiciones de pago y modalidades
+
+VARIABLES REQUERIDAS: Ninguna (todo el grupo es opcional)
+
+VARIABLES OPCIONALES:
+- condiciones.modalidad_venta: Código modalidad venta
+- condiciones.descripcion_modalidad: Descripción modalidad
+- condiciones.tipo_credito: Tipo operación crédito
+- condiciones.descripcion_credito: Descripción tipo crédito
+- condiciones.monto_entrega_inicial: Monto entrega inicial
+
+ARRAYS OPCIONALES:
+- condiciones.cuotas: Lista de cuotas para crédito
+- condiciones.pagos_contado: Lista de pagos al contado
+
+ESTRUCTURA CUOTAS:
+- cuota.modalidad: Código modalidad cuota
+- cuota.descripcion_modalidad: Descripción modalidad
+- cuota.plazo: Plazo del crédito
+- cuota.numero_cuotas: Número de cuotas
+- cuota.monto_cuota: Monto por cuota
+- cuota.fecha_vencimiento: Fecha vencimiento
+
+ESTRUCTURA PAGOS CONTADO:
+- pago.modalidad: Modalidad pago (1=Efectivo, 2=Cheque, 3=Tarjeta, 4=Transferencia)
+- pago.descripcion: Descripción modalidad
+- pago.monto: Monto por modalidad
+- pago.codigo_moneda: Código moneda (opcional)
+- pago.descripcion_moneda: Descripción moneda (opcional)
+- pago.tipo_cambio: Tipo cambio modalidad (opcional)
+- pago.datos_tarjeta: Datos específicos tarjeta (opcional)
+- pago.datos_cheque: Datos específicos cheque (opcional)
+
+MODALIDADES PAGO COMUNES:
+- 1: Efectivo
+- 2: Cheque
+- 3: Tarjeta de crédito/débito
+- 4: Transferencia bancaria
+- 5: Giro postal
+- 6: Otros medios de pago
+
+VALIDACIONES:
+- Si crédito: al menos una cuota
+- Si contado: al menos un pago
+- Montos deben sumar total del documento
+- Fechas coherentes para cuotas
+#}
+
+{# ================================================================= #}
+{# GRUPO: gCamGen - Condiciones de la operación (H001-H099) OPCIONAL #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+{% if condiciones %}
+<gCamGen> {# H002 - Código de modalidad de venta (OPCIONAL) #} {% if condiciones.modalidad_venta %} <iFormCancPag>{{
+    condiciones.modalidad_venta }}</iFormCancPag> {% endif %} {# H003 - Descripción de modalidad de
+    venta (OPCIONAL) #} {% if condiciones.descripcion_modalidad %} <dDesFormCancPag>{{
+    condiciones.descripcion_modalidad }}</dDesFormCancPag> {% endif %} {# H004 - Código del tipo de
+    operación de crédito (OPCIONAL) #} {% if condiciones.tipo_credito %} <iTipOpeCred>{{
+    condiciones.tipo_credito }}</iTipOpeCred> {% endif %} {# H005 - Descripción del tipo de
+    operación de crédito (OPCIONAL) #} {% if condiciones.descripcion_credito %} <dDesTipOpeCred>{{
+    condiciones.descripcion_credito }}</dDesTipOpeCred> {% endif %} {# H006 - Monto de entrega
+    inicial (OPCIONAL) #} {% if condiciones.monto_entrega_inicial %} <dMonEnt>{{
+    condiciones.monto_entrega_inicial }}</dMonEnt> {% endif %} {# ===== CONDICIONES DE PAGO DE
+    CRÉDITO (H010-H049) ===== #} {% if condiciones.cuotas %} {% for cuota in condiciones.cuotas %} <gPagCred>
+    {# H010 - Código de modalidad (OBLIGATORIO) #} <iCondCred>{{ cuota.modalidad }}</iCondCred> {#
+    H011 - Descripción de modalidad (OBLIGATORIO) #} <dDesCondCred>{{ cuota.descripcion_modalidad }}</dDesCondCred>
+    {# H012 - Plazo del crédito (OPCIONAL) #} {% if cuota.plazo %} <dPlazoCred>{{ cuota.plazo }}</dPlazoCred>
+    {% endif %} {# H013 - Cuotas del crédito (OPCIONAL) #} {% if cuota.numero_cuotas %} <dCuotas>{{
+    cuota.numero_cuotas }}</dCuotas> {% endif %} {# H014 - Monto por cuota (OPCIONAL) #} {% if
+    cuota.monto_cuota %} <dMontoCuota>{{ cuota.monto_cuota }}</dMontoCuota> {% endif %} {# H015 -
+    Fecha de vencimiento (OPCIONAL) #} {% if cuota.fecha_vencimiento %} <dVencCuota>{{
+    cuota.fecha_vencimiento }}</dVencCuota> {% endif %} </gPagCred> {% endfor %} {% endif %} {#
+    ===== CONDICIONES DE PAGO AL CONTADO (H050-H099) ===== #} {% if condiciones.pagos_contado %} {%
+    for pago in condiciones.pagos_contado %} <gPagCont> {# H050 - Modalidad de pago (OBLIGATORIO) #} <iTiPago>{{
+    pago.modalidad }}</iTiPago> {# H051 - Descripción de modalidad de pago (OBLIGATORIO) #} <dDesTiPag>{{
+    pago.descripcion }}</dDesTiPag> {# H052 - Monto por modalidad de pago (OBLIGATORIO) #} <dMonTiPag>{{
+    pago.monto }}</dMonTiPag> {# H053 - Código de moneda (OPCIONAL) #} {% if pago.codigo_moneda %} <cMoneTiPag>{{
+    pago.codigo_moneda }}</cMoneTiPag> {% endif %} {# H054 - Descripción de moneda (OPCIONAL) #} {%
+    if pago.descripcion_moneda %} <dDeMoneTiPag>{{ pago.descripcion_moneda }}</dDeMoneTiPag> {%
+    endif %} {# H055 - Tipo de cambio de la modalidad (OPCIONAL) #} {% if pago.tipo_cambio %} <dTiCamTiPag>{{
+    pago.tipo_cambio }}</dTiCamTiPag> {% endif %} {# ===== CAMPOS ESPECÍFICOS TARJETA DE
+    CRÉDITO/DÉBITO ===== #} {% if pago.datos_tarjeta %} {# H056 - Código de procesamiento de tarjeta
+    (OPCIONAL) #} {% if pago.datos_tarjeta.codigo_procesamiento %} <iDenTarj>{{
+    pago.datos_tarjeta.codigo_procesamiento }}</iDenTarj> {% endif %} {# H057 - Descripción del
+    código de procesamiento (OPCIONAL) #} {% if pago.datos_tarjeta.descripcion_procesamiento %} <dDesDenTarj>{{
+    pago.datos_tarjeta.descripcion_procesamiento }}</dDesDenTarj> {% endif %} {# H058 - RUC del
+    medio de pago (OPCIONAL) #} {% if pago.datos_tarjeta.ruc_procesador %} <dRSeg>{{
+    pago.datos_tarjeta.ruc_procesador }}</dRSeg> {% endif %} {# H059 - DV del RUC del medio de pago
+    (OPCIONAL) #} {% if pago.datos_tarjeta.dv_procesador %} <dDVSeg>{{
+    pago.datos_tarjeta.dv_procesador }}</dDVSeg> {% endif %} {# H060 - Código de autorización
+    (OPCIONAL) #} {% if pago.datos_tarjeta.codigo_autorizacion %} <iCodAut>{{
+    pago.datos_tarjeta.codigo_autorizacion }}</iCodAut> {% endif %} {# H061 - Código de seguridad
+    (OPCIONAL) #} {% if pago.datos_tarjeta.codigo_seguridad %} <dCodAut>{{
+    pago.datos_tarjeta.codigo_seguridad }}</dCodAut> {% endif %} {% endif %} {# ===== CAMPOS
+    ESPECÍFICOS CHEQUE ===== #} {% if pago.datos_cheque %} {# H062 - Número de cheque (OPCIONAL) #}
+    {% if pago.datos_cheque.numero %} <dNumCheq>{{ pago.datos_cheque.numero }}</dNumCheq> {% endif
+    %} {# H063 - Banco emisor del cheque (OPCIONAL) #} {% if pago.datos_cheque.banco %} <dBcoEmiCheq>{{
+    pago.datos_cheque.banco }}</dBcoEmiCheq> {% endif %} {% endif %} </gPagCont> {% endfor %} {%
+    endif %} </gCamGen>
+{% endif %}

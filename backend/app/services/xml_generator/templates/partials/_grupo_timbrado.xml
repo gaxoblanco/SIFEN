@@ -1,0 +1,50 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE TIMBRADO (gTimb) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para datos de timbrado (B001-B099)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gTimb - Información del timbrado SET
+
+VARIABLES REQUERIDAS:
+- timbrado.numero_timbrado: 8 dígitos del timbrado SET
+- timbrado.establecimiento: 3 dígitos "001"
+- timbrado.punto_expedicion: 3 dígitos "001"
+- timbrado.numero_documento: 7 dígitos "0000001"
+
+VARIABLES OPCIONALES:
+- timbrado.tipo: Tipo de timbrado (default: 1)
+- timbrado.descripcion_tipo: Descripción tipo (default: "Timbrado electrónico SET")
+- timbrado.punto_expedicion_documento: Punto expedición específico
+- timbrado.fecha_inicio_vigencia: Fecha inicio vigencia
+- timbrado.fecha_fin_vigencia: Fecha fin vigencia
+
+FORMATOS:
+- numero_timbrado: Exactamente 8 dígitos
+- establecimiento: Exactamente 3 dígitos con ceros a la izquierda
+- punto_expedicion: Exactamente 3 dígitos con ceros a la izquierda
+- numero_documento: Exactamente 7 dígitos con ceros a la izquierda
+
+VALIDACIONES:
+- Todos los campos obligatorios deben estar presentes
+- Formatos numéricos deben cumplir longitudes exactas
+- Fechas deben ser formato ISO válido
+#}
+
+{# ================================================================= #}
+{# GRUPO: gTimb - Datos del timbrado (B001-B099) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gTimb> {# B001 - Tipo de timbrado (OBLIGATORIO) #} <iTiTim>{{ timbrado.tipo | default(1) }}</iTiTim>
+    {# B002 - Descripción del tipo de timbrado (OBLIGATORIO) #} <dDesTiTim>{{
+    timbrado.descripcion_tipo | default("Timbrado electrónico SET") }}</dDesTiTim> {# B003 - Número
+    de timbrado (OBLIGATORIO) #} <dNumTim>{{ timbrado.numero_timbrado }}</dNumTim> {# B004 -
+    Establecimiento (OBLIGATORIO) #} <dEst>{{ timbrado.establecimiento }}</dEst> {# B005 - Punto de
+    expedición (OBLIGATORIO) #} <dPunExp>{{ timbrado.punto_expedicion }}</dPunExp> {# B006 - Número
+    del documento (OBLIGATORIO) #} <dNumDoc>{{ timbrado.numero_documento }}</dNumDoc> {# B007 -
+    Punto de expedición del documento (OPCIONAL) #} {% if timbrado.punto_expedicion_documento %} <dPunExpDoc>{{
+    timbrado.punto_expedicion_documento }}</dPunExpDoc> {% endif %} {# B008 - Fecha de inicio de
+    vigencia del timbrado (OPCIONAL) #} {% if timbrado.fecha_inicio_vigencia %} <dFeIniT>{{
+    timbrado.fecha_inicio_vigencia }}</dFeIniT> {% endif %} {# B009 - Fecha de fin de vigencia del
+    timbrado (OPCIONAL) #} {% if timbrado.fecha_fin_vigencia %} <dFeFinT>{{
+    timbrado.fecha_fin_vigencia }}</dFeFinT> {% endif %} </gTimb>

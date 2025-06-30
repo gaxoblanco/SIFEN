@@ -1,0 +1,178 @@
+{# ===================================================================== #}
+{# PARTIAL: GRUPO DE TOTALES (gTotSub) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para totales y subtotales (F001-F099)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gTotSub - Consolidación de totales del documento
+
+VARIABLES REQUERIDAS:
+- totales.total_operacion: Total neto de la operación
+- totales.total_general: Total general del documento
+
+VARIABLES OPCIONALES:
+- totales.subtotal_gravado: Subtotal operaciones gravadas
+- totales.subtotal_no_gravado: Subtotal operaciones no gravadas
+- totales.subtotal_exento: Subtotal operaciones exentas
+- totales.subtotal_exportacion: Subtotal exportaciones
+- totales.total_descuentos: Total descuentos globales
+- totales.total_anticipos: Total anticipos globales
+- totales.total_anticipos_particulares: Anticipos particulares
+- totales.pagos_anticipados: Pagos anticipados
+- totales.total_iva: Total IVA del documento
+- totales.liquidacion_iva_5: Liquidación IVA 5%
+- totales.liquidacion_iva_10: Liquidación IVA 10%
+- totales.total_ieps: Total IEPS
+- totales.total_isc: Total ISC
+- totales.total_otros_tributos: Otros tributos
+- totales.total_iva_incluido: Total con IVA incluido
+- totales.total_letras: Total en letras
+- totales.codigo_moneda: Código moneda (PYG, USD, EUR, etc.)
+- totales.descripcion_moneda: Descripción moneda
+- totales.condicion_operacion: Condición operación
+- totales.tipo_cambio: Tipo cambio (importante AFE)
+- totales.total_moneda_extranjera: Total en moneda extranjera
+
+VALIDACIONES:
+- Totales coherentes con suma de items
+- IVA calculado correctamente
+- Moneda extranjera solo si aplica
+- Tipo cambio coherente con totales
+
+CASOS ESPECIALES:
+- AFE importación: Moneda extranjera obligatoria
+- NRE: Totales monetarios = 0
+- NCE: Totales negativos o de reducción
+- Exportaciones: IVA = 0
+#}
+
+{# ================================================================= #}
+{# GRUPO: gTotSub - Totales y subtotales (F001-F099) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gTotSub> {# F002 - Subtotal de operaciones gravadas (CONDICIONAL) #} {% if totales.subtotal_gravado
+    %} <dSubGrav>{{ totales.subtotal_gravado }}</dSubGrav> {% endif %} {# F003 - Subtotal de
+    operaciones no gravadas (CONDICIONAL) #} {% if totales.subtotal_no_gravado %} <dSubNoGrav>{{
+    totales.subtotal_no_gravado }}</dSubNoGrav> {% endif %} {# F004 - Subtotal de operaciones
+    exentas (CONDICIONAL) #} {% if totales.subtotal_exento %} <dSubExe>{{ totales.subtotal_exento }}</dSubExe>
+    {% endif %} {# F005 - Subtotal de operaciones exportación (CONDICIONAL) #} {% if
+    totales.subtotal_exportacion %} <dSubExo>{{ totales.subtotal_exportacion }}</dSubExo> {% endif
+    %} {# F008 - Total de descuentos globales (OPCIONAL) #} {% if totales.total_descuentos %} <dTotDesc>{{
+    totales.total_descuentos }}</dTotDesc> {% endif %} {# F009 - Total de anticipos globales
+    (OPCIONAL) #} {% if totales.total_anticipos %} <dTotAntGlobal>{{ totales.total_anticipos }}</dTotAntGlobal>
+    {% endif %} {# F010 - Total de anticipos particulares (OPCIONAL) #} {% if
+    totales.total_anticipos_particulares %} <dTotAnt>{{ totales.total_anticipos_particulares }}</dTotAnt>
+    {% endif %} {# F015 - Pagos anticipados (OPCIONAL) #} {% if totales.pagos_anticipados %} <dPagAnt>{{
+    totales.pagos_anticipados }}</dPagAnt> {% endif %} {# F025 - Total neto de la operación
+    (OBLIGATORIO) #} <dTotOpe>{{ totales.total_operacion }}</dTotOpe> {# F026 - Total del IVA
+    (CONDICIONAL) #} {% if totales.total_iva %} <dTotIVA>{{ totales.total_iva }}</dTotIVA> {% endif
+    %} {# F027 - Liquidación total del IVA por tasa (CONDICIONAL) #} {% if totales.liquidacion_iva_5
+    %} <dLiqTotIVA5>{{ totales.liquidacion_iva_5 }}</dLiqTotIVA5> {% endif %} {% if
+    totales.liquidacion_iva_10 %} <dLiqTotIVA10>{{ totales.liquidacion_iva_10 }}</dLiqTotIVA10> {%
+    endif %} {# F030 - Total de IEPS (OPCIONAL) #} {% if totales.total_ieps %} <dTotIEPS>{{
+    totales.total_ieps }}</dTotIEPS> {% endif %} {# F033 - Total de ISC (OPCIONAL) #} {% if
+    totales.total_isc %} <dTotISC>{{ totales.total_isc }}</dTotISC> {% endif %} {# F036 - Total de
+    otros tributos (OPCIONAL) #} {% if totales.total_otros_tributos %} <dTotOtros>{{
+    totales.total_otros_tributos }}</dTotOtros> {% endif %} {# F037 - Total con IVA incluido
+    (OPCIONAL) #} {% if totales.total_iva_incluido %} <dIVAInc>{{ totales.total_iva_incluido }}</dIVAInc>
+    {% endif %} {# F040 - Total general de la operación (OBLIGATORIO) #} <dTotGralOpe>{{
+    totales.total_general }}</dTotGralOpe> {# F041 - Total en letras (OPCIONAL) #} {% if
+    totales.total_letras %} <dTotGralOpeGs>{{ totales.total_letras }}</dTotGralOpeGs> {% endif %} {#
+    F042 - Código de moneda (OPCIONAL - importante para AFE) #} {% if totales.codigo_moneda %} <cMoneOpe>{{
+    totales.codigo_moneda }}</cMoneOpe> {% endif %} {# F043 - Descripción de la moneda (OPCIONAL) #}
+    {% if totales.descripcion_moneda %} <dDesMoneOpe>{{ totales.descripcion_moneda }}</dDesMoneOpe>
+    {% endif %} {# F044 - Condición de la operación (OPCIONAL) #} {% if totales.condicion_operacion
+    %} <dCondOpe>{{ totales.condicion_operacion }}</dCondOpe> {% endif %} {# F045 - Tipo de cambio
+    (OPCIONAL - importante para AFE importación) #} {% if totales.tipo_cambio %} <dTiCam>{{
+    totales.tipo_cambio }}</dTiCam> {% endif %} {# F046 - Total general en moneda extranjera
+    (OPCIONAL) #} {% if totales.total_moneda_extranjera %} <dTotGralOpeME>{{
+    totales.total_moneda_extranjera }}</dTotGralOpeME> {% endif %} </gTotSub>{#
+===================================================================== #}
+{# PARTIAL: GRUPO DE TOTALES (gTotSub) #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Partial reutilizable para totales y subtotales (F001-F099)
+USADO EN: Todos los tipos de documentos SIFEN
+SCOPE: gTotSub - Consolidación de totales del documento
+
+VARIABLES REQUERIDAS:
+- totales.total_operacion: Total neto de la operación
+- totales.total_general: Total general del documento
+
+VARIABLES OPCIONALES:
+- totales.subtotal_gravado: Subtotal operaciones gravadas
+- totales.subtotal_no_gravado: Subtotal operaciones no gravadas
+- totales.subtotal_exento: Subtotal operaciones exentas
+- totales.subtotal_exportacion: Subtotal exportaciones
+- totales.total_descuentos: Total descuentos globales
+- totales.total_anticipos: Total anticipos globales
+- totales.total_anticipos_particulares: Anticipos particulares
+- totales.pagos_anticipados: Pagos anticipados
+- totales.total_iva: Total IVA del documento
+- totales.liquidacion_iva_5: Liquidación IVA 5%
+- totales.liquidacion_iva_10: Liquidación IVA 10%
+- totales.total_ieps: Total IEPS
+- totales.total_isc: Total ISC
+- totales.total_otros_tributos: Otros tributos
+- totales.total_iva_incluido: Total con IVA incluido
+- totales.total_letras: Total en letras
+- totales.codigo_moneda: Código moneda (PYG, USD, EUR, etc.)
+- totales.descripcion_moneda: Descripción moneda
+- totales.condicion_operacion: Condición operación
+- totales.tipo_cambio: Tipo cambio (importante AFE)
+- totales.total_moneda_extranjera: Total en moneda extranjera
+
+VALIDACIONES:
+- Totales coherentes con suma de items
+- IVA calculado correctamente
+- Moneda extranjera solo si aplica
+- Tipo cambio coherente con totales
+
+CASOS ESPECIALES:
+- AFE importación: Moneda extranjera obligatoria
+- NRE: Totales monetarios = 0
+- NCE: Totales negativos o de reducción
+- Exportaciones: IVA = 0
+#}
+
+{# ================================================================= #}
+{# GRUPO: gTotSub - Totales y subtotales (F001-F099) #}
+{# REUTILIZABLE: Todos los tipos de documentos SIFEN #}
+{# ================================================================= #}
+<gTotSub> {# F002 - Subtotal de operaciones gravadas (CONDICIONAL) #} {% if totales.subtotal_gravado
+    %} <dSubGrav>{{ totales.subtotal_gravado }}</dSubGrav> {% endif %} {# F003 - Subtotal de
+    operaciones no gravadas (CONDICIONAL) #} {% if totales.subtotal_no_gravado %} <dSubNoGrav>{{
+    totales.subtotal_no_gravado }}</dSubNoGrav> {% endif %} {# F004 - Subtotal de operaciones
+    exentas (CONDICIONAL) #} {% if totales.subtotal_exento %} <dSubExe>{{ totales.subtotal_exento }}</dSubExe>
+    {% endif %} {# F005 - Subtotal de operaciones exportación (CONDICIONAL) #} {% if
+    totales.subtotal_exportacion %} <dSubExo>{{ totales.subtotal_exportacion }}</dSubExo> {% endif
+    %} {# F008 - Total de descuentos globales (OPCIONAL) #} {% if totales.total_descuentos %} <dTotDesc>{{
+    totales.total_descuentos }}</dTotDesc> {% endif %} {# F009 - Total de anticipos globales
+    (OPCIONAL) #} {% if totales.total_anticipos %} <dTotAntGlobal>{{ totales.total_anticipos }}</dTotAntGlobal>
+    {% endif %} {# F010 - Total de anticipos particulares (OPCIONAL) #} {% if
+    totales.total_anticipos_particulares %} <dTotAnt>{{ totales.total_anticipos_particulares }}</dTotAnt>
+    {% endif %} {# F015 - Pagos anticipados (OPCIONAL) #} {% if totales.pagos_anticipados %} <dPagAnt>{{
+    totales.pagos_anticipados }}</dPagAnt> {% endif %} {# F025 - Total neto de la operación
+    (OBLIGATORIO) #} <dTotOpe>{{ totales.total_operacion }}</dTotOpe> {# F026 - Total del IVA
+    (CONDICIONAL) #} {% if totales.total_iva %} <dTotIVA>{{ totales.total_iva }}</dTotIVA> {% endif
+    %} {# F027 - Liquidación total del IVA por tasa (CONDICIONAL) #} {% if totales.liquidacion_iva_5
+    %} <dLiqTotIVA5>{{ totales.liquidacion_iva_5 }}</dLiqTotIVA5> {% endif %} {% if
+    totales.liquidacion_iva_10 %} <dLiqTotIVA10>{{ totales.liquidacion_iva_10 }}</dLiqTotIVA10> {%
+    endif %} {# F030 - Total de IEPS (OPCIONAL) #} {% if totales.total_ieps %} <dTotIEPS>{{
+    totales.total_ieps }}</dTotIEPS> {% endif %} {# F033 - Total de ISC (OPCIONAL) #} {% if
+    totales.total_isc %} <dTotISC>{{ totales.total_isc }}</dTotISC> {% endif %} {# F036 - Total de
+    otros tributos (OPCIONAL) #} {% if totales.total_otros_tributos %} <dTotOtros>{{
+    totales.total_otros_tributos }}</dTotOtros> {% endif %} {# F037 - Total con IVA incluido
+    (OPCIONAL) #} {% if totales.total_iva_incluido %} <dIVAInc>{{ totales.total_iva_incluido }}</dIVAInc>
+    {% endif %} {# F040 - Total general de la operación (OBLIGATORIO) #} <dTotGralOpe>{{
+    totales.total_general }}</dTotGralOpe> {# F041 - Total en letras (OPCIONAL) #} {% if
+    totales.total_letras %} <dTotGralOpeGs>{{ totales.total_letras }}</dTotGralOpeGs> {% endif %} {#
+    F042 - Código de moneda (OPCIONAL - importante para AFE) #} {% if totales.codigo_moneda %} <cMoneOpe>{{
+    totales.codigo_moneda }}</cMoneOpe> {% endif %} {# F043 - Descripción de la moneda (OPCIONAL) #}
+    {% if totales.descripcion_moneda %} <dDesMoneOpe>{{ totales.descripcion_moneda }}</dDesMoneOpe>
+    {% endif %} {# F044 - Condición de la operación (OPCIONAL) #} {% if totales.condicion_operacion
+    %} <dCondOpe>{{ totales.condicion_operacion }}</dCondOpe> {% endif %} {# F045 - Tipo de cambio
+    (OPCIONAL - importante para AFE importación) #} {% if totales.tipo_cambio %} <dTiCam>{{
+    totales.tipo_cambio }}</dTiCam> {% endif %} {# F046 - Total general en moneda extranjera
+    (OPCIONAL) #} {% if totales.total_moneda_extranjera %} <dTotGralOpeME>{{
+    totales.total_moneda_extranjera }}</dTotGralOpeME> {% endif %} </gTotSub>
