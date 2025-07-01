@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archivo: base_document.xml
+  Propósito: Template base común para todos los documentos SIFEN v150
+  
+  VERSIÓN ACTUALIZADA - MODULAR CON PARTIALS
+  ✅ Usa partials reutilizables de /templates/partials/
+  ✅ Estructura base común para todos los tipos de documento
+  ✅ Soporte herencia con blocks específicos por tipo
+  ✅ Namespaces oficiales SIFEN v150
+  ✅ Firma digital y QR incluidos
+  
+  Este template sirve como base para:
+  - factura_electronica.xml (FE - Tipo 1)
+  - autofactura_electronica.xml (AFE - Tipo 4)  
+  - nota_credito_electronica.xml (NCE - Tipo 5)
+  - nota_debito_electronica.xml (NDE - Tipo 6)
+  - nota_remision_electronica.xml (NRE - Tipo 7)
+  
+  Variables requeridas:
+  - cdc: String 44 caracteres (obligatorio)
+  - version: String versión formato (default: '150')
+  - include_signature: Boolean para incluir firma digital
+  - include_qr: Boolean para incluir código QR
+  
+  Autor: Sistema SIFEN Paraguay
+  Versión: 1.5.0 Modular
+  Fecha: 2025-06-30
+-->
+
+<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://ekuatia.set.gov.py/sifen/xsd DE_v150.xsd"
+    version="1.5.0"
+    Id="{{ cdc }}">
+
+    <!-- Versión del formato (OBLIGATORIO) -->
+    <dVerFor>{{ version | default('150') }}</dVerFor>
+    
+    <!-- Documento Electrónico Principal -->
+    <DE Id="{{ cdc }}">
+        
+        <!-- =================================================================== -->
+        <!-- ESTRUCTURA COMÚN USANDO PARTIALS REUTILIZABLES                     -->
+        <!-- =================================================================== -->
+        
+        <!-- gOpeDE: Datos de la operación (OBLIGATORIO - SIEMPRE) -->
+        {% include 'partials/_grupo_operacion.xml' %}
+        
+        <!-- gTimb: Datos del timbrado (OBLIGATORIO - SIEMPRE) -->
+        {% include 'partials/_grupo_timbrado.xml' %}
+        
+        <!-- gDatGralOpe: Datos generales de la operación (OBLIGATORIO - SIEMPRE) -->
+        {% include 'partials/_grupo_datos_generales.xml' %}
+        
+        <!-- =================================================================== -->
+        <!-- BLOQUE ESPECÍFICO POR TIPO DE DOCUMENTO                           -->
+        <!-- Este bloque debe ser sobrescrito por cada template especializado   -->
+        <!-- =================================================================== -->
+        {% block document_specific_content %}
+        <!-- 
+        CONTENIDO ESPECÍFICO POR TIPO DE DOCUMENTO
+        
+        DEBE SER SOBRESCRITO por cada template especializado:
+        
+        1. factura_electronica.xml:
+           - gDtipDE > gCamFE (campos específicos FE)
+           - Incluir partials comunes (emisor, receptor, items, totales)
+           
+        2. autofactura_electronica.xml:
+           - gDtipDE > gCamAE (campos específicos AFE) 
+           - Incluir sección AFE con datos vendedor
+           
+        3. nota_credito_electronica.xml:
+           - gDtipDE > gCamNCE (campos específicos NCE)
+           - Incluir documento asociado obligatorio
+           
+        4. nota_debito_electronica.xml:
+           - gDtipDE > gCamNDE (campos específicos NDE)
+           - Incluir documento asociado obligatorio
+           
+        5. nota_remision_electronica.xml:
+           - gDtipDE > gCamNRE (campos específicos NRE)
+           - Incluir transporte obligatorio (partials/_grupo_transporte.xml)
+        -->
+        
+        <!-- FALLBACK: Estructura básica si no se sobrescribe el bloque -->
+        <gDtipDE>
+            <!-- Campos específicos del tipo de documento van aquí -->
+            {% block document_type_fields %}
+            <!-- Template específico debe llenar este bloque -->
+            {% endblock %}
+        </gDtipDE>
+        
+        <!-- Emisor: Datos de quien emite (OBLIGATORIO - SIEMPRE) -->
+        {% include 'partials/_grupo_emisor.xml' %}
+        
+        <!-- Receptor: Datos de quien recibe (OBLIGATORIO - SIEMPRE) -->  
+        {% include 'partials/_grupo_receptor.xml' %}
+        
+        <!-- Items: Productos/servicios (OBLIGATORIO - SIEMPRE) -->
+        {% if items and items|length > 0 %}
+            {% for item in items %}
+                {% include 'partials/_grupo_items.xml' %}
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Totales: Montos y cálculos (OBLIGATORIO - SIEMPRE) -->
+        {% include 'partials/_grupo_totales.xml' %}
+        
+        <!-- Condiciones de pago/venta (OPCIONAL) -->
+        {% if condiciones_pago or forma_pago %}
+            {% include 'partials/_grupo_condiciones.xml' %}
+        {% endif %}
+        
+        <!-- Transporte (OBLIGATORIO solo para NRE - Tipo 7) -->
+        {% if tipo_documento == "7" or transporte %}
+            {% include 'partials/_grupo_transporte.xml' %}
+        {% endif %}
+        
+        {% endblock %}
+        
+    </DE>
+    
+    <!-- =================================================================== -->
+    <!-- FIRMA DIGITAL (INSERTADA POR MÓDULO DE FIRMA)                      -->
+    <!-- =================================================================== -->
+    {% if include_signature | default(false) %}
+        {% block digital_signature %}
+        <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+                <CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+                <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
+                <Reference URI="#{{ cdc }}">
+                    <Transforms>
+                        <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                        <Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+                    </Transforms>
+                    <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+                    <DigestValue>{{ digest_value | default('[DIGEST_PLACEHOLDER]') }}</DigestValue>
+                </Reference>
+            </SignedInfo>
+            <SignatureValue>{{ signature_value | default('[SIGNATURE_PLACEHOLDER]') }}</SignatureValue>
+            <KeyInfo>
+                <X509Data>
+                    <X509Certificate>{{ x509_certificate | default('[CERT_PLACEHOLDER]') }}</X509Certificate>
+                    {% if x509_issuer_name and x509_serial_number %}
+                    <X509IssuerSerial>
+                        <X509IssuerName>{{ x509_issuer_name }}</X509IssuerName>
+                        <X509SerialNumber>{{ x509_serial_number }}</X509SerialNumber>
+                    </X509IssuerSerial>
+                    {% endif %}
+                </X509Data>
+            </KeyInfo>
+        </Signature>
+        {% endblock %}
+    {% endif %}
+    
+    <!-- =================================================================== -->
+    <!-- CAMPOS FUERA DE FIRMA (QR CODE)                                   -->
+    <!-- =================================================================== -->
+    {% if include_qr | default(false) %}
+        {% include 'partials/_grupo_qr.xml' %}
+    {% endif %}
+    
+</rDE>

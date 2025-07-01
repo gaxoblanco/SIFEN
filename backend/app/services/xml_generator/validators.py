@@ -18,7 +18,7 @@ class SifenValidationError(Exception):
 
 class XMLValidator:
     def __init__(self):
-        self.schema_path = SCHEMAS_DIR / "DE_v150.xsd"
+        self.schema_path = SCHEMAS_DIR / "v150" / "DE_v150.xsd"
         self.schema = self._load_schema()
         self._error_mappings = self._load_error_mappings()
 
