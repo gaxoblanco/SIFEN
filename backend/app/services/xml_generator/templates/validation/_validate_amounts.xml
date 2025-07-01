@@ -1,0 +1,806 @@
+{# ===================================================================== #}
+{# VALIDATION: MONTOS Y CÁLCULOS FISCALES SIFEN #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Validador Jinja2 para montos, cálculos IVA y coherencia fiscal SIFEN v150
+ALGORITMOS: Cálculos IVA Paraguay, validaciones de coherencia, redondeo fiscal
+USADO EN: Items, totales, cálculos automáticos en todos los documentos SIFEN
+
+FUNCIONES DISPONIBLES:
+- validate_amount_format(): Valida formato decimal con precisión fiscal
+- calculate_iva_amount(): Calcula IVA según tasa Paraguay (0%, 5%, 10%)
+- validate_totals_coherence(): Valida coherencia entre items y totales
+- validate_price_calculations(): Valida cálculos de precio por ítem
+- round_fiscal_amount(): Redondeo según reglas fiscales Paraguay
+- validate_currency_amounts(): Valida montos en diferentes monedas
+
+REGLAS FISCALES SIFEN:
+- Precisión: hasta 4 decimales en cálculos intermedios
+- Redondeo final: al guaraní más cercano (matemático estándar)
+- Tolerancia: ±1 guaraní por ítem en validaciones
+- IVA Paraguay: 0% (exento), 5% (reducido), 10% (general)
+
+FÓRMULAS SIFEN v150:
+- Base gravada IVA = Precio * Cantidad - Descuentos
+- IVA líquido = Base gravada * Tasa IVA
+- Total ítem = Base gravada + IVA líquido
+- Total operación = Suma(Total ítem)
+- Total general = Total operación + Total IVA
+
+VALIDACIONES DE COHERENCIA:
+- dTotIVA = Suma(dLiqIVAItem) de todos los ítems
+- dSub10 = Suma(dBasGravIVA) donde tasa = 10%
+- dSub5 = Suma(dBasGravIVA) donde tasa = 5%
+- dSubExe = Suma(dBasGravIVA) donde tasa = 0%
+- dTotOpe = dSubExe + dSubExo + dSub5 + dSub10
+- dTotGralOpe = dTotOpe + dTotIVA
+
+CAMPOS SIFEN QUE USAN MONTOS:
+- dPUniProSer: Precio unitario producto/servicio
+- dBasGravIVA: Base gravable IVA por ítem
+- dLiqIVAItem: IVA líquido por ítem
+- dTotOpeItem: Total operación por ítem
+- dSub5/dSub10/dSubExe: Subtotales por tasa IVA
+- dTotIVA: Total IVA del documento
+- dTotGralOpe: Total general operación
+
+USO EN TEMPLATES:
+{% set amount_valid = validate_amount_format(precio_unitario) %}
+{% set iva_calc = calculate_iva_amount(base_gravable, tasa_iva) %}
+{% if not amount_valid.valid %}
+ERROR: {{ amount_valid.error }}
+{% endif %}
+#}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR FORMATO MONTO DECIMAL #}
+{# ===================================================================== #}
+{% macro validate_amount_format(amount_str, max_digits=15, max_decimals=4) %}
+{%- set result = namespace(valid=false, error="", normalized="", parsed=none) -%}
+
+{# Normalizar entrada #}
+{%- if amount_str is not none -%}
+{%- set clean_amount = amount_str|string|trim -%}
+{%- set result.normalized = clean_amount -%}
+
+{# Validar que no esté vacío #}
+{%- if clean_amount == "" -%}
+{%- set result.error = "Monto no puede estar vacío" -%}
+{# Validar patrón numérico básico #}
+{%- elif not clean_amount|regex_search('^-?\d+(\.\d+)?$') -%}
+{%- set result.error = "Monto debe ser un número decimal válido" -%}
+{%- else -%}
+{# Separar parte entera y decimal #}
+{%- if '.' in clean_amount -%}
+{%- set parts = clean_amount.split('.') -%}
+{%- set integer_part = parts[0] -%}
+{%- set decimal_part = parts[1] -%}
+{%- else -%}
+{%- set integer_part = clean_amount -%}
+{%- set decimal_part = "" -%}
+{%- endif -%}
+
+{# Quitar signo negativo para validar longitud #}
+{%- set abs_integer_part = integer_part.replace('-', '') -%}
+
+{# Validar longitud parte entera #}
+{%- if abs_integer_part|length > max_digits -%}
+{%- set result.error = "Parte entera excede " + max_digits|string + " dígitos" -%}
+{# Validar longitud parte decimal #}
+{%- elif decimal_part|length > max_decimals -%}
+{%- set result.error = "Parte decimal excede " + max_decimals|string + " decimales" -%}
+{# Validar que no sea solo ceros negativos #}
+{%- elif clean_amount == "-0" or clean_amount == "-0.0" or clean_amount == "-0.00" -%}
+{%- set result.error = "Monto no puede ser cero negativo" -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- set result.parsed = {
+"amount_decimal": clean_amount|float,
+"integer_part": integer_part,
+"decimal_part": decimal_part,
+"is_negative": clean_amount.startswith('-'),
+"has_decimals": '.' in clean_amount
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- else -%}
+{%- set result.error = "Monto es requerido" -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR MONTO POSITIVO #}
+{# ===================================================================== #}
+{% macro validate_positive_amount(amount_str) %}
+{%- set result = namespace(valid=false, error="", amount_data={}) -%}
+
+{# Validar formato primero #}
+{%- set format_validation = validate_amount_format(amount_str)|from_json -%}
+{%- if not format_validation.valid -%}
+{%- set result.error = format_validation.error -%}
+{%- else -%}
+{%- set amount_value = format_validation.parsed.amount_decimal -%}
+
+{# Validar que sea positivo #}
+{%- if amount_value
+<= 0 -%}
+        {%- set result.error = "Monto debe ser mayor a cero" -%}
+    {%- else -%}
+        {%- set result.valid = true -%}
+        {%- set result.amount_data = format_validation.parsed -%}
+    {%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: CALCULAR IVA SEGÚN TASA PARAGUAY                            #}
+{# ===================================================================== #}
+{% macro calculate_iva_amount(base_gravable, tasa_iva) %}
+{%- set result = namespace(valid=false, error="", iva_calculated=0, details={}) -%}
+
+{# Validar base gravable #}
+{%- set base_validation = validate_amount_format(base_gravable)|from_json -%}
+{%- if not base_validation.valid -%}
+    {%- set result.error = "Base gravable inválida: " + base_validation.error -%}
+{%- else -%}
+    {# Validar tasa IVA #}
+    {%- set tasa_validation = validate_amount_format(tasa_iva, 3, 2)|from_json -%}
+    {%- if not tasa_validation.valid -%}
+        {%- set result.error = "Tasa IVA inválida: " + tasa_validation.error -%}
+    {%- else -%}
+        {%- set base_value = base_validation.parsed.amount_decimal -%}
+        {%- set tasa_value = tasa_validation.parsed.amount_decimal -%}
+        
+        {# Validar tasas IVA Paraguay #}
+        {%- if tasa_value
+< 0 or tasa_value> 100 -%}
+{%- set result.error = "Tasa IVA debe estar entre 0% y 100%" -%}
+{%- else -%}
+{# Calcular IVA #}
+{%- set iva_porcentaje = tasa_value / 100 -%}
+{%- set iva_bruto = base_value * iva_porcentaje -%}
+
+{# Redondear según reglas fiscales Paraguay (4 decimales) #}
+{%- set iva_redondeado = (iva_bruto * 10000)|round / 10000 -%}
+
+{%- set result.valid = true -%}
+{%- set result.iva_calculated = iva_redondeado -%}
+{%- set result.details = {
+"base_gravable": base_value,
+"tasa_porcentual": tasa_value,
+"tasa_decimal": iva_porcentaje,
+"iva_antes_redondeo": iva_bruto,
+"iva_final": iva_redondeado,
+"tasa_valida_paraguay": tasa_value in [0, 5, 10]
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: REDONDEO FISCAL PARAGUAY #}
+{# ===================================================================== #}
+{% macro round_fiscal_amount(amount_str, decimal_places=0) %}
+{%- set result = namespace(valid=false, error="", rounded_amount=0) -%}
+
+{# Validar formato #}
+{%- set format_validation = validate_amount_format(amount_str)|from_json -%}
+{%- if not format_validation.valid -%}
+{%- set result.error = format_validation.error -%}
+{%- else -%}
+{%- set amount_value = format_validation.parsed.amount_decimal -%}
+
+{# Aplicar redondeo matemático estándar #}
+{%- set multiplier = (10 ** decimal_places) -%}
+{%- set rounded_value = (amount_value * multiplier)|round / multiplier -%}
+
+{%- set result.valid = true -%}
+{%- set result.rounded_amount = rounded_value -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR CÁLCULOS DE PRECIO POR ÍTEM #}
+{# ===================================================================== #}
+{% macro validate_price_calculations(precio_unitario, cantidad, descuento_item, tasa_iva) %}
+{%- set result = namespace(valid=false, error="", calculations={}) -%}
+
+{# Validar precio unitario #}
+{%- set precio_validation = validate_positive_amount(precio_unitario)|from_json -%}
+{%- if not precio_validation.valid -%}
+{%- set result.error = "Precio unitario: " + precio_validation.error -%}
+{%- else -%}
+
+{# Validar cantidad #}
+{%- set cantidad_validation = validate_positive_amount(cantidad)|from_json -%}
+{%- if not cantidad_validation.valid -%}
+{%- set result.error = "Cantidad: " + cantidad_validation.error -%}
+{%- else -%}
+
+{# Validar descuento (puede ser 0) #}
+{%- set descuento_validation = validate_amount_format(descuento_item)|from_json -%}
+{%- if not descuento_validation.valid -%}
+{%- set result.error = "Descuento: " + descuento_validation.error -%}
+{%- else -%}
+
+{%- set precio_val = precio_validation.amount_data.amount_decimal -%}
+{%- set cantidad_val = cantidad_validation.amount_data.amount_decimal -%}
+{%- set descuento_val = descuento_validation.parsed.amount_decimal -%}
+
+{# Calcular subtotal antes de descuento #}
+{%- set subtotal_bruto = precio_val * cantidad_val -%}
+
+{# Validar que descuento no sea mayor al subtotal #}
+{%- if descuento_val > subtotal_bruto -%}
+{%- set result.error = "Descuento (" + descuento_val|string + ") no puede ser mayor al subtotal (" +
+subtotal_bruto|string + ")" -%}
+{%- else -%}
+
+{# Calcular base gravable #}
+{%- set base_gravable = subtotal_bruto - descuento_val -%}
+
+{# Calcular IVA #}
+{%- set iva_calculation = calculate_iva_amount(base_gravable|string, tasa_iva)|from_json -%}
+{%- if not iva_calculation.valid -%}
+{%- set result.error = "Cálculo IVA: " + iva_calculation.error -%}
+{%- else -%}
+
+{%- set iva_liquido = iva_calculation.iva_calculated -%}
+{%- set total_item = base_gravable + iva_liquido -%}
+
+{# Redondear totales finales #}
+{%- set base_redondeada_result = round_fiscal_amount(base_gravable|string, 0)|from_json -%}
+{%- set iva_redondeado_result = round_fiscal_amount(iva_liquido|string, 0)|from_json -%}
+{%- set total_redondeado_result = round_fiscal_amount(total_item|string, 0)|from_json -%}
+
+{%- set result.valid = true -%}
+{%- set result.calculations = {
+"precio_unitario": precio_val,
+"cantidad": cantidad_val,
+"subtotal_bruto": subtotal_bruto,
+"descuento_item": descuento_val,
+"base_gravable": base_gravable,
+"tasa_iva": tasa_iva,
+"iva_liquido": iva_liquido,
+"total_item": total_item,
+"base_gravable_redondeada": base_redondeada_result.rounded_amount,
+"iva_liquido_redondeado": iva_redondeado_result.rounded_amount,
+"total_item_redondeado": total_redondeado_result.rounded_amount,
+"iva_details": iva_calculation.details
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR COHERENCIA DE TOTALES DOCUMENTO #}
+{# ===================================================================== #}
+{% macro validate_totals_coherence(items_list, totales_declarados) %}
+{%- set result = namespace(valid=false, error="", coherence_details={}, tolerance=1) -%}
+
+{# Inicializar acumuladores #}
+{%- set acumuladores = namespace(
+subtotal_exento=0,
+subtotal_5=0,
+subtotal_10=0,
+total_iva=0,
+total_operacion=0
+) -%}
+
+{# Procesar cada ítem #}
+{%- for item in items_list -%}
+{%- if item.tasa_iva == "0" or item.tasa_iva == 0 -%}
+{%- set acumuladores.subtotal_exento = acumuladores.subtotal_exento + (item.base_gravable|float) -%}
+{%- elif item.tasa_iva == "5" or item.tasa_iva == 5 -%}
+{%- set acumuladores.subtotal_5 = acumuladores.subtotal_5 + (item.base_gravable|float) -%}
+{%- elif item.tasa_iva == "10" or item.tasa_iva == 10 -%}
+{%- set acumuladores.subtotal_10 = acumuladores.subtotal_10 + (item.base_gravable|float) -%}
+{%- endif -%}
+
+{%- set acumuladores.total_iva = acumuladores.total_iva + (item.iva_liquido|float) -%}
+{%- endfor -%}
+
+{# Calcular total operación #}
+{%- set acumuladores.total_operacion = acumuladores.subtotal_exento + acumuladores.subtotal_5 +
+acumuladores.subtotal_10 -%}
+
+{# Redondear totales calculados #}
+{%- set subtotal_exento_calc = (acumuladores.subtotal_exento)|round -%}
+{%- set subtotal_5_calc = (acumuladores.subtotal_5)|round -%}
+{%- set subtotal_10_calc = (acumuladores.subtotal_10)|round -%}
+{%- set total_iva_calc = (acumuladores.total_iva)|round -%}
+{%- set total_operacion_calc = (acumuladores.total_operacion)|round -%}
+{%- set total_general_calc = total_operacion_calc + total_iva_calc -%}
+
+{# Obtener totales declarados #}
+{%- set subtotal_exento_decl = (totales_declarados.dSubExe|default(0))|float -%}
+{%- set subtotal_5_decl = (totales_declarados.dSub5|default(0))|float -%}
+{%- set subtotal_10_decl = (totales_declarados.dSub10|default(0))|float -%}
+{%- set total_iva_decl = (totales_declarados.dTotIVA|default(0))|float -%}
+{%- set total_operacion_decl = (totales_declarados.dTotOpe|default(0))|float -%}
+{%- set total_general_decl = (totales_declarados.dTotGralOpe|default(0))|float -%}
+
+{# Calcular diferencias #}
+{%- set diff_exento = (subtotal_exento_calc - subtotal_exento_decl)|abs -%}
+{%- set diff_5 = (subtotal_5_calc - subtotal_5_decl)|abs -%}
+{%- set diff_10 = (subtotal_10_calc - subtotal_10_decl)|abs -%}
+{%- set diff_iva = (total_iva_calc - total_iva_decl)|abs -%}
+{%- set diff_operacion = (total_operacion_calc - total_operacion_decl)|abs -%}
+{%- set diff_general = (total_general_calc - total_general_decl)|abs -%}
+
+{# Validar tolerancias #}
+{%- set errores = [] -%}
+{%- if diff_exento > result.tolerance -%}
+{%- set errores = errores + ["Subtotal exento: calculado " + subtotal_exento_calc|string + ",
+declarado " + subtotal_exento_decl|string + " (diff: " + diff_exento|string + ")"] -%}
+{%- endif -%}
+{%- if diff_5 > result.tolerance -%}
+{%- set errores = errores + ["Subtotal 5%: calculado " + subtotal_5_calc|string + ", declarado " +
+subtotal_5_decl|string + " (diff: " + diff_5|string + ")"] -%}
+{%- endif -%}
+{%- if diff_10 > result.tolerance -%}
+{%- set errores = errores + ["Subtotal 10%: calculado " + subtotal_10_calc|string + ", declarado " +
+subtotal_10_decl|string + " (diff: " + diff_10|string + ")"] -%}
+{%- endif -%}
+{%- if diff_iva > result.tolerance -%}
+{%- set errores = errores + ["Total IVA: calculado " + total_iva_calc|string + ", declarado " +
+total_iva_decl|string + " (diff: " + diff_iva|string + ")"] -%}
+{%- endif -%}
+{%- if diff_operacion > result.tolerance -%}
+{%- set errores = errores + ["Total operación: calculado " + total_operacion_calc|string + ",
+declarado " + total_operacion_decl|string + " (diff: " + diff_operacion|string + ")"] -%}
+{%- endif -%}
+{%- if diff_general > result.tolerance -%}
+{%- set errores = errores + ["Total general: calculado " + total_general_calc|string + ", declarado
+" + total_general_decl|string + " (diff: " + diff_general|string + ")"] -%}
+{%- endif -%}
+
+{# Resultado final #}
+{%- if errores|length == 0 -%}
+{%- set result.valid = true -%}
+{%- else -%}
+{%- set result.error = "Incoherencias en totales: " + errores|join(", ") -%}
+{%- endif -%}
+
+{%- set result.coherence_details = {
+"items_procesados": items_list|length,
+"tolerancia_guaranies": result.tolerance,
+"totales_calculados": {
+"subtotal_exento": subtotal_exento_calc,
+"subtotal_5": subtotal_5_calc,
+"subtotal_10": subtotal_10_calc,
+"total_iva": total_iva_calc,
+"total_operacion": total_operacion_calc,
+"total_general": total_general_calc
+},
+"totales_declarados": {
+"subtotal_exento": subtotal_exento_decl,
+"subtotal_5": subtotal_5_decl,
+"subtotal_10": subtotal_10_decl,
+"total_iva": total_iva_decl,
+"total_operacion": total_operacion_decl,
+"total_general": total_general_decl
+},
+"diferencias": {
+"subtotal_exento": diff_exento,
+"subtotal_5": diff_5,
+"subtotal_10": diff_10,
+"total_iva": diff_iva,
+"total_operacion": diff_operacion,
+"total_general": diff_general
+},
+"errores_detectados": errores
+} -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR MONTOS EN DIFERENTES MONEDAS #}
+{# ===================================================================== #}
+{% macro validate_currency_amounts(amount_str, currency_code, exchange_rate="1") %}
+{%- set result = namespace(valid=false, error="", currency_details={}) -%}
+
+{# Monedas soportadas Paraguay #}
+{%- set supported_currencies = ["PYG", "USD", "EUR", "BRL", "ARS"] -%}
+
+{# Validar código moneda #}
+{%- if currency_code not in supported_currencies -%}
+{%- set result.error = "Moneda " + currency_code + " no soportada. Válidas: " +
+supported_currencies|join(", ") -%}
+{%- else -%}
+
+{# Validar monto #}
+{%- set amount_validation = validate_amount_format(amount_str)|from_json -%}
+{%- if not amount_validation.valid -%}
+{%- set result.error = "Monto inválido: " + amount_validation.error -%}
+{%- else -%}
+
+{# Validar tipo de cambio #}
+{%- set rate_validation = validate_positive_amount(exchange_rate)|from_json -%}
+{%- if not rate_validation.valid -%}
+{%- set result.error = "Tipo cambio inválido: " + rate_validation.error -%}
+{%- else -%}
+
+{%- set amount_val = amount_validation.parsed.amount_decimal -%}
+{%- set rate_val = rate_validation.amount_data.amount_decimal -%}
+
+{# Calcular equivalente en guaraníes si no es PYG #}
+{%- if currency_code == "PYG" -%}
+{%- set amount_pyg = amount_val -%}
+{%- else -%}
+{%- set amount_pyg = amount_val * rate_val -%}
+{%- endif -%}
+
+{# Redondear al guaraní más cercano #}
+{%- set amount_pyg_rounded = amount_pyg|round -%}
+
+{%- set result.valid = true -%}
+{%- set result.currency_details = {
+"amount_original": amount_val,
+"currency_code": currency_code,
+"exchange_rate": rate_val,
+"amount_pyg": amount_pyg,
+"amount_pyg_rounded": amount_pyg_rounded,
+"is_local_currency": currency_code == "PYG",
+"requires_conversion": currency_code != "PYG"
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDACIÓN COMPLETA ÍTEM SIFEN #}
+{# ===================================================================== #}
+{% macro validate_sifen_item_amounts(item_data) %}
+{%- set result = namespace(valid=false, error="", item_validated={}) -%}
+
+{# Validar que se proporcionen datos mínimos #}
+{%- if not item_data or not item_data.precio_unitario or not item_data.cantidad -%}
+{%- set result.error = "Datos de ítem incompletos: se requiere precio_unitario y cantidad" -%}
+{%- else -%}
+
+{%- set precio = item_data.precio_unitario|string -%}
+{%- set cantidad = item_data.cantidad|string -%}
+{%- set descuento = (item_data.descuento_item|default(0))|string -%}
+{%- set tasa_iva = (item_data.tasa_iva|default(10))|string -%}
+{%- set moneda = item_data.moneda|default("PYG") -%}
+
+{# Validar cálculos de precio #}
+{%- set price_calc = validate_price_calculations(precio, cantidad, descuento, tasa_iva)|from_json
+-%}
+{%- if not price_calc.valid -%}
+{%- set result.error = "Error en cálculos: " + price_calc.error -%}
+{%- else -%}
+
+{# Validar moneda si no es PYG #}
+{%- if moneda != "PYG" -%}
+{%- set tipo_cambio = item_data.tipo_cambio|default("1")|string -%}
+{%- set currency_validation = validate_currency_amounts(precio, moneda, tipo_cambio)|from_json -%}
+{%- if not currency_validation.valid -%}
+{%- set result.error = "Error moneda: " + currency_validation.error -%}
+{%- else -%}
+{%- set currency_details = currency_validation.currency_details -%}
+{%- endif -%}
+{%- else -%}
+{%- set currency_details = {
+"amount_original": price_calc.calculations.precio_unitario,
+"currency_code": "PYG",
+"is_local_currency": true
+} -%}
+{%- endif -%}
+
+{%- if result.error == "" -%}
+{%- set result.valid = true -%}
+{%- set result.item_validated = {
+"descripcion": item_data.descripcion|default(""),
+"precio_unitario": price_calc.calculations.precio_unitario,
+"cantidad": price_calc.calculations.cantidad,
+"descuento_item": price_calc.calculations.descuento_item,
+"subtotal_bruto": price_calc.calculations.subtotal_bruto,
+"base_gravable": price_calc.calculations.base_gravable_redondeada,
+"tasa_iva": tasa_iva,
+"iva_liquido": price_calc.calculations.iva_liquido_redondeado,
+"total_item": price_calc.calculations.total_item_redondeado,
+"moneda": moneda,
+"currency_details": currency_details,
+"calculations_details": price_calc.calculations
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: GENERAR CÁLCULOS AUTOMÁTICOS FACTURA #}
+{# ===================================================================== #}
+{% macro calculate_invoice_totals(items_list) %}
+{%- set result = namespace(valid=false, error="", totals={}) -%}
+
+{# Validar que hay ítems #}
+{%- if not items_list or items_list|length == 0 -%}
+{%- set result.error = "No se proporcionaron ítems para calcular totales" -%}
+{%- else -%}
+
+{# Validar cada ítem individualmente #}
+{%- set items_validados = [] -%}
+{%- set errores_items = [] -%}
+
+{%- for item in items_list -%}
+{%- set item_validation = validate_sifen_item_amounts(item)|from_json -%}
+{%- if item_validation.valid -%}
+{%- set items_validados = items_validados + [item_validation.item_validated] -%}
+{%- else -%}
+{%- set errores_items = errores_items + ["Ítem " + loop.index|string + ": " + item_validation.error]
+-%}
+{%- endif -%}
+{%- endfor -%}
+
+{# Si hay errores en ítems, reportar #}
+{%- if errores_items|length > 0 -%}
+{%- set result.error = "Errores en ítems: " + errores_items|join("; ") -%}
+{%- else -%}
+
+{# Calcular totales usando ítems validados #}
+{%- set acumuladores = namespace(
+subtotal_exento=0,
+subtotal_5=0,
+subtotal_10=0,
+total_iva=0,
+total_items_count=items_validados|length
+) -%}
+
+{%- for item in items_validados -%}
+{%- set tasa = item.tasa_iva|float -%}
+{%- set base = item.base_gravable -%}
+{%- set iva = item.iva_liquido -%}
+
+{%- if tasa == 0 -%}
+{%- set acumuladores.subtotal_exento = acumuladores.subtotal_exento + base -%}
+{%- elif tasa == 5 -%}
+{%- set acumuladores.subtotal_5 = acumuladores.subtotal_5 + base -%}
+{%- elif tasa == 10 -%}
+{%- set acumuladores.subtotal_10 = acumuladores.subtotal_10 + base -%}
+{%- endif -%}
+
+{%- set acumuladores.total_iva = acumuladores.total_iva + iva -%}
+{%- endfor -%}
+
+{# Redondear totales finales #}
+{%- set subtotal_exento_final = (acumuladores.subtotal_exento)|round -%}
+{%- set subtotal_5_final = (acumuladores.subtotal_5)|round -%}
+{%- set subtotal_10_final = (acumuladores.subtotal_10)|round -%}
+{%- set total_iva_final = (acumuladores.total_iva)|round -%}
+{%- set total_operacion_final = subtotal_exento_final + subtotal_5_final + subtotal_10_final -%}
+{%- set total_general_final = total_operacion_final + total_iva_final -%}
+
+{%- set result.valid = true -%}
+{%- set result.totals = {
+"items_procesados": acumuladores.total_items_count,
+"dSubExe": subtotal_exento_final,
+"dSub5": subtotal_5_final,
+"dSub10": subtotal_10_final,
+"dTotIVA": total_iva_final,
+"dTotOpe": total_operacion_final,
+"dTotGralOpe": total_general_final,
+"items_validados": items_validados,
+"detalle_por_tasa": {
+"exento_0": {
+"subtotal": subtotal_exento_final,
+"items_count": items_validados|selectattr("tasa_iva", "equalto", "0")|list|length
+},
+"reducido_5": {
+"subtotal": subtotal_5_final,
+"iva_calculado": (subtotal_5_final * 0.05)|round,
+"items_count": items_validados|selectattr("tasa_iva", "equalto", "5")|list|length
+},
+"general_10": {
+"subtotal": subtotal_10_final,
+"iva_calculado": (subtotal_10_final * 0.10)|round,
+"items_count": items_validados|selectattr("tasa_iva", "equalto", "10")|list|length
+}
+}
+} -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR LÍMITES MONETARIOS SIFEN #}
+{# ===================================================================== #}
+{% macro validate_sifen_amount_limits(total_general, tipo_documento, include_receptor_data) %}
+{%- set result = namespace(valid=false, error="", limit_details={}) -%}
+
+{# Validar total general #}
+{%- set amount_validation = validate_amount_format(total_general)|from_json -%}
+{%- if not amount_validation.valid -%}
+{%- set result.error = "Total general inválido: " + amount_validation.error -%}
+{%- else -%}
+
+{%- set total_value = amount_validation.parsed.amount_decimal -%}
+
+{# Límites SIFEN v150 en guaraníes #}
+{%- set limite_receptor_obligatorio = 7000000 -%} {# 7M - Receptor obligatorio #}
+{%- set limite_maximo_electronico = 35000000 -%} {# 35M - Máximo electrónico #}
+
+{# Determinar requisitos según monto y tipo documento #}
+{%- set requiere_receptor = total_value >= limite_receptor_obligatorio -%}
+{%- set dentro_limite_electronico = total_value
+<= limite_maximo_electronico -%}
+    
+    {# Validaciones específicas por tipo documento #}
+    {%- if tipo_documento == "1" -%}  {# Factura Electrónica #}
+        {%- if not dentro_limite_electronico -%}
+            {%- set result.error = "Factura electrónica: monto " + total_value|string + " Gs. excede límite máximo " + limite_maximo_electronico|string + " Gs." -%}
+        {%- elif requiere_receptor and not include_receptor_data -%}
+            {%- set result.error = "Factura ≥ " + limite_receptor_obligatorio|string + " Gs. requiere datos completos del receptor" -%}
+        {%- else -%}
+            {%- set result.valid = true -%}
+        {%- endif -%}
+    {%- elif tipo_documento in ["5", "6"] -%}  {# Notas Crédito/Débito #}
+        {# Las notas pueden tener montos negativos o ajustes #}
+        {%- if total_value|abs> limite_maximo_electronico -%}
+{%- set result.error = "Nota electrónica: monto absoluto " + (total_value|abs)|string + " Gs. excede
+límite máximo " + limite_maximo_electronico|string + " Gs." -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- endif -%}
+{%- elif tipo_documento == "7" -%} {# Nota Remisión #}
+{# Nota de remisión debe tener totales en 0 #}
+{%- if total_value != 0 -%}
+{%- set result.error = "Nota de remisión debe tener total general = 0, recibido: " +
+total_value|string -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- endif -%}
+{%- else -%}
+{# Otros tipos documento #}
+{%- set result.valid = true -%}
+{%- endif -%}
+
+{# Detalles del análisis #}
+{%- if result.error == "" -%}
+{%- set result.limit_details = {
+"total_analizado": total_value,
+"tipo_documento": tipo_documento,
+"limite_receptor_obligatorio": limite_receptor_obligatorio,
+"limite_maximo_electronico": limite_maximo_electronico,
+"requiere_receptor": requiere_receptor,
+"dentro_limite_electronico": dentro_limite_electronico,
+"include_receptor_provided": include_receptor_data,
+"cumple_requisitos": true
+} -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: HELPERS DE FORMATEO PARA XML SIFEN #}
+{# ===================================================================== #}
+{% macro format_amount_sifen(amount_str, format_type="decimal") %}
+{%- set result = namespace(formatted="", valid=false) -%}
+
+{%- set amount_validation = validate_amount_format(amount_str)|from_json -%}
+{%- if amount_validation.valid -%}
+{%- set amount_value = amount_validation.parsed.amount_decimal -%}
+
+{%- if format_type == "decimal" -%}
+{# Formato decimal con hasta 4 decimales #}
+{%- if amount_value == (amount_value|round) -%}
+{%- set result.formatted = amount_value|round|string -%}
+{%- else -%}
+{%- set result.formatted = "%.4f"|format(amount_value)|regex_replace('\.?0+, '') -%}
+{%- endif -%}
+{%- elif format_type == "integer" -%}
+{# Formato entero (redondeado) #}
+{%- set result.formatted = (amount_value|round)|string -%}
+{%- elif format_type == "percentage" -%}
+{# Formato porcentaje #}
+{%- set result.formatted = "%.2f"|format(amount_value) -%}
+{%- else -%}
+{%- set result.formatted = amount_value|string -%}
+{%- endif -%}
+
+{%- set result.valid = true -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDACIÓN COMPLETA DOCUMENTO SIFEN #}
+{# ===================================================================== #}
+{% macro validate_document_amounts(document_data) %}
+{%- set result = namespace(valid=false, error="", document_validated={}) -%}
+
+{# Validar estructura básica #}
+{%- if not document_data or not document_data.items -%}
+{%- set result.error = "Datos de documento incompletos: se requieren ítems" -%}
+{%- else -%}
+
+{%- set tipo_doc = document_data.tipo_documento|default("1") -%}
+{%- set incluye_receptor = document_data.include_receptor|default(false) -%}
+
+{# Calcular totales automáticamente #}
+{%- set totals_calculation = calculate_invoice_totals(document_data.items)|from_json -%}
+{%- if not totals_calculation.valid -%}
+{%- set result.error = "Error calculando totales: " + totals_calculation.error -%}
+{%- else -%}
+
+{%- set totales_calculados = totals_calculation.totals -%}
+
+{# Validar límites SIFEN #}
+{%- set limits_validation = validate_sifen_amount_limits(
+totales_calculados.dTotGralOpe|string,
+tipo_doc,
+incluye_receptor
+)|from_json -%}
+
+{%- if not limits_validation.valid -%}
+{%- set result.error = "Error límites SIFEN: " + limits_validation.error -%}
+{%- else -%}
+
+{# Si se proporcionaron totales declarados, validar coherencia #}
+{%- if document_data.totales_declarados -%}
+{%- set coherence_validation = validate_totals_coherence(
+totales_calculados.items_validados,
+document_data.totales_declarados
+)|from_json -%}
+
+{%- if not coherence_validation.valid -%}
+{%- set result.error = "Error coherencia: " + coherence_validation.error -%}
+{%- else -%}
+{%- set coherence_details = coherence_validation.coherence_details -%}
+{%- endif -%}
+{%- else -%}
+{%- set coherence_details = {} -%}
+{%- endif -%}
+
+{%- if result.error == "" -%}
+{%- set result.valid = true -%}
+{%- set result.document_validated = {
+"tipo_documento": tipo_doc,
+"items_count": totales_calculados.items_procesados,
+"totales_automaticos": totales_calculados,
+"limites_sifen": limits_validation.limit_details,
+"coherencia_validada": coherence_details,
+"ready_for_xml": true,
+"validation_summary": {
+"items_validos": totales_calculados.items_procesados,
+"total_general": totales_calculados.dTotGralOpe,
+"total_iva": totales_calculados.dTotIVA,
+"cumple_limites": true,
+"requiere_receptor": limits_validation.limit_details.requiere_receptor if
+limits_validation.limit_details else false
+}
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}

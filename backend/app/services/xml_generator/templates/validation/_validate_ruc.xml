@@ -1,0 +1,269 @@
+{# ===================================================================== #}
+{# VALIDATION: RUC PARAGUAYO Y DÍGITO VERIFICADOR #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Validador Jinja2 para RUC paraguayo y dígito verificador
+ALGORITMO: Módulo 11 según normativa SET Paraguay
+USADO EN: Emisor, receptor, terceros en todos los documentos SIFEN
+
+FUNCIONES DISPONIBLES:
+- validate_ruc_format(): Valida formato básico RUC (8 dígitos)
+- validate_dv_format(): Valida formato DV (1 dígito)
+- calculate_ruc_dv(): Calcula dígito verificador según algoritmo SET
+- validate_ruc_complete(): Validación completa RUC + DV
+- format_ruc_display(): Formatea RUC para visualización
+
+ALGORITMO MÓDULO 11 SET PARAGUAY:
+- Factores: [2, 3, 4, 5, 6, 7, 2, 3] (posiciones 1-8)
+- Suma ponderada: Σ(dígito × factor)
+- Resto: suma % 11
+- Si resto
+< 2: DV = 0
+   - Si resto>= 2: DV = 11 - resto
+
+FORMATOS VÁLIDOS:
+- RUC emisor: 8 dígitos exactos
+- DV: 1 dígito (0-9)
+- RUC completo: 9 dígitos (8 + 1 DV)
+
+CASOS ESPECIALES:
+- RUC 00000000: INVÁLIDO
+- RUC extranjeros: NO SOPORTADOS
+- Formatos con guiones: CONVERTIR a numérico
+
+ERRORES COMUNES:
+- Longitud incorrecta
+- Caracteres no numéricos
+- DV calculado mal
+- RUC de testing mal formados
+
+USO EN TEMPLATES:
+{% set validation_result = validate_ruc_complete(emisor.ruc, emisor.dv) %}
+{% if not validation_result.valid %}
+ERROR: {{ validation_result.error }}
+{% endif %}
+#}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR FORMATO RUC (8 DÍGITOS) #}
+{# ===================================================================== #}
+{% macro validate_ruc_format(ruc) %}
+{%- set result = namespace(valid=false, error="", normalized="") -%}
+
+{# Normalizar entrada #}
+{%- if ruc -%}
+{%- set clean_ruc = ruc|string|replace("-", "")|replace(" ", "")|trim -%}
+{%- set result.normalized = clean_ruc -%}
+
+{# Validar longitud #}
+{%- if clean_ruc|length != 8 -%}
+{%- set result.error = "RUC debe tener exactamente 8 dígitos" -%}
+{# Validar solo números #}
+{%- elif not clean_ruc.isdigit() -%}
+{%- set result.error = "RUC debe contener solo dígitos numéricos" -%}
+{# Validar no sea todos ceros #}
+{%- elif clean_ruc == "00000000" -%}
+{%- set result.error = "RUC no puede ser 00000000" -%}
+{# Validar rango mínimo #}
+{%- elif clean_ruc|int
+< 10000000 -%}
+        {%- set result.error = "RUC debe ser mayor a 10000000" -%}
+    {%- else -%}
+        {%- set result.valid = true -%}
+    {%- endif -%}
+{%- else -%}
+    {%- set result.error = "RUC es requerido" -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR FORMATO DÍGITO VERIFICADOR                          #}
+{# ===================================================================== #}
+{% macro validate_dv_format(dv) %}
+{%- set result = namespace(valid=false, error="", normalized="") -%}
+
+{# Normalizar entrada #}
+{%- if dv is not none -%}
+    {%- set clean_dv = dv|string|trim -%}
+    {%- set result.normalized = clean_dv -%}
+    
+    {# Validar longitud #}
+    {%- if clean_dv|length != 1 -%}
+        {%- set result.error = "DV debe tener exactamente 1 dígito" -%}
+    {# Validar solo números #}
+    {%- elif not clean_dv.isdigit() -%}
+        {%- set result.error = "DV debe ser un dígito numérico (0-9)" -%}
+    {%- else -%}
+        {%- set result.valid = true -%}
+    {%- endif -%}
+{%- else -%}
+    {%- set result.error = "DV es requerido" -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: CALCULAR DÍGITO VERIFICADOR MÓDULO 11                       #}
+{# ===================================================================== #}
+{% macro calculate_ruc_dv(ruc) %}
+{%- set result = namespace(valid=false, error="", calculated_dv="") -%}
+
+{# Validar RUC primero #}
+{%- set ruc_validation = validate_ruc_format(ruc)|from_json -%}
+{%- if not ruc_validation.valid -%}
+    {%- set result.error = ruc_validation.error -%}
+{%- else -%}
+    {%- set clean_ruc = ruc_validation.normalized -%}
+    
+    {# Factores para algoritmo módulo 11 SET Paraguay #}
+    {%- set factors = [2, 3, 4, 5, 6, 7, 2, 3] -%}
+    
+    {# Calcular suma ponderada #}
+    {%- set suma = namespace(total=0) -%}
+    {%- for i in range(8) -%}
+        {%- set digit = clean_ruc[i]|int -%}
+        {%- set factor = factors[i] -%}
+        {%- set suma.total = suma.total + (digit * factor) -%}
+    {%- endfor -%}
+    
+    {# Calcular módulo 11 #}
+    {%- set remainder = suma.total % 11 -%}
+    
+    {# Aplicar regla SET Paraguay #}
+    {%- if remainder
+< 2 -%}
+        {%- set result.calculated_dv = "0" -%}
+    {%- else -%}
+        {%- set result.calculated_dv = (11 - remainder)|string -%}
+    {%- endif -%}
+    
+    {%- set result.valid = true -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDACIÓN COMPLETA RUC + DV                                #}
+{# ===================================================================== #}
+{% macro validate_ruc_complete(ruc, dv) %}
+{%- set result = namespace(valid=false, error="", details={}) -%}
+
+{# Validar RUC #}
+{%- set ruc_validation = validate_ruc_format(ruc)|from_json -%}
+{%- if not ruc_validation.valid -%}
+    {%- set result.error = "RUC inválido: " + ruc_validation.error -%}
+{%- else -%}
+    
+    {# Validar DV #}
+    {%- set dv_validation = validate_dv_format(dv)|from_json -%}
+    {%- if not dv_validation.valid -%}
+        {%- set result.error = "DV inválido: " + dv_validation.error -%}
+    {%- else -%}
+        
+        {# Calcular DV correcto #}
+        {%- set dv_calculation = calculate_ruc_dv(ruc)|from_json -%}
+        {%- if not dv_calculation.valid -%}
+            {%- set result.error = "Error calculando DV: " + dv_calculation.error -%}
+        {%- else -%}
+            
+            {# Comparar DV proporcionado vs calculado #}
+            {%- if dv_validation.normalized == dv_calculation.calculated_dv -%}
+                {%- set result.valid = true -%}
+                {%- set result.details = {
+                    "ruc_normalized": ruc_validation.normalized,
+                    "dv_normalized": dv_validation.normalized,
+                    "ruc_completo": ruc_validation.normalized + dv_validation.normalized,
+                    "algorithm_used": "modulo_11_set_paraguay"
+                } -%}
+            {%- else -%}
+                {%- set result.error = "DV incorrecto: esperado " + dv_calculation.calculated_dv + ", recibido " + dv_validation.normalized -%}
+            {%- endif -%}
+        {%- endif -%}
+    {%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: FORMATEAR RUC PARA VISUALIZACIÓN                            #}
+{# ===================================================================== #}
+{% macro format_ruc_display(ruc, dv, format_type="complete") %}
+{%- set result = namespace(formatted="", valid=false) -%}
+
+{# Validar RUC completo #}
+{%- set validation = validate_ruc_complete(ruc, dv)|from_json -%}
+{%- if validation.valid -%}
+    {%- set result.valid = true -%}
+    {%- set clean_ruc = validation.details.ruc_normalized -%}
+    {%- set clean_dv = validation.details.dv_normalized -%}
+    
+    {# Formatear según tipo solicitado #}
+    {%- if format_type == "complete" -%}
+        {%- set result.formatted = clean_ruc + clean_dv -%}
+    {%- elif format_type == "with_dash" -%}
+        {%- set result.formatted = clean_ruc + "-" + clean_dv -%}
+    {%- elif format_type == "only_ruc" -%}
+        {%- set result.formatted = clean_ruc -%}
+    {%- elif format_type == "only_dv" -%}
+        {%- set result.formatted = clean_dv -%}
+    {%- elif format_type == "xml_emisor" -%}
+        {# Para campo dRucEm (RUC + DV concatenado) #}
+        {%- set result.formatted = clean_ruc + clean_dv -%}
+    {%- elif format_type == "xml_dv" -%}
+        {# Para campo dDVEmi (solo DV) #}
+        {%- set result.formatted = clean_dv -%}
+    {%- else -%}
+        {%- set result.formatted = clean_ruc + clean_dv -%}
+    {%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR LISTA DE RUCS                                       #}
+{# ===================================================================== #}
+{% macro validate_ruc_list(ruc_list) %}
+{%- set result = namespace(valid=true, errors=[], valid_rucs=[]) -%}
+
+{%- for ruc_data in ruc_list -%}
+    {%- set validation = validate_ruc_complete(ruc_data.ruc, ruc_data.dv)|from_json -%}
+    {%- if validation.valid -%}
+        {%- set result.valid_rucs = result.valid_rucs + [validation.details] -%}
+    {%- else -%}
+        {%- set result.valid = false -%}
+        {%- set result.errors = result.errors + [{
+            "ruc": ruc_data.ruc,
+            "dv": ruc_data.dv,
+            "error": validation.error
+        }] -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: GENERAR RUC DE TESTING VÁLIDO                               #}
+{# ===================================================================== #}
+{% macro generate_test_ruc(base_number=12345678) %}
+{%- set result = namespace(ruc="", dv="", complete="") -%}
+
+{# Convertir base a string de 8 dígitos #}
+{%- set base_str = ("%08d"|format(base_number)) -%}
+
+{# Calcular DV #}
+{%- set dv_calculation = calculate_ruc_dv(base_str)|from_json -%}
+{%- if dv_calculation.valid -%}
+    {%- set result.ruc = base_str -%}
+    {%- set result.dv = dv_calculation.calculated_dv -%}
+    {%- set result.complete = base_str + dv_calculation.calculated_dv -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}

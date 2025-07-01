@@ -1,0 +1,396 @@
+{# ===================================================================== #}
+{# VALIDATION: FECHAS ISO 8601 SIFEN #}
+{# ===================================================================== #}
+{#
+PROPÓSITO: Validador Jinja2 para fechas según formato SIFEN v150
+FORMATOS: ISO 8601 fecha y fecha-hora
+USADO EN: Emisión, vencimientos, eventos en todos los documentos SIFEN
+
+FUNCIONES DISPONIBLES:
+- validate_date_format(): Valida formato fecha ISO (YYYY-MM-DD)
+- validate_datetime_format(): Valida formato fecha-hora ISO (YYYY-MM-DDTHH:MM:SS)
+- validate_date_range(): Valida que fecha esté en rango permitido
+- validate_future_date(): Valida que fecha no sea futura
+- validate_date_coherence(): Valida coherencia entre fechas relacionadas
+- format_date_sifen(): Formatea fecha para XML SIFEN
+
+FORMATOS SIFEN:
+- Fecha simple: YYYY-MM-DD (ej: 2025-06-30)
+- Fecha-hora: YYYY-MM-DDTHH:MM:SS (ej: 2025-06-30T14:30:00)
+- Timezone: Paraguay UTC-3 (implícito)
+- Precisión: Segundos (no milisegundos)
+
+REGLAS SIFEN:
+- No fechas futuras (tolerancia +5 min para fecha-hora)
+- Rango válido: 2010-01-01 hasta 2099-12-31
+- Fechas emisión deben ser
+<= fecha actual
+   - Fechas vencimiento pueden ser futuras
+   - Eventos máximo +24 horas antigüedad
+   
+   CAMPOS SIFEN QUE USAN FECHAS:
+   - dFeEmiDE: Fecha emisión documento (YYYY-MM-DDTHH:MM:SS)
+   - dVencMerc: Fecha vencimiento productos (YYYY-MM-DD)
+   - dFecEmiDocAso: Fecha documento asociado (YYYY-MM-DDTHH:MM:SS)
+   - dFeIniT/dFeFinT: Vigencia timbrado (YYYY-MM-DD)
+   - dFecRecep: Fecha recepción eventos (YYYY-MM-DDTHH:MM:SS)
+   
+   USO EN TEMPLATES:
+   {% set date_valid = validate_datetime_format(fecha_emision) %}
+   {% if not date_valid.valid %}
+       ERROR: {{ date_valid.error }}
+   {% endif %}
+#}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR FORMATO FECHA ISO (YYYY-MM-DD)                      #}
+{# ===================================================================== #}
+{% macro validate_date_format(date_str) %}
+{%- set result = namespace(valid=false, error="", normalized="", parsed=none) -%}
+
+{# Normalizar entrada #}
+{%- if date_str -%}
+    {%- set clean_date = date_str|string|trim -%}
+    {%- set result.normalized = clean_date -%}
+    
+    {# Validar longitud #}
+    {%- if clean_date|length != 10 -%}
+        {%- set result.error = "Fecha debe tener formato YYYY-MM-DD (10 caracteres)" -%}
+    {# Validar patrón básico #}
+    {%- elif not clean_date|regex_search('^\d{4}-\d{2}-\d{2}$') -%}
+        {%- set result.error = "Fecha debe tener formato YYYY-MM-DD con números y guiones" -%}
+    {%- else -%}
+        {# Parsear componentes #}
+        {%- set parts = clean_date.split('-') -%}
+        {%- set year = parts[0]|int -%}
+        {%- set month = parts[1]|int -%}
+        {%- set day = parts[2]|int -%}
+        
+        {# Validar rangos básicos #}
+        {%- if year
+< 2010 or year> 2099 -%}
+{%- set result.error = "Año debe estar entre 2010 y 2099" -%}
+{%- elif month
+< 1 or month> 12 -%}
+{%- set result.error = "Mes debe estar entre 01 y 12" -%}
+{%- elif day
+< 1 or day> 31 -%}
+{%- set result.error = "Día debe estar entre 01 y 31" -%}
+{# Validar días específicos por mes #}
+{%- elif month in [4, 6, 9, 11] and day > 30 -%}
+{%- set result.error = "Mes " + month|string + " solo tiene 30 días" -%}
+{%- elif month == 2 and day > 29 -%}
+{%- set result.error = "Febrero solo tiene máximo 29 días" -%}
+{%- elif month == 2 and day == 29 and year % 4 != 0 -%}
+{%- set result.error = "Año " + year|string + " no es bisiesto, febrero tiene 28 días" -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- set result.parsed = {
+"year": year,
+"month": month,
+"day": day,
+"date_formatted": clean_date
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- else -%}
+{%- set result.error = "Fecha es requerida" -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR FORMATO FECHA-HORA ISO (YYYY-MM-DDTHH:MM:SS) #}
+{# ===================================================================== #}
+{% macro validate_datetime_format(datetime_str) %}
+{%- set result = namespace(valid=false, error="", normalized="", parsed=none) -%}
+
+{# Normalizar entrada #}
+{%- if datetime_str -%}
+{%- set clean_datetime = datetime_str|string|trim -%}
+{%- set result.normalized = clean_datetime -%}
+
+{# Validar longitud #}
+{%- if clean_datetime|length != 19 -%}
+{%- set result.error = "Fecha-hora debe tener formato YYYY-MM-DDTHH:MM:SS (19 caracteres)" -%}
+{# Validar patrón básico #}
+{%- elif not clean_datetime|regex_search('^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$') -%}
+{%- set result.error = "Fecha-hora debe tener formato YYYY-MM-DDTHH:MM:SS con T separando fecha y
+hora" -%}
+{%- else -%}
+{# Separar fecha y hora #}
+{%- set datetime_parts = clean_datetime.split('T') -%}
+{%- set date_part = datetime_parts[0] -%}
+{%- set time_part = datetime_parts[1] -%}
+
+{# Validar parte de fecha #}
+{%- set date_validation = validate_date_format(date_part)|from_json -%}
+{%- if not date_validation.valid -%}
+{%- set result.error = "Fecha inválida: " + date_validation.error -%}
+{%- else -%}
+{# Validar parte de hora #}
+{%- set time_parts = time_part.split(':') -%}
+{%- set hour = time_parts[0]|int -%}
+{%- set minute = time_parts[1]|int -%}
+{%- set second = time_parts[2]|int -%}
+
+{%- if hour
+< 0 or hour> 23 -%}
+{%- set result.error = "Hora debe estar entre 00 y 23" -%}
+{%- elif minute
+< 0 or minute> 59 -%}
+{%- set result.error = "Minutos deben estar entre 00 y 59" -%}
+{%- elif second
+< 0 or second> 59 -%}
+{%- set result.error = "Segundos deben estar entre 00 y 59" -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- set result.parsed = {
+"year": date_validation.parsed.year,
+"month": date_validation.parsed.month,
+"day": date_validation.parsed.day,
+"hour": hour,
+"minute": minute,
+"second": second,
+"date_part": date_part,
+"time_part": time_part,
+"datetime_formatted": clean_datetime
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+{%- else -%}
+{%- set result.error = "Fecha-hora es requerida" -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR RANGO DE FECHAS SIFEN #}
+{# ===================================================================== #}
+{% macro validate_date_range(date_str, min_year=2010, max_year=2099) %}
+{%- set result = namespace(valid=false, error="", details={}) -%}
+
+{# Validar formato primero #}
+{%- set date_validation = validate_date_format(date_str)|from_json -%}
+{%- if not date_validation.valid -%}
+{%- set result.error = date_validation.error -%}
+{%- else -%}
+{%- set year = date_validation.parsed.year -%}
+
+{# Validar rango SIFEN #}
+{%- if year
+< min_year -%}
+    {%- set result.error="Fecha muy antigua: año " + year|string + " es anterior al mínimo " + min_year|string -%}
+    {%- elif year> max_year -%}
+{%- set result.error = "Fecha muy futura: año " + year|string + " es posterior al máximo " +
+max_year|string -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- set result.details = {
+"year": year,
+"within_range": true,
+"min_year": min_year,
+"max_year": max_year,
+"normalized_date": date_validation.normalized
+} -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR QUE NO SEA FECHA FUTURA #}
+{# ===================================================================== #}
+{% macro validate_future_date(datetime_str, tolerance_minutes=5) %}
+{%- set result = namespace(valid=false, error="", details={}) -%}
+
+{# Validar formato primero #}
+{%- set datetime_validation = validate_datetime_format(datetime_str)|from_json -%}
+{%- if not datetime_validation.valid -%}
+{%- set result.error = datetime_validation.error -%}
+{%- else -%}
+{# Para este validador, asumimos que "now" se pasa como variable #}
+{# En producción, esto se calcularía en el backend antes de renderizar #}
+{%- if current_datetime -%}
+{%- set current_validation = validate_datetime_format(current_datetime)|from_json -%}
+{%- if current_validation.valid -%}
+{%- set parsed_input = datetime_validation.parsed -%}
+{%- set parsed_current = current_validation.parsed -%}
+
+{# Conversión simple a timestamp (año * 10000 + mes * 100 + día + hora/100) #}
+{%- set input_timestamp = (parsed_input.year * 100000000) + (parsed_input.month * 1000000) +
+(parsed_input.day * 10000) + (parsed_input.hour * 100) + parsed_input.minute -%}
+{%- set current_timestamp = (parsed_current.year * 100000000) + (parsed_current.month * 1000000) +
+(parsed_current.day * 10000) + (parsed_current.hour * 100) + parsed_current.minute -%}
+
+{# Aplicar tolerancia #}
+{%- set tolerance_timestamp = tolerance_minutes -%}
+{%- set allowed_timestamp = current_timestamp + tolerance_timestamp -%}
+
+{%- if input_timestamp > allowed_timestamp -%}
+{%- set result.error = "Fecha futura no permitida: " + datetime_str + " es posterior a la actual con
+tolerancia de " + tolerance_minutes|string + " minutos" -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- set result.details = {
+"input_datetime": datetime_str,
+"current_datetime": current_datetime,
+"tolerance_minutes": tolerance_minutes,
+"is_future": false
+} -%}
+{%- endif -%}
+{%- else -%}
+{%- set result.error = "Fecha actual inválida para comparación" -%}
+{%- endif -%}
+{%- else -%}
+{# Sin fecha actual, solo validamos formato #}
+{%- set result.valid = true -%}
+{%- set result.details = {
+"input_datetime": datetime_str,
+"validation_skipped": "no_current_datetime_provided"
+} -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDAR COHERENCIA ENTRE FECHAS #}
+{# ===================================================================== #}
+{% macro validate_date_coherence(start_date, end_date, field_names=["fecha_inicio", "fecha_fin"]) %}
+{%- set result = namespace(valid=false, error="", details={}) -%}
+
+{# Validar ambas fechas por separado #}
+{%- set start_validation = validate_datetime_format(start_date)|from_json -%}
+{%- set end_validation = validate_datetime_format(end_date)|from_json -%}
+
+{%- if not start_validation.valid -%}
+{%- set result.error = field_names[0] + " inválida: " + start_validation.error -%}
+{%- elif not end_validation.valid -%}
+{%- set result.error = field_names[1] + " inválida: " + end_validation.error -%}
+{%- else -%}
+{# Comparar fechas (conversión simple) #}
+{%- set start_parsed = start_validation.parsed -%}
+{%- set end_parsed = end_validation.parsed -%}
+
+{%- set start_timestamp = (start_parsed.year * 100000000) + (start_parsed.month * 1000000) +
+(start_parsed.day * 10000) + (start_parsed.hour * 100) + start_parsed.minute -%}
+{%- set end_timestamp = (end_parsed.year * 100000000) + (end_parsed.month * 1000000) +
+(end_parsed.day * 10000) + (end_parsed.hour * 100) + end_parsed.minute -%}
+
+{%- if start_timestamp > end_timestamp -%}
+{%- set result.error = field_names[0] + " (" + start_date + ") no puede ser posterior a " +
+field_names[1] + " (" + end_date + ")" -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- set result.details = {
+"start_date": start_date,
+"end_date": end_date,
+"field_names": field_names,
+"chronologically_correct": true
+} -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: FORMATEAR FECHA PARA XML SIFEN #}
+{# ===================================================================== #}
+{% macro format_date_sifen(date_input, format_type="datetime") %}
+{%- set result = namespace(formatted="", valid=false, normalized="") -%}
+
+{%- if format_type == "date" -%}
+{# Formato solo fecha YYYY-MM-DD #}
+{%- set validation = validate_date_format(date_input)|from_json -%}
+{%- if validation.valid -%}
+{%- set result.valid = true -%}
+{%- set result.formatted = validation.normalized -%}
+{%- set result.normalized = validation.normalized -%}
+{%- endif -%}
+{%- elif format_type == "datetime" -%}
+{# Formato fecha-hora YYYY-MM-DDTHH:MM:SS #}
+{%- set validation = validate_datetime_format(date_input)|from_json -%}
+{%- if validation.valid -%}
+{%- set result.valid = true -%}
+{%- set result.formatted = validation.normalized -%}
+{%- set result.normalized = validation.normalized -%}
+{%- endif -%}
+{%- elif format_type == "date_from_datetime" -%}
+{# Extraer solo la parte de fecha de un datetime #}
+{%- set validation = validate_datetime_format(date_input)|from_json -%}
+{%- if validation.valid -%}
+{%- set result.valid = true -%}
+{%- set result.formatted = validation.parsed.date_part -%}
+{%- set result.normalized = validation.parsed.date_part -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: VALIDACIÓN COMPLETA CAMPO SIFEN #}
+{# ===================================================================== #}
+{% macro validate_sifen_date_field(date_value, field_name, field_type="datetime",
+allow_future=false) %}
+{%- set result = namespace(valid=false, error="", field_info={}) -%}
+
+{# Validar según tipo de campo #}
+{%- if field_type == "date" -%}
+{%- set format_validation = validate_date_format(date_value)|from_json -%}
+{%- else -%}
+{%- set format_validation = validate_datetime_format(date_value)|from_json -%}
+{%- endif -%}
+
+{%- if not format_validation.valid -%}
+{%- set result.error = "Campo " + field_name + ": " + format_validation.error -%}
+{%- else -%}
+{# Validar rango SIFEN #}
+{%- set range_validation = validate_date_range(format_validation.parsed.date_part if field_type ==
+"datetime" else date_value)|from_json -%}
+{%- if not range_validation.valid -%}
+{%- set result.error = "Campo " + field_name + ": " + range_validation.error -%}
+{%- else -%}
+{# Validar fecha futura si no está permitida #}
+{%- if not allow_future and field_type == "datetime" -%}
+{%- set future_validation = validate_future_date(date_value)|from_json -%}
+{%- if not future_validation.valid -%}
+{%- set result.error = "Campo " + field_name + ": " + future_validation.error -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- endif -%}
+{%- else -%}
+{%- set result.valid = true -%}
+{%- endif -%}
+
+{# Si llegamos aquí, todo está válido #}
+{%- if result.valid -%}
+{%- set result.field_info = {
+"field_name": field_name,
+"field_type": field_type,
+"normalized_value": format_validation.normalized,
+"allow_future": allow_future,
+"parsed_data": format_validation.parsed
+} -%}
+{%- endif -%}
+{%- endif -%}
+{%- endif -%}
+
+{{- result|tojson -}}
+{% endmacro %}
+
+{# ===================================================================== #}
+{# FUNCIÓN: GENERAR FECHA ACTUAL PARA TESTING #}
+{# ===================================================================== #}
+{% macro generate_current_datetime() %}
+{%- set result = namespace(current="2025-06-30T14:30:00") -%}
+{# En producción, esto se generaría dinámicamente #}
+{{- result|tojson -}}
+{% endmacro %}
