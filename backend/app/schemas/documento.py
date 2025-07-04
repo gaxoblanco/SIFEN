@@ -657,8 +657,389 @@ class DocumentoStatsDTO(BaseModel):
 
 
 # ===============================================
+# CREACTE DTOs
+# ===============================================
+class DocumentoCreateDTO(BaseModel):
+    """
+    DTO para creación de documentos electrónicos.
+
+    Usado como base para crear documentos de cualquier tipo
+    (facturas, notas de crédito, etc.).
+
+    Examples:
+        ```python
+        # POST /api/v1/documentos
+        documento_data = DocumentoCreateDTO(
+            tipo_documento="1",
+            establecimiento="001",
+            punto_expedicion="001",
+            numero_documento="0000123",
+            cliente_id=456,
+            total_general=Decimal("1100000")
+        )
+        ```
+    """
+
+    # === IDENTIFICACIÓN ===
+    tipo_documento: str = Field(
+        ...,
+        description="Tipo de documento SIFEN (1=FE, 4=AFE, 5=NCE, 6=NDE, 7=NRE)",
+        pattern=r"^[14567]$"
+    )
+
+    # === NUMERACIÓN ===
+    establecimiento: str = Field(
+        ...,
+        description="Código establecimiento (001-999)",
+        min_length=3,
+        max_length=3,
+        pattern=r"^\d{3}$"
+    )
+
+    punto_expedicion: str = Field(
+        ...,
+        description="Punto de expedición (001-999)",
+        min_length=3,
+        max_length=3,
+        pattern=r"^\d{3}$"
+    )
+
+    numero_documento: str = Field(
+        ...,
+        description="Número de documento (0000001-9999999)",
+        min_length=7,
+        max_length=7,
+        pattern=r"^\d{7}$"
+    )
+
+    numero_timbrado: str = Field(
+        ...,
+        description="Número de timbrado SET",
+        min_length=1,
+        max_length=8,
+        pattern=r"^\d{1,8}$"
+    )
+
+    # === FECHAS ===
+    fecha_emision: date = Field(
+        ...,
+        description="Fecha de emisión del documento"
+    )
+
+    fecha_inicio_vigencia_timbrado: date = Field(
+        ...,
+        description="Fecha inicio vigencia del timbrado"
+    )
+
+    fecha_fin_vigencia_timbrado: date = Field(
+        ...,
+        description="Fecha fin vigencia del timbrado"
+    )
+
+    # === PARTICIPANTES ===
+    cliente_id: int = Field(
+        ...,
+        description="ID del cliente receptor",
+        gt=0
+    )
+
+    timbrado_id: int = Field(
+        ...,
+        description="ID del timbrado utilizado",
+        gt=0
+    )
+
+    # === INFORMACIÓN COMERCIAL ===
+    tipo_operacion: str = Field(
+        default="1",
+        description="Tipo de operación (1=Venta, 2=Exportación, etc.)",
+        pattern=r"^[1-9]$"
+    )
+
+    condicion_operacion: str = Field(
+        default="1",
+        description="Condición de pago (1=Contado, 2=Crédito)",
+        pattern=r"^[1-9]$"
+    )
+
+    descripcion_operacion: Optional[str] = Field(
+        None,
+        description="Descripción de la operación comercial",
+        max_length=500
+    )
+
+    # === MONEDA ===
+    moneda: str = Field(
+        default="PYG",
+        description="Código de moneda ISO (PYG, USD, EUR, etc.)",
+        pattern=r"^[A-Z]{3}$"
+    )
+
+    tipo_cambio: Decimal = Field(
+        default=1.0000,
+        description="Tipo de cambio aplicado",
+        ge=0.0001,
+        le=999999.9999,
+        decimal_places=4
+    )
+
+    # === TOTALES ===
+    total_general: Decimal = Field(
+        ...,
+        description="Total general del documento",
+        ge=0,
+        le=999999999999.99,
+        decimal_places=2
+    )
+
+    subtotal_exento: Optional[Decimal] = Field(
+        default=Decimal("0.00"),
+        description="Subtotal exento de IVA",
+        ge=0,
+        decimal_places=2
+    )
+
+    subtotal_exonerado: Optional[Decimal] = Field(
+        default=Decimal("0.00"),
+        description="Subtotal exonerado de IVA",
+        ge=0,
+        decimal_places=2
+    )
+
+    subtotal_gravado_5: Optional[Decimal] = Field(
+        default=Decimal("0.00"),
+        description="Subtotal gravado al 5%",
+        ge=0,
+        decimal_places=2
+    )
+
+    subtotal_gravado_10: Optional[Decimal] = Field(
+        default=Decimal("0.00"),
+        description="Subtotal gravado al 10%",
+        ge=0,
+        decimal_places=2
+    )
+
+    total_iva: Optional[Decimal] = Field(
+        default=Decimal("0.00"),
+        description="Total IVA liquidado",
+        ge=0,
+        decimal_places=2
+    )
+
+    # === ADICIONAL ===
+    motivo_emision: Optional[str] = Field(
+        None,
+        description="Motivo o descripción de la emisión",
+        max_length=500
+    )
+
+    observaciones: Optional[str] = Field(
+        None,
+        description="Observaciones adicionales",
+        max_length=1000
+    )
+
+    # === VALIDACIONES ===
+
+    @validator('fecha_emision')
+    def validate_fecha_emision(cls, v):
+        """Valida que la fecha de emisión no sea futura"""
+        from datetime import date
+        if v > date.today():
+            raise ValueError('La fecha de emisión no puede ser futura')
+        return v
+
+    @validator('fecha_fin_vigencia_timbrado')
+    def validate_vigencia_timbrado(cls, v, values):
+        """Valida que la fecha fin sea posterior a la fecha inicio"""
+        fecha_inicio = values.get('fecha_inicio_vigencia_timbrado')
+        if fecha_inicio and v <= fecha_inicio:
+            raise ValueError(
+                'La fecha fin debe ser posterior a la fecha inicio')
+        return v
+
+    @validator('moneda')
+    def validate_moneda(cls, v):
+        """Valida códigos de moneda soportados"""
+        monedas_soportadas = ['PYG', 'USD', 'EUR', 'BRL', 'ARS', 'CLP', 'UYU']
+        if v not in monedas_soportadas:
+            raise ValueError(
+                f'Moneda debe ser una de: {", ".join(monedas_soportadas)}')
+        return v
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "tipo_documento": "1",
+                "establecimiento": "001",
+                "punto_expedicion": "001",
+                "numero_documento": "0000123",
+                "numero_timbrado": "12345678",
+                "fecha_emision": "2025-01-15",
+                "fecha_inicio_vigencia_timbrado": "2025-01-01",
+                "fecha_fin_vigencia_timbrado": "2025-12-31",
+                "cliente_id": 456,
+                "timbrado_id": 1,
+                "tipo_operacion": "1",
+                "condicion_operacion": "1",
+                "descripcion_operacion": "Venta de productos y servicios",
+                "moneda": "PYG",
+                "tipo_cambio": "1.0000",
+                "total_general": "1100000.00",
+                "subtotal_exento": "0.00",
+                "subtotal_exonerado": "0.00",
+                "subtotal_gravado_5": "0.00",
+                "subtotal_gravado_10": "1000000.00",
+                "total_iva": "100000.00",
+                "motivo_emision": "Venta de productos según pedido #123",
+                "observaciones": "Cliente frecuente - descuento aplicado"
+            }
+        }
+
+# ===============================================
+# UPDATE DTOs
+# ===============================================
+
+
+class DocumentoUpdateDTO(BaseModel):
+    """
+    DTO para actualización de documentos electrónicos.
+
+    Permite modificar solo campos específicos según el estado del documento.
+    Todos los campos son opcionales para updates parciales.
+
+    Note:
+        - Solo se pueden modificar documentos en estados específicos
+        - Campos como CDC, numeración y totales generalmente no se modifican
+        - Validaciones de estado se manejan en el repository/service
+
+    Examples:
+        ```python
+        # PUT /api/v1/documentos/{id}
+        update_data = DocumentoUpdateDTO(
+            observaciones="Observaciones actualizadas por el usuario",
+            motivo_emision="Motivo actualizado según solicitud"
+        )
+        ```
+    """
+
+    # === CAMPOS MODIFICABLES BÁSICOS ===
+    descripcion_operacion: Optional[str] = Field(
+        None,
+        description="Nueva descripción de la operación",
+        max_length=500
+    )
+
+    motivo_emision: Optional[str] = Field(
+        None,
+        description="Nuevo motivo de emisión",
+        max_length=500
+    )
+
+    observaciones: Optional[str] = Field(
+        None,
+        description="Nuevas observaciones",
+        max_length=1000
+    )
+
+    # === CAMPOS DE CONTENIDO XML (para procesos internos) ===
+    xml_generado: Optional[str] = Field(
+        None,
+        description="Contenido XML generado"
+    )
+
+    xml_firmado: Optional[str] = Field(
+        None,
+        description="XML con firma digital aplicada"
+    )
+
+    hash_documento: Optional[str] = Field(
+        None,
+        description="Hash SHA-256 del documento firmado",
+        min_length=64,
+        max_length=64,
+    )
+
+    # === CAMPOS DE ESTADO SIFEN (para procesos internos) ===
+    codigo_respuesta_sifen: Optional[str] = Field(
+        None,
+        description="Código de respuesta de SIFEN",
+        max_length=10
+    )
+
+    mensaje_sifen: Optional[str] = Field(
+        None,
+        description="Mensaje descriptivo de SIFEN",
+        max_length=1000
+    )
+
+    numero_protocolo: Optional[str] = Field(
+        None,
+        description="Número de protocolo asignado por SIFEN",
+        max_length=50
+    )
+
+    url_consulta_publica: Optional[str] = Field(
+        None,
+        description="URL para consulta pública del documento",
+        max_length=200
+    )
+
+    observaciones_sifen: Optional[str] = Field(
+        None,
+        description="Observaciones devueltas por SIFEN",
+        max_length=1000
+    )
+
+    # === VALIDACIONES ===
+
+    @validator('xml_generado', 'xml_firmado')
+    def validate_xml_content(cls, v):
+        """Valida formato básico de contenido XML"""
+        if v is not None:
+            v_clean = v.strip()
+            if v_clean and not v_clean.startswith('<?xml'):
+                raise ValueError(
+                    'El contenido XML debe comenzar con declaración XML válida')
+
+            # Validar tamaño máximo (10MB)
+            max_size = 10 * 1024 * 1024
+            if len(v_clean.encode('utf-8')) > max_size:
+                raise ValueError(
+                    f'El XML excede el tamaño máximo permitido ({max_size} bytes)')
+        return v
+
+    @validator('codigo_respuesta_sifen')
+    def validate_codigo_sifen(cls, v):
+        """Valida formato de código SIFEN"""
+        if v is not None:
+            if not v.isdigit():
+                raise ValueError(
+                    'El código de respuesta SIFEN debe ser numérico')
+            if len(v) < 3 or len(v) > 4:
+                raise ValueError(
+                    'El código de respuesta SIFEN debe tener 3-4 dígitos')
+        return v
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "observaciones": "Documento actualizado según solicitud del cliente",
+                "motivo_emision": "Venta actualizada por modificación de pedido",
+                "descripcion_operacion": "Operación comercial estándar - productos y servicios",
+                "hash_documento": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890",
+                "codigo_respuesta_sifen": "0260",
+                "mensaje_sifen": "Aprobado",
+                "numero_protocolo": "PROT123456789ABC",
+                "observaciones_sifen": "Documento procesado correctamente"
+            }
+        }
+
+# ===============================================
 # EXPORTS
 # ===============================================
+
 
 __all__ = [
     # === ENUMS ===
@@ -673,5 +1054,10 @@ __all__ = [
 
     # === DTOs CONSULTA ===
     "DocumentoConsultaDTO",
-    "DocumentoStatsDTO"
+    "DocumentoStatsDTO",
+
+    # === DTOs CREATE ===
+    "DocumentoCreateDTO",
+    # === DTOs UPDATE ===
+    "DocumentoUpdateDTO",
 ]
