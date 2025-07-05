@@ -13,6 +13,7 @@ Características principales:
 - Type hints completos
 - Context managers para transacciones
 
+path: app/repositories/base.py
 Autor: Sistema SIFEN
 Fecha: 2024
 """

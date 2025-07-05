@@ -20,6 +20,7 @@ Uso:
     # En lugar de: user.last_login = datetime.now()  # Error tipado  
     safe_set(user, 'last_login', datetime.now())  # Type-safe
 
+path: app/repositories/utils.py
 Autor: Sistema SIFEN
 Fecha: 2024
 """
